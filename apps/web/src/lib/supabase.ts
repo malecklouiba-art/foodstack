@@ -2,18 +2,9 @@ import { createClientComponentClient, createServerComponentClient } from '@supab
 import { cookies } from 'next/headers';
 
 export function createClient() {
-  return createClientComponentClient({
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  });
+  return createClientComponentClient();
 }
 
 export function createServerClient() {
-  return createServerComponentClient({
-    cookies,
-    options: {
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    },
-  });
+  return createServerComponentClient({ cookies });
 }

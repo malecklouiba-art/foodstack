@@ -77,7 +77,7 @@ jobs:
         run: npm run --workspace=@foodstack/database generate
 
       - name: Run migrations
-        run: npm run --workspace=@foodstack/database migrate
+        run: npm run --workspace=@foodstack/database migrate:deploy
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/foodstack_test
 
