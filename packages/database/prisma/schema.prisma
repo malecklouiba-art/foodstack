@@ -1,0 +1,480 @@
+// FoodStack Database Schema
+// Powered by Prisma + PostgreSQL (Supabase)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_DIRECT_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────
+
+enum UserRole {
+  super_admin
+  restaurant_owner
+  staff
+  driver
+  customer
+}
+
+enum LoyaltyTier {
+  bronze
+  silver
+  gold
+  platinum
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready
+  delivering
+  delivered
+  cancelled
+  refunded
+}
+
+enum OrderType {
+  delivery
+  pickup
+  dine_in
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum PaymentMethod {
+  card
+  cash
+  apple_pay
+  google_pay
+  loyalty_points
+}
+
+enum StockMovementType {
+  restock
+  usage
+  waste
+  adjustment
+  return
+}
+
+enum DeliveryStatus {
+  assigned
+  en_route_to_restaurant
+  at_restaurant
+  picked_up
+  en_route_to_customer
+  arrived
+  delivered
+}
+
+// ─── Models ──────────────────────────────────────────────────
+
+model User {
+  id             String      @id @default(cuid())
+  email          String      @unique
+  passwordHash   String
+  name           String
+  phone          String?
+  avatar         String?
+  role           UserRole    @default(customer)
+  isActive       Boolean     @default(true)
+  emailVerified  Boolean     @default(false)
+
+  loyaltyPoints  Int         @default(0)
+  loyaltyTier    LoyaltyTier @default(bronze)
+
+  // Relations
+  ownedRestaurants Restaurant[]    @relation("Owner")
+  staffAt          RestaurantStaff[]
+  orders           Order[]         @relation("Customer")
+  deliveries       Delivery[]      @relation("Driver")
+  loyaltyTx        LoyaltyTransaction[]
+  reviews          Review[]
+  addresses        SavedAddress[]
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model SavedAddress {
+  id         String  @id @default(cuid())
+  userId     String
+  label      String
+  street     String
+  city       String
+  postalCode String
+  country    String  @default("France")
+  latitude   Float?
+  longitude  Float?
+  isDefault  Boolean @default(false)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("saved_addresses")
+}
+
+model Restaurant {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  coverImage  String?
+  isActive    Boolean  @default(false)
+  isOpen      Boolean  @default(false)
+  rating      Float?
+  reviewCount Int      @default(0)
+
+  // Address
+  street      String
+  city        String
+  postalCode  String
+  country     String   @default("France")
+  latitude    Float?
+  longitude   Float?
+
+  // Contact
+  phone       String
+  email       String
+  website     String?
+
+  // Legal
+  siret       String?
+  tva         String?
+
+  // Settings (stored as JSON)
+  settings    Json     @default("{}")
+  businessHours Json   @default("{}")
+
+  // Relations
+  ownerId     String
+  owner       User              @relation("Owner", fields: [ownerId], references: [id])
+  staff       RestaurantStaff[]
+  categories  MenuCategory[]
+  menuItems   MenuItem[]
+  orders      Order[]
+  inventory   InventoryItem[]
+  suppliers   Supplier[]
+  promotions  Promotion[]
+  reviews     Review[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([city])
+  @@index([isActive, isOpen])
+  @@map("restaurants")
+}
+
+model RestaurantStaff {
+  id           String     @id @default(cuid())
+  restaurantId String
+  userId       String
+  role         UserRole   @default(staff)
+  isActive     Boolean    @default(true)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([restaurantId, userId])
+  @@map("restaurant_staff")
+}
+
+model MenuCategory {
+  id           String     @id @default(cuid())
+  restaurantId String
+  name         String
+  description  String?
+  image        String?
+  position     Int        @default(0)
+  isActive     Boolean    @default(true)
+  availableFrom String?
+  availableTo  String?
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items        MenuItem[]
+
+  @@index([restaurantId])
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id             String       @id @default(cuid())
+  restaurantId   String
+  categoryId     String
+  name           String
+  description    String
+  image          String?
+  price          Float
+  compareAtPrice Float?
+  sku            String?
+  calories       Int?
+  allergens      String[]
+  dietaryTags    String[]
+  prepTime       Int          @default(15)
+  isActive       Boolean      @default(true)
+  isFeatured     Boolean      @default(false)
+  rating         Float?
+  reviewCount    Int          @default(0)
+  soldCount      Int          @default(0)
+  position       Int          @default(0)
+
+  restaurant     Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  category       MenuCategory @relation(fields: [categoryId], references: [id])
+  modifierGroups ModifierGroup[]
+  orderItems     OrderItem[]
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([restaurantId])
+  @@index([categoryId])
+  @@map("menu_items")
+}
+
+model ModifierGroup {
+  id            String           @id @default(cuid())
+  menuItemId    String
+  name          String
+  required      Boolean          @default(false)
+  minSelections Int              @default(0)
+  maxSelections Int              @default(1)
+  menuItem      MenuItem         @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  options       ModifierOption[]
+
+  @@map("modifier_groups")
+}
+
+model ModifierOption {
+  id          String        @id @default(cuid())
+  groupId     String
+  name        String
+  price       Float         @default(0)
+  isDefault   Boolean       @default(false)
+  isAvailable Boolean       @default(true)
+  group       ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@map("modifier_options")
+}
+
+model Order {
+  id                  String        @id @default(cuid())
+  orderNumber         String        @unique
+  restaurantId        String
+  customerId          String
+  driverId            String?
+
+  type                OrderType     @default(delivery)
+  status              OrderStatus   @default(pending)
+  paymentStatus       PaymentStatus @default(pending)
+  paymentMethod       PaymentMethod @default(card)
+  stripePaymentIntentId String?
+
+  // Delivery address (stored as JSON)
+  deliveryAddress     Json?
+
+  subtotal            Float
+  deliveryFee         Float         @default(0)
+  tax                 Float         @default(0)
+  discount            Float         @default(0)
+  loyaltyPointsUsed   Int           @default(0)
+  loyaltyPointsEarned Int           @default(0)
+  total               Float
+
+  notes               String?
+  cancelReason        String?
+
+  estimatedDeliveryTime DateTime?
+  actualDeliveryTime    DateTime?
+
+  restaurant  Restaurant   @relation(fields: [restaurantId], references: [id])
+  customer    User         @relation("Customer", fields: [customerId], references: [id])
+  items       OrderItem[]
+  delivery    Delivery?
+  review      Review?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([restaurantId])
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  menuItemId String
+  name       String
+  price      Float
+  quantity   Int
+  modifiers  Json     @default("[]")
+  notes      String?
+  subtotal   Float
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Delivery {
+  id                  String         @id @default(cuid())
+  orderId             String         @unique
+  driverId            String
+  status              DeliveryStatus @default(assigned)
+
+  pickupLatitude      Float?
+  pickupLongitude     Float?
+  dropoffLatitude     Float?
+  dropoffLongitude    Float?
+  currentLatitude     Float?
+  currentLongitude    Float?
+
+  estimatedPickupAt   DateTime?
+  actualPickupAt      DateTime?
+  estimatedDeliveryAt DateTime?
+  actualDeliveryAt    DateTime?
+
+  distance            Float?
+  duration            Int?
+
+  order   Order @relation(fields: [orderId], references: [id])
+  driver  User  @relation("Driver", fields: [driverId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([driverId])
+  @@map("deliveries")
+}
+
+model InventoryItem {
+  id           String     @id @default(cuid())
+  restaurantId String
+  name         String
+  sku          String?
+  category     String
+  currentStock Float
+  unit         String
+  minStock     Float
+  maxStock     Float?
+  costPerUnit  Float
+  supplierId   String?
+
+  restaurant   Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  supplier     Supplier?       @relation(fields: [supplierId], references: [id])
+  movements    StockMovement[]
+
+  lastRestockedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([restaurantId])
+  @@map("inventory_items")
+}
+
+model StockMovement {
+  id            String            @id @default(cuid())
+  itemId        String
+  type          StockMovementType
+  quantity      Float
+  previousStock Float
+  newStock      Float
+  reason        String?
+  userId        String
+
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+
+  @@index([itemId])
+  @@map("stock_movements")
+}
+
+model Supplier {
+  id           String     @id @default(cuid())
+  restaurantId String
+  name         String
+  contact      String?
+  email        String?
+  phone        String?
+  website      String?
+  address      String?
+  notes        String?
+  restaurant   Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  items        InventoryItem[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("suppliers")
+}
+
+model LoyaltyTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  points    Int
+  type      String
+  reason    String
+  orderId   String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("loyalty_transactions")
+}
+
+model Promotion {
+  id           String     @id @default(cuid())
+  restaurantId String
+  code         String     @unique
+  description  String
+  type         String
+  value        Float
+  minOrder     Float?
+  maxUses      Int?
+  usedCount    Int        @default(0)
+  isActive     Boolean    @default(true)
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([code])
+  @@map("promotions")
+}
+
+model Review {
+  id           String     @id @default(cuid())
+  restaurantId String
+  userId       String
+  orderId      String?    @unique
+  rating       Int
+  comment      String?
+  isPublic     Boolean    @default(true)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  user         User       @relation(fields: [userId], references: [id])
+  order        Order?     @relation(fields: [orderId], references: [id])
+
+  createdAt    DateTime   @default(now())
+
+  @@index([restaurantId])
+  @@map("reviews")
+}
