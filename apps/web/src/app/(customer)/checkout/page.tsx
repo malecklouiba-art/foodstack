@@ -10,6 +10,8 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
+  Tag,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +23,13 @@ import { useCartStore } from '@/store/cart';
 import axios from 'axios';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '');
+
+const COUPONS: Record<string, { type: 'percent' | 'fixed' | 'delivery'; value: number; label: string }> = {
+  'SAVE10': { type: 'percent', value: 10, label: '-10%' },
+  'WELCOME20': { type: 'percent', value: 20, label: '-20%' },
+  'FREEDEL': { type: 'delivery', value: 0, label: 'Livraison offerte' },
+  'MOINS5': { type: 'fixed', value: 5, label: '-5 €' },
+};
 
 const DELIVERY_SLOTS = [
   { id: 'asap', label: 'Dès que possible', sublabel: '20–35 min' },
@@ -37,11 +46,32 @@ function CheckoutForm() {
   const [apt, setApt] = useState('');
   const [code, setCode] = useState('');
   const [notes, setNotes] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState('');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingIntent, setLoadingIntent] = useState(false);
   const [step, setStep] = useState<'details' | 'payment'>('details');
 
-  const orderTotal = total();
+  const coupon = appliedCoupon ? COUPONS[appliedCoupon] : null;
+  const discount = coupon
+    ? coupon.type === 'percent' ? (total() * coupon.value) / 100
+    : coupon.type === 'fixed' ? coupon.value
+    : total() > 0 ? useCartStore.getState().deliveryFee() : 0
+    : 0;
+  const orderTotal = Math.max(0, total() - (coupon?.type === 'delivery' ? 0 : discount));
+
+  const applyCoupon = () => {
+    const key = couponInput.trim().toUpperCase();
+    if (COUPONS[key]) {
+      setAppliedCoupon(key);
+      setCouponError('');
+      setCouponInput('');
+      toast.success(`Code "${key}" appliqué !`);
+    } else {
+      setCouponError('Code invalide ou expiré');
+    }
+  };
 
   const goToPayment = async () => {
     if (!address.trim()) {
@@ -198,17 +228,60 @@ function CheckoutForm() {
                     </div>
                   ))}
                 </div>
+                {/* Coupon input */}
+                <div className="mt-4 border-t border-surface-100 pt-4">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between rounded-xl bg-green-50 px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-semibold text-green-700">{appliedCoupon}</span>
+                        <span className="text-xs text-green-600">{COUPONS[appliedCoupon].label}</span>
+                      </div>
+                      <button onClick={() => setAppliedCoupon(null)} className="text-green-500 hover:text-green-700">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          value={couponInput}
+                          onChange={(e) => { setCouponInput(e.target.value); setCouponError(''); }}
+                          onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
+                          placeholder="Code promo"
+                          className="h-9 flex-1 rounded-lg border border-surface-200 px-3 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                        />
+                        <button onClick={applyCoupon}
+                          className="h-9 rounded-lg bg-surface-900 px-3 text-sm font-medium text-white hover:bg-surface-800">
+                          Appliquer
+                        </button>
+                      </div>
+                      {couponError && <p className="mt-1 text-xs text-red-500">{couponError}</p>}
+                    </div>
+                  )}
+                </div>
+
                 <div className="mt-4 space-y-2 border-t border-surface-100 pt-4">
                   <div className="flex justify-between text-sm text-surface-600">
                     <span>Sous-total</span><span>{subtotal().toFixed(2)} €</span>
                   </div>
                   <div className="flex justify-between text-sm text-surface-600">
                     <span>Livraison</span>
-                    <span>{deliveryFee() === 0 ? <span className="text-green-600">Gratuite</span> : `${deliveryFee().toFixed(2)} €`}</span>
+                    <span>{coupon?.type === 'delivery'
+                      ? <span className="text-green-600">Offerte 🎉</span>
+                      : deliveryFee() === 0 ? <span className="text-green-600">Gratuite</span>
+                      : `${deliveryFee().toFixed(2)} €`}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm text-surface-600">
                     <span>TVA</span><span>{tax().toFixed(2)} €</span>
                   </div>
+                  {coupon && coupon.type !== 'delivery' && (
+                    <div className="flex justify-between text-sm font-medium text-green-600">
+                      <span>Réduction ({coupon.label})</span>
+                      <span>-{discount.toFixed(2)} €</span>
+                    </div>
+                  )}
                   <div className="flex justify-between border-t border-surface-100 pt-2 font-bold text-surface-900">
                     <span>Total à payer</span>
                     <span className="text-lg">{orderTotal.toFixed(2)} €</span>

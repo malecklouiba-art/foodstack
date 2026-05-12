@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import './globals.css';
 
 const inter = Inter({
@@ -50,9 +51,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans`}>
-        {children}
-        <Toaster
+      <body className={`${inter.variable} font-sans bg-white dark:bg-surface-950 text-surface-900 dark:text-surface-50`}>
+        <ThemeProvider>
+          {children}
+          <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,
@@ -68,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
           }}
         />
+        </ThemeProvider>
       </body>
     </html>
   );
