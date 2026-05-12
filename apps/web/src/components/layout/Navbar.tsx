@@ -24,8 +24,8 @@ import { useCartStore } from '@/store/cart';
 const navLinks = [
   { href: '/menu', label: 'Menu' },
   { href: '/restaurants', label: 'Restaurants' },
+  { href: '/loyalty', label: 'Fidélité' },
   { href: '/offers', label: 'Offres' },
-  { href: '/track', label: 'Suivi' },
 ];
 
 export function Navbar() {

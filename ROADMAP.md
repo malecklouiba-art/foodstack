@@ -1,7 +1,7 @@
 # FoodStack — Roadmap & État d'avancement
 
 > Basé sur le cahier des charges initial "Loone POS"  
-> Dernière mise à jour : 12 mai 2026 (Sprint 2)
+> Dernière mise à jour : 12 mai 2026 (Sprint 3)
 
 ---
 
@@ -71,7 +71,7 @@
 | `OrdersModule` | ✅ | Création, statuts |
 | `DeliveryModule` | ✅ | Gestion livraisons |
 | `InventoryModule` | ✅ | Stock, mouvements, alertes |
-| `PaymentsModule` (Stripe) | 🔄 | Scaffold présent, webhook Stripe non implémenté |
+| `PaymentsModule` (Stripe) | ✅ | Webhook réel avec vérif signature, update order status, socket event |
 | `LoyaltyModule` | ✅ | Points, tiers Bronze→Platine |
 | `AnalyticsModule` | 🔄 | Scaffold présent, requêtes réelles à écrire |
 | Swagger / OpenAPI docs | ✅ | Accessible à `/api/docs` |
@@ -116,7 +116,7 @@
 | Suivi commande (`/orders/[id]/track`) | ✅ | Carte animée, timeline, livreur |
 | Historique commandes | ✅ | `/orders` — liste, filtres, banner commande active, recommander |
 | Profil client | ✅ | `/profile` — infos, adresses, fidélité, notifications, sécurité |
-| Programme fidélité | ❌ | `/loyalty` — points, niveaux, récompenses |
+| Programme fidélité | ✅ | `/loyalty` — tiers, récompenses, historique, échange de points |
 | Favoris / restaurants sauvegardés | ❌ | |
 | Notifications | ❌ | Centre de notifications `/notifications` |
 | Commandes programmées | ❌ | Sélection date/heure future |
@@ -142,11 +142,11 @@
 | Inventaire (`/dashboard/inventory`) | ✅ | Niveaux stock, alertes, stats |
 | Caisse POS (`/pos`) | ✅ | Interface tactile, calcul monnaie, paiement |
 | Gestion menus | ✅ | CRUD catégories + articles, allergènes, calories, toggle disponibilité |
-| Gestion employés | ❌ | Invitations, rôles, permissions |
+| Gestion employés | ✅ | `/dashboard/staff` — invitations, rôles, toggle actif/inactif |
 | Statistiques avancées | ❌ | Revenus par heure, best-sellers, clients |
 | Gestion fournisseurs | ❌ | Contacts, commandes fournisseurs |
 | Zones de livraison | ❌ | Carte avec polygones de zone |
-| Paramètres restaurant | ❌ | Horaires, logo, infos, intégrations |
+| Paramètres restaurant | ✅ | `/dashboard/settings` — général, horaires, zones livraison, intégrations |
 
 ### Super Admin (`/admin`)
 
@@ -178,8 +178,8 @@
 
 | Fonctionnalité | État | Notes |
 |---|---|---|
-| Intégration Stripe (scaffold) | 🔄 | Module présent, pas de webhook réel |
-| Paiement par carte (Stripe Elements) | ❌ | |
+| Intégration Stripe (scaffold) | ✅ | PaymentIntent + webhook complet + Stripe Elements checkout |
+| Paiement par carte (Stripe Elements) | ✅ | `StripeCardForm` avec PaymentElement, redirect if_required |
 | Apple Pay / Google Pay | ❌ | Stripe Payment Request Button |
 | Split paiement | ❌ | |
 | Remboursement | ❌ | API Stripe refund |
@@ -210,7 +210,7 @@
 | Modèle `LoyaltyTransaction` | ✅ | |
 | Tiers Bronze/Silver/Gold/Platinum | ✅ | Constants dans `@foodstack/shared` |
 | Attribution points à la commande | 🔄 | Logique backend partielle |
-| Interface consommateur fidélité | ❌ | Page `/loyalty` |
+| Interface consommateur fidélité | ✅ | Page `/loyalty` |
 | Coupons et codes promo | ❌ | |
 | Cashback | ❌ | |
 | Récompenses échangeables | ❌ | |
