@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ─── Enums ───────────────────────────────────────────────────
@@ -84,7 +83,8 @@ model User {
   id             String      @id @default(cuid())
   email          String      @unique
   passwordHash   String
-  name           String
+  firstName      String
+  lastName       String
   phone          String?
   avatar         String?
   role           UserRole    @default(customer)

@@ -14,7 +14,8 @@ async function main() {
     create: {
       email: 'admin@foodstack.app',
       passwordHash: adminHash,
-      name: 'Super Admin',
+      firstName: 'Super',
+      lastName: 'Admin',
       role: UserRole.super_admin,
       emailVerified: true,
     },
@@ -28,7 +29,8 @@ async function main() {
     create: {
       email: 'owner@lecomptoir.fr',
       passwordHash: ownerHash,
-      name: 'Jean Dupont',
+      firstName: 'Jean',
+      lastName: 'Dupont',
       phone: '06 12 34 56 78',
       role: UserRole.restaurant_owner,
       emailVerified: true,
@@ -45,7 +47,8 @@ async function main() {
     create: {
       email: 'client@exemple.fr',
       passwordHash: customerHash,
-      name: 'Marie Laurent',
+      firstName: 'Marie',
+      lastName: 'Laurent',
       phone: '07 98 76 54 32',
       role: UserRole.customer,
       emailVerified: true,

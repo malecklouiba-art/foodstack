@@ -29,7 +29,7 @@ export class RestaurantsService {
   }
 
   async create(dto: CreateRestaurantDto) {
-    return this.prisma.restaurant.create({ data: dto });
+    return this.prisma.restaurant.create({ data: dto as any });
   }
 
   async update(id: string, dto: UpdateRestaurantDto) {
