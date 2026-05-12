@@ -1,28 +1,37 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  Store,
-  Clock,
-  MapPin,
-  Phone,
-  Mail,
-  Globe,
-  Upload,
-  Save,
-  Plus,
-  Trash2,
-  ToggleRight,
-  ToggleLeft,
-  ChevronDown,
-  AlertTriangle,
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Save, Upload, Info, Bell, CreditCard, Clock, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import toast from 'react-hot-toast';
+import { Select } from '@/components/ui/Select';
+import { useAuthStore } from '@/store/auth';
+import { subscribeToPush } from '@/lib/push';
 
-const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+
+// ── Types ──────────────────────────────────────────────────────────────────
+
+interface GeneralForm {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  description: string;
+  logoUrl: string;
+}
+
+interface PaymentForm {
+  stripePublishableKey: string;
+  stripeSecretKey: string;
+  currency: 'EUR' | 'USD' | 'GBP';
+}
+
+interface NotifForm {
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  smsEnabled: boolean;
+}
 
 interface DaySchedule {
   open: boolean;
@@ -32,60 +41,240 @@ interface DaySchedule {
 
 type Schedule = Record<string, DaySchedule>;
 
-const DEFAULT_SCHEDULE: Schedule = {
-  Lundi:    { open: true,  from: '11:00', to: '22:00' },
-  Mardi:    { open: true,  from: '11:00', to: '22:00' },
-  Mercredi: { open: true,  from: '11:00', to: '22:00' },
-  Jeudi:    { open: true,  from: '11:00', to: '22:00' },
-  Vendredi: { open: true,  from: '11:00', to: '23:30' },
-  Samedi:   { open: true,  from: '12:00', to: '23:30' },
-  Dimanche: { open: false, from: '12:00', to: '21:00' },
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'] as const;
+
+const DEFAULT_SCHEDULE: Schedule = Object.fromEntries(
+  DAYS.map((day) => [day, { open: true, from: '09:00', to: '22:00' }])
+);
+
+const TABS = ['Général', 'Paiement', 'Notifications', 'Horaires'] as const;
+type Tab = (typeof TABS)[number];
+
+const TAB_ICONS: Record<Tab, React.ReactNode> = {
+  Général: <Settings className="h-4 w-4" />,
+  Paiement: <CreditCard className="h-4 w-4" />,
+  Notifications: <Bell className="h-4 w-4" />,
+  Horaires: <Clock className="h-4 w-4" />,
 };
 
-const DELIVERY_ZONES = [
-  { id: 'z1', name: '1er arrondissement', radius: 2, enabled: true },
-  { id: 'z2', name: '2ème arrondissement', radius: 2, enabled: true },
-  { id: 'z3', name: '8ème arrondissement', radius: 3, enabled: false },
+const CURRENCY_OPTIONS = [
+  { value: 'EUR', label: 'EUR — Euro (€)' },
+  { value: 'USD', label: 'USD — Dollar ($)' },
+  { value: 'GBP', label: 'GBP — Livre sterling (£)' },
 ];
 
-const TABS = ['Général', 'Horaires', 'Livraison', 'Intégrations'] as const;
-type Tab = typeof TABS[number];
+const SAMPLE_EMAIL = `Objet : Confirmation de votre commande #4821
+
+Bonjour Marie,
+
+Nous avons bien reçu votre commande et votre paiement.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Burger Classic            12,90 €
+  Frites maison              3,50 €
+  Coca-Cola 33cl             2,50 €
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Total TTC                 18,90 €
+
+Livraison estimée : 25–35 min
+Adresse : 12 rue de la Paix, 75001 Paris
+
+Merci de votre confiance !
+L'équipe FoodStack`;
+
+// ── Toast banner ───────────────────────────────────────────────────────────
+
+interface ToastBannerProps {
+  message: string;
+  type: 'success' | 'error';
+  onDismiss: () => void;
+}
+
+function ToastBanner({ message, type, onDismiss }: ToastBannerProps) {
+  useEffect(() => {
+    const t = setTimeout(onDismiss, 4000);
+    return () => clearTimeout(t);
+  }, [onDismiss]);
+
+  return (
+    <div
+      className={`fixed top-4 right-4 z-50 flex items-center gap-3 rounded-2xl px-5 py-3 text-sm font-medium text-white shadow-lg transition-all ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+      }`}
+    >
+      <span>{message}</span>
+      <button onClick={onDismiss} className="ml-2 opacity-70 hover:opacity-100">
+        ✕
+      </button>
+    </div>
+  );
+}
+
+// ── Toggle switch ──────────────────────────────────────────────────────────
+
+interface ToggleProps {
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  label: string;
+  description?: string;
+  extra?: React.ReactNode;
+}
+
+function Toggle({ checked, onChange, label, description, extra }: ToggleProps) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-4">
+      <div className="flex-1">
+        <p className="text-sm font-medium text-white">{label}</p>
+        {description && <p className="mt-0.5 text-xs text-gray-400">{description}</p>}
+        {extra}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors ${
+          checked ? 'bg-orange-500' : 'bg-gray-700'
+        }`}
+        aria-checked={checked}
+        role="switch"
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            checked ? 'translate-x-5' : 'translate-x-0.5'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+// ── Section card ───────────────────────────────────────────────────────────
+
+function SectionCard({ title, children }: { title?: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+      {title && <h3 className="mb-5 text-base font-semibold text-white">{title}</h3>}
+      {children}
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { user } = useAuthStore();
+  const restaurantId = (user?.restaurantIds?.[0]) ?? 'demo';
+
   const [activeTab, setActiveTab] = useState<Tab>('Général');
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const [general, setGeneral] = useState({
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+  }, []);
+
+  // ── Général state ──────────────────────────────────────────────────────
+
+  const [general, setGeneral] = useState<GeneralForm>({
     name: 'FoodStack Montmartre',
-    description: 'Burgers artisanaux et pizzas au feu de bois depuis 2018.',
+    address: '12 rue Lepic, 75018 Paris',
     phone: '01 23 45 67 89',
     email: 'contact@foodstack-montmartre.fr',
-    website: 'https://foodstack.fr',
-    address: '12 rue Lepic, 75018 Paris',
-    minOrder: '15',
-    deliveryFee: '2.90',
-    deliveryTime: '25',
-    currency: 'EUR',
-    taxRate: '10',
+    description: 'Burgers artisanaux et pizzas au feu de bois depuis 2018.',
+    logoUrl: '',
   });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setGeneral((p) => ({ ...p, logoUrl: url }));
+  };
+
+  const saveGeneral = async () => {
+    setSaving(true);
+    try {
+      await new Promise<void>((r) => setTimeout(r, 600));
+      // PATCH `/restaurants/:id`
+      await fetch(`${API_URL}/restaurants/${restaurantId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(general),
+      }).catch(() => null); // swallow in mock
+      showToast('Informations générales sauvegardées !');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Paiement state ─────────────────────────────────────────────────────
+
+  const [payment, setPayment] = useState<PaymentForm>({
+    stripePublishableKey: 'pk_live_51Abc...xYz1',
+    stripeSecretKey: '',
+    currency: 'EUR',
+  });
+
+  const savePayment = async () => {
+    setSaving(true);
+    try {
+      await new Promise<void>((r) => setTimeout(r, 600));
+      await fetch(`${API_URL}/restaurants/${restaurantId}/payment-settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payment),
+      }).catch(() => null);
+      showToast('Paramètres de paiement sauvegardés !');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Mask publishable key: show only last 4 chars
+  const maskedPublishable =
+    payment.stripePublishableKey.length > 4
+      ? '••••••••••••' + payment.stripePublishableKey.slice(-4)
+      : payment.stripePublishableKey;
+
+  // ── Notifications state ────────────────────────────────────────────────
+
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setPushSubscribed(localStorage.getItem('push-subscribed') === 'true');
+    }
+  }, []);
+
+  const [notif, setNotif] = useState<NotifForm>({
+    emailEnabled: true,
+    pushEnabled: false,
+    smsEnabled: false,
+  });
+
+  const handleActivatePush = async () => {
+    setPushLoading(true);
+    try {
+      const sub = await subscribeToPush();
+      if (sub) {
+        setPushSubscribed(true);
+        setNotif((p) => ({ ...p, pushEnabled: true }));
+        showToast('Notifications push activées !');
+      } else {
+        showToast('Impossible d\'activer les notifications push.', 'error');
+      }
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  // ── Horaires state ─────────────────────────────────────────────────────
 
   const [schedule, setSchedule] = useState<Schedule>(DEFAULT_SCHEDULE);
-  const [zones, setZones] = useState(DELIVERY_ZONES);
-  const [newZone, setNewZone] = useState({ name: '', radius: '2' });
-
-  const [integrations, setIntegrations] = useState({
-    stripe: true,
-    googleMaps: false,
-    resend: false,
-    twilio: false,
-  });
-
-  const handleSave = async () => {
-    setSaving(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSaving(false);
-    toast.success('Paramètres sauvegardés');
-  };
 
   const toggleDay = (day: string) =>
     setSchedule((s) => ({ ...s, [day]: { ...s[day], open: !s[day].open } }));
@@ -93,257 +282,378 @@ export default function SettingsPage() {
   const updateDay = (day: string, field: 'from' | 'to', value: string) =>
     setSchedule((s) => ({ ...s, [day]: { ...s[day], [field]: value } }));
 
-  const toggleZone = (id: string) =>
-    setZones((z) => z.map((z2) => (z2.id === id ? { ...z2, enabled: !z2.enabled } : z2)));
-
-  const removeZone = (id: string) => setZones((z) => z.filter((z2) => z2.id !== id));
-
-  const addZone = () => {
-    if (!newZone.name.trim()) return;
-    setZones((z) => [...z, { id: `z-${Date.now()}`, name: newZone.name, radius: Number(newZone.radius), enabled: true }]);
-    setNewZone({ name: '', radius: '2' });
-    toast.success('Zone ajoutée');
+  const saveHours = async () => {
+    setSaving(true);
+    try {
+      await new Promise<void>((r) => setTimeout(r, 600));
+      await fetch(`${API_URL}/restaurants/${restaurantId}/hours`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(schedule),
+      }).catch(() => null);
+      showToast('Horaires sauvegardés !');
+    } finally {
+      setSaving(false);
+    }
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────
+
   return (
-    <div className="p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-surface-900">Paramètres</h1>
-          <p className="mt-1 text-sm text-surface-500">Configuration de votre restaurant</p>
+    <div className="min-h-screen bg-gray-950 text-white">
+      {toast && (
+        <ToastBanner
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => setToast(null)}
+        />
+      )}
+
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white">Paramètres</h1>
+          <p className="mt-1 text-sm text-gray-400">Configuration de votre restaurant</p>
         </div>
-        <Button loading={saving} icon={<Save className="h-4 w-4" />} onClick={handleSave}>
-          Sauvegarder
-        </Button>
-      </div>
 
-      {/* Tabs */}
-      <div className="mb-6 flex gap-1 rounded-xl border border-surface-200 bg-surface-50 p-1 w-fit">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? 'bg-white text-surface-900 shadow-sm'
-                : 'text-surface-500 hover:text-surface-700'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+        {/* Tabs */}
+        <div className="mb-6 flex gap-1 overflow-x-auto rounded-xl border border-gray-800 bg-gray-900 p-1">
+          {TABS.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:gap-2 sm:px-4 ${
+                activeTab === tab
+                  ? 'bg-gray-800 text-white shadow'
+                  : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              {TAB_ICONS[tab]}
+              <span className="hidden sm:inline">{tab}</span>
+              <span className="sm:hidden">{tab.slice(0, 4)}</span>
+            </button>
+          ))}
+        </div>
 
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.15 }}
-      >
-        {/* ── GÉNÉRAL ── */}
+        {/* ── Tab: Général ─────────────────────────────────────────────── */}
         {activeTab === 'Général' && (
           <div className="space-y-5">
-            {/* Logo */}
-            <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-surface-900">Identité visuelle</h3>
+            <SectionCard title="Logo du restaurant">
               <div className="flex items-center gap-5">
-                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-brand-100 text-3xl font-bold text-brand-600">
-                  F
+                <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border border-gray-700 bg-gray-800">
+                  {general.logoUrl ? (
+                    <img
+                      src={general.logoUrl}
+                      alt="Logo restaurant"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-orange-400">
+                      {general.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-surface-900">Logo du restaurant</p>
-                  <p className="mt-0.5 text-xs text-surface-400">PNG ou JPG, 512×512 px recommandé</p>
-                  <button className="mt-2 flex items-center gap-2 rounded-xl border border-surface-200 px-3 py-1.5 text-sm font-medium text-surface-600 hover:bg-surface-50">
+                  <p className="text-sm font-medium text-white">Photo de profil</p>
+                  <p className="mt-0.5 text-xs text-gray-400">PNG ou JPG, 512×512 px recommandé</p>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-2 flex items-center gap-2 rounded-xl border border-gray-700 bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-300 transition hover:bg-gray-700"
+                  >
                     <Upload className="h-4 w-4" />
                     Changer le logo
                   </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    className="hidden"
+                    onChange={handleLogoChange}
+                  />
                 </div>
               </div>
-            </div>
+            </SectionCard>
 
-            {/* Infos */}
-            <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-surface-900">Informations générales</h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-sm font-semibold text-surface-700">Nom du restaurant</label>
-                  <div className="relative">
-                    <Store className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                    <input value={general.name} onChange={(e) => setGeneral((p) => ({ ...p, name: e.target.value }))}
-                      className="h-11 w-full rounded-xl border border-surface-200 pl-9 pr-4 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
-                  </div>
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="mb-1.5 block text-sm font-semibold text-surface-700">Description</label>
-                  <textarea value={general.description} onChange={(e) => setGeneral((p) => ({ ...p, description: e.target.value }))}
-                    rows={2} className="w-full rounded-xl border border-surface-200 px-4 py-2.5 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
-                </div>
-                {[
-                  { key: 'phone', label: 'Téléphone', icon: Phone },
-                  { key: 'email', label: 'Email', icon: Mail },
-                  { key: 'website', label: 'Site web', icon: Globe },
-                  { key: 'address', label: 'Adresse', icon: MapPin },
-                ].map(({ key, label, icon: Icon }) => (
-                  <div key={key} className={key === 'address' ? 'sm:col-span-2' : ''}>
-                    <label className="mb-1.5 block text-sm font-semibold text-surface-700">{label}</label>
-                    <div className="relative">
-                      <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
-                      <input value={(general as Record<string, string>)[key]}
-                        onChange={(e) => setGeneral((p) => ({ ...p, [key]: e.target.value }))}
-                        className="h-11 w-full rounded-xl border border-surface-200 pl-9 pr-4 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <SectionCard title="Informations générales">
+              <div className="space-y-4">
+                <Input
+                  label="Nom du restaurant"
+                  value={general.name}
+                  onChange={(e) => setGeneral((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="Ex: Mon Restaurant"
+                />
 
-            {/* Commandes */}
-            <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 font-semibold text-surface-900">Paramètres commandes</h3>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                {[
-                  { key: 'minOrder', label: 'Commande min. (€)', suffix: '€' },
-                  { key: 'deliveryFee', label: 'Frais livraison (€)', suffix: '€' },
-                  { key: 'deliveryTime', label: 'Délai estimé (min)', suffix: 'min' },
-                  { key: 'taxRate', label: 'TVA (%)', suffix: '%' },
-                ].map(({ key, label }) => (
-                  <div key={key}>
-                    <label className="mb-1.5 block text-sm font-semibold text-surface-700">{label}</label>
-                    <input type="number" min="0" value={(general as Record<string, string>)[key]}
-                      onChange={(e) => setGeneral((p) => ({ ...p, [key]: e.target.value }))}
-                      className="h-11 w-full rounded-xl border border-surface-200 px-3 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
-                  </div>
-                ))}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-gray-300">Adresse</label>
+                  <textarea
+                    value={general.address}
+                    onChange={(e) => setGeneral((p) => ({ ...p, address: e.target.value }))}
+                    rows={2}
+                    placeholder="12 rue de la Paix, 75001 Paris"
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input
+                    label="Téléphone"
+                    type="tel"
+                    value={general.phone}
+                    onChange={(e) => setGeneral((p) => ({ ...p, phone: e.target.value }))}
+                    placeholder="01 23 45 67 89"
+                  />
+                  <Input
+                    label="Email"
+                    type="email"
+                    value={general.email}
+                    onChange={(e) => setGeneral((p) => ({ ...p, email: e.target.value }))}
+                    placeholder="contact@restaurant.fr"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-gray-300">Description</label>
+                  <textarea
+                    value={general.description}
+                    onChange={(e) => setGeneral((p) => ({ ...p, description: e.target.value }))}
+                    rows={3}
+                    placeholder="Décrivez votre restaurant..."
+                    className="w-full rounded-xl border border-gray-700 bg-gray-800 px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                  />
+                </div>
               </div>
+            </SectionCard>
+
+            <div className="flex justify-end">
+              <Button
+                loading={saving}
+                icon={<Save className="h-4 w-4" />}
+                onClick={saveGeneral}
+              >
+                Sauvegarder
+              </Button>
             </div>
           </div>
         )}
 
-        {/* ── HORAIRES ── */}
-        {activeTab === 'Horaires' && (
-          <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-1 font-semibold text-surface-900">Horaires d&apos;ouverture</h3>
-            <p className="mb-5 text-sm text-surface-500">Configurez les plages horaires pour chaque jour de la semaine</p>
-            <div className="space-y-3">
-              {DAYS.map((day) => {
-                const slot = schedule[day];
-                return (
-                  <div key={day} className={`flex items-center gap-4 rounded-xl border p-3 transition-colors ${slot.open ? 'border-surface-200' : 'border-surface-100 bg-surface-50'}`}>
-                    <div className="w-28 flex-shrink-0">
-                      <p className={`text-sm font-medium ${slot.open ? 'text-surface-900' : 'text-surface-400'}`}>{day}</p>
-                    </div>
-                    <button onClick={() => toggleDay(day)} className="flex-shrink-0">
-                      {slot.open
-                        ? <ToggleRight className="h-6 w-6 text-green-500" />
-                        : <ToggleLeft className="h-6 w-6 text-surface-300" />}
-                    </button>
-                    {slot.open ? (
-                      <div className="flex items-center gap-2">
-                        <input type="time" value={slot.from} onChange={(e) => updateDay(day, 'from', e.target.value)}
-                          className="h-9 rounded-xl border border-surface-200 px-3 text-sm focus:border-brand-400 focus:outline-none" />
-                        <span className="text-surface-400">→</span>
-                        <input type="time" value={slot.to} onChange={(e) => updateDay(day, 'to', e.target.value)}
-                          className="h-9 rounded-xl border border-surface-200 px-3 text-sm focus:border-brand-400 focus:outline-none" />
-                      </div>
-                    ) : (
-                      <span className="text-sm text-surface-400">Fermé</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* ── LIVRAISON ── */}
-        {activeTab === 'Livraison' && (
+        {/* ── Tab: Paiement ─────────────────────────────────────────────── */}
+        {activeTab === 'Paiement' && (
           <div className="space-y-5">
-            <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-1 font-semibold text-surface-900">Zones de livraison</h3>
-              <p className="mb-5 text-sm text-surface-500">Définissez les zones où vous livrez</p>
-
-              <div className="space-y-3">
-                {zones.map((zone) => (
-                  <div key={zone.id} className={`flex items-center gap-3 rounded-xl border p-3 ${zone.enabled ? 'border-surface-200' : 'border-surface-100 bg-surface-50 opacity-60'}`}>
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${zone.enabled ? 'bg-brand-100 text-brand-600' : 'bg-surface-200 text-surface-400'}`}>
-                      <MapPin className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-surface-900">{zone.name}</p>
-                      <p className="text-xs text-surface-400">Rayon : {zone.radius} km</p>
-                    </div>
-                    <button onClick={() => toggleZone(zone.id)}>
-                      {zone.enabled
-                        ? <ToggleRight className="h-6 w-6 text-green-500" />
-                        : <ToggleLeft className="h-6 w-6 text-surface-300" />}
-                    </button>
-                    <button onClick={() => removeZone(zone.id)}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-surface-400 hover:bg-red-50 hover:text-red-500">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 flex gap-3">
-                <input value={newZone.name} onChange={(e) => setNewZone((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="Nom de la zone"
-                  className="h-10 flex-1 rounded-xl border border-surface-200 px-3 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
-                <input type="number" min="1" max="20" value={newZone.radius}
-                  onChange={(e) => setNewZone((p) => ({ ...p, radius: e.target.value }))}
-                  placeholder="km"
-                  className="h-10 w-20 rounded-xl border border-surface-200 px-3 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100" />
-                <Button size="sm" icon={<Plus className="h-4 w-4" />} onClick={addZone}>
-                  Ajouter
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500 mt-0.5" />
-              <p className="text-sm text-amber-700">
-                Les polygones de zone sur carte interactive nécessitent une clé API Google Maps configurée dans les variables d&apos;environnement.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── INTÉGRATIONS ── */}
-        {activeTab === 'Intégrations' && (
-          <div className="space-y-3">
-            {[
-              { key: 'stripe', name: 'Stripe', desc: 'Paiements en ligne par carte', icon: '💳', docsUrl: '#', configured: true },
-              { key: 'googleMaps', name: 'Google Maps', desc: 'Carte de suivi livraison en temps réel', icon: '🗺️', docsUrl: '#', configured: false },
-              { key: 'resend', name: 'Resend', desc: 'Emails transactionnels (confirmations, factures)', icon: '📧', docsUrl: '#', configured: false },
-              { key: 'twilio', name: 'Twilio', desc: 'Notifications SMS aux clients', icon: '📱', docsUrl: '#', configured: false },
-            ].map(({ key, name, desc, icon, configured }) => {
-              const enabled = integrations[key as keyof typeof integrations];
-              return (
-                <div key={key} className="flex items-center gap-4 rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-100 text-2xl">
-                    {icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-surface-900">{name}</p>
-                      {configured
-                        ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Configuré</span>
-                        : <span className="rounded-full bg-surface-100 px-2 py-0.5 text-xs font-medium text-surface-500">Non configuré</span>}
-                    </div>
-                    <p className="text-sm text-surface-500">{desc}</p>
-                  </div>
-                  <button
-                    onClick={() => setIntegrations((p) => ({ ...p, [key]: !p[key as keyof typeof integrations] }))}
-                    className={`relative h-6 w-11 rounded-full transition-colors ${enabled ? 'bg-brand-500' : 'bg-surface-200'}`}
-                  >
-                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                  </button>
+            <SectionCard title="Clés Stripe">
+              <div className="space-y-4">
+                {/* Info banner */}
+                <div className="flex items-start gap-3 rounded-xl border border-blue-800 bg-blue-950/60 px-4 py-3">
+                  <Info className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-400" />
+                  <p className="text-sm text-blue-300">
+                    Les clés sont chiffrées et jamais exposées côté client
+                  </p>
                 </div>
-              );
-            })}
+
+                {/* Publishable key — shows masked value, type=text */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-gray-300">
+                    Clé publiable (publishable key)
+                  </label>
+                  <input
+                    type="text"
+                    value={maskedPublishable}
+                    readOnly
+                    className="h-10 w-full cursor-not-allowed rounded-xl border border-gray-700 bg-gray-800 px-3 text-sm text-gray-400 focus:outline-none"
+                    placeholder="pk_live_..."
+                  />
+                  <p className="text-xs text-gray-500">
+                    Affichage masqué — seuls les 4 derniers caractères sont visibles
+                  </p>
+                </div>
+
+                {/* Secret key — type=password */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-gray-300">
+                    Clé secrète (secret key)
+                  </label>
+                  <input
+                    type="password"
+                    value={payment.stripeSecretKey}
+                    onChange={(e) =>
+                      setPayment((p) => ({ ...p, stripeSecretKey: e.target.value }))
+                    }
+                    className="h-10 w-full rounded-xl border border-gray-700 bg-gray-800 px-3 text-sm text-white placeholder:text-gray-500 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                    placeholder="sk_live_..."
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Devise">
+              <Select
+                label="Devise de facturation"
+                value={payment.currency}
+                options={CURRENCY_OPTIONS}
+                onChange={(e) =>
+                  setPayment((p) => ({
+                    ...p,
+                    currency: e.target.value as PaymentForm['currency'],
+                  }))
+                }
+              />
+            </SectionCard>
+
+            <div className="flex justify-end">
+              <Button
+                loading={saving}
+                icon={<Save className="h-4 w-4" />}
+                onClick={savePayment}
+              >
+                Sauvegarder
+              </Button>
+            </div>
           </div>
         )}
-      </motion.div>
+
+        {/* ── Tab: Notifications ────────────────────────────────────────── */}
+        {activeTab === 'Notifications' && (
+          <div className="space-y-5">
+            <SectionCard title="Canaux de notification">
+              <div className="divide-y divide-gray-800">
+                <Toggle
+                  checked={notif.emailEnabled}
+                  onChange={(val) => setNotif((p) => ({ ...p, emailEnabled: val }))}
+                  label="Notifications par email"
+                  description="Recevez les nouvelles commandes et alertes par email"
+                />
+                <Toggle
+                  checked={notif.pushEnabled || pushSubscribed}
+                  onChange={() => {
+                    if (!pushSubscribed) {
+                      handleActivatePush();
+                    } else {
+                      setNotif((p) => ({ ...p, pushEnabled: !p.pushEnabled }));
+                    }
+                  }}
+                  label="Notifications push"
+                  description={
+                    pushSubscribed
+                      ? 'Activé — votre navigateur recevra les alertes en temps réel'
+                      : 'Recevez des alertes instantanées dans votre navigateur'
+                  }
+                  extra={
+                    !pushSubscribed ? (
+                      <button
+                        type="button"
+                        onClick={handleActivatePush}
+                        disabled={pushLoading}
+                        className="mt-1.5 rounded-lg border border-orange-600 px-3 py-1 text-xs font-medium text-orange-400 transition hover:bg-orange-600/10 disabled:opacity-50"
+                      >
+                        {pushLoading ? 'Activation…' : 'Activer'}
+                      </button>
+                    ) : null
+                  }
+                />
+                <Toggle
+                  checked={notif.smsEnabled}
+                  onChange={(val) => setNotif((p) => ({ ...p, smsEnabled: val }))}
+                  label="Notifications SMS"
+                  description="Alertes SMS pour les commandes urgentes (nécessite Twilio)"
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Aperçu du modèle d'email">
+              <p className="mb-3 text-xs text-gray-500">
+                Exemple de confirmation de commande envoyée au client
+              </p>
+              <pre className="overflow-x-auto rounded-xl border border-gray-700 bg-gray-950 px-4 py-4 text-xs leading-relaxed text-gray-300 whitespace-pre-wrap font-mono">
+                {SAMPLE_EMAIL}
+              </pre>
+            </SectionCard>
+          </div>
+        )}
+
+        {/* ── Tab: Horaires ─────────────────────────────────────────────── */}
+        {activeTab === 'Horaires' && (
+          <div className="space-y-5">
+            <SectionCard title="Horaires d'ouverture">
+              <p className="mb-5 text-sm text-gray-400">
+                Configurez les plages horaires pour chaque jour de la semaine
+              </p>
+              <div className="space-y-2">
+                {DAYS.map((day) => {
+                  const slot = schedule[day];
+                  return (
+                    <div
+                      key={day}
+                      className={`flex flex-wrap items-center gap-3 rounded-xl border p-3 transition-colors sm:flex-nowrap ${
+                        slot.open
+                          ? 'border-gray-700 bg-gray-800/50'
+                          : 'border-gray-800 bg-gray-900 opacity-60'
+                      }`}
+                    >
+                      {/* Day name */}
+                      <span
+                        className={`w-24 flex-shrink-0 text-sm font-medium ${
+                          slot.open ? 'text-white' : 'text-gray-500'
+                        }`}
+                      >
+                        {day}
+                      </span>
+
+                      {/* Toggle */}
+                      <button
+                        type="button"
+                        onClick={() => toggleDay(day)}
+                        className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${
+                          slot.open ? 'bg-orange-500' : 'bg-gray-700'
+                        }`}
+                        role="switch"
+                        aria-checked={slot.open}
+                        aria-label={`${day} ouvert`}
+                      >
+                        <span
+                          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                            slot.open ? 'translate-x-4' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+
+                      {slot.open ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="time"
+                            value={slot.from}
+                            onChange={(e) => updateDay(day, 'from', e.target.value)}
+                            className="h-9 rounded-xl border border-gray-700 bg-gray-800 px-3 text-sm text-white focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                          />
+                          <span className="text-gray-500">→</span>
+                          <input
+                            type="time"
+                            value={slot.to}
+                            onChange={(e) => updateDay(day, 'to', e.target.value)}
+                            className="h-9 rounded-xl border border-gray-700 bg-gray-800 px-3 text-sm text-white focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">Fermé</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </SectionCard>
+
+            <div className="flex justify-end">
+              <Button
+                loading={saving}
+                icon={<Save className="h-4 w-4" />}
+                onClick={saveHours}
+              >
+                Sauvegarder les horaires
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

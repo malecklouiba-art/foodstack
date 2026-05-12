@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { PushService } from '../notifications/push.service';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class DeliveryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventsGateway: EventsGateway,
+    private readonly pushService: PushService,
   ) {}
 
   async getActiveDeliveries(restaurantId: string) {
@@ -71,11 +73,17 @@ export class DeliveryService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException(`Order #${orderId} not found`);
     // TODO: Check driver availability before assigning
-    // TODO: Send push notification to driver with order details
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { driverId },
     });
+    this.pushService
+      .sendPushNotification(driverId, {
+        title: 'Nouvelle livraison',
+        body: 'Une commande vous a été assignée',
+      })
+      .catch(() => null);
+    return updated;
   }
 
   async getDeliveryETA(orderId: string) {

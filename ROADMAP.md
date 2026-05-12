@@ -1,6 +1,6 @@
 # FoodStack — Roadmap & État d'avancement
 
-> Dernière mise à jour : 12 mai 2026 (Sprint 12 terminé)
+> Dernière mise à jour : 12 mai 2026 (Sprint 14 terminé)
 
 ---
 
@@ -26,8 +26,8 @@
 | Rate limiting | ✅ | `ThrottlerModule` 100 req/min |
 | Monitoring / logs centralisés | ❌ | Sentry à intégrer |
 | Backup automatique DB | ❌ | |
-| Tests unitaires | ✅ | Jest configuré, 41 tests (orders, payments, analytics, loyalty) |
-| Tests E2E | ❌ | Playwright à mettre en place |
+| Tests unitaires | ✅ | Jest configuré, 70 tests (orders, payments, analytics, loyalty, coupons, suppliers) |
+| Tests E2E Supertest | ✅ | orders.controller.spec + suppliers.controller.spec (11 tests) |
 
 ---
 
@@ -47,7 +47,7 @@
 | `Promotion` | ✅ | |
 | `Review` | ✅ | |
 | Seed complet (5 rôles + données démo) | ✅ | idempotent, 10 articles menu, fournisseurs, inventaire |
-| `Coupon` | ❌ | |
+| `Coupon` | ✅ | |
 | `Notification` | ❌ | |
 | `AuditLog` | ❌ | |
 | `Table` (gestion tables) | ❌ | |
@@ -74,8 +74,8 @@
 | `EventsModule` Socket.io | ✅ | join:order, driver:location, order:status, inventory:alert |
 | Swagger / OpenAPI | ✅ | `/api/docs` |
 | `NotificationsModule` (push/email/SMS) | ✅ | Resend email + VAPID push + service worker |
-| `SuperAdminModule` | ❌ | |
-| `CouponsModule` | ❌ | |
+| `SuperAdminModule` | ✅ | KPIs, restaurants table, plans, activity log, suspend modal |
+| `CouponsModule` | ✅ | POST /coupons, applyCoupon, redeemCoupon — intégré OrdersService |
 | Impression thermique | ❌ | |
 | RBAC granulaire (guards par rôle) | 🔄 | `JwtAuthGuard` OK, guards rôle partiels |
 | OAuth Google/Apple | ❌ | |
@@ -150,7 +150,7 @@
 | Monitoring `/admin/monitoring` | ✅ | |
 | Abonnements `/admin/subscriptions` | ✅ | |
 | **Paramètres `/admin/settings`** | ✅ | 6 onglets (général, email, paiements, sécurité, notifs, intégrations) |
-| Super Admin SaaS dashboard | ❌ | Gestion plans, métriques globales |
+| Super Admin SaaS dashboard `/superadmin` | ✅ | KPIs, restaurants table, plans, activity log, suspend modal |
 
 ---
 
@@ -251,10 +251,10 @@
 
 | Catégorie | ✅ Fait | 🔄 Partiel | ❌ À faire |
 |---|---|---|---|
-| Infrastructure | 10 | 1 | 4 |
-| Base de données | 13 | 0 | 5 |
-| Backend API | 13 | 2 | 5 |
-| Frontend web | 30 | 1 | 8 |
+| Infrastructure | 11 | 1 | 3 |
+| Base de données | 14 | 0 | 4 |
+| Backend API | 15 | 2 | 3 |
+| Frontend web | 31 | 1 | 7 |
 | Paiements | 5 | 0 | 3 |
 | Livraison | 4 | 1 | 2 |
 | Export | 5 | 0 | 2 |
@@ -262,7 +262,7 @@
 | Mobile | 0 | 0 | 4 |
 | Notifications | 4 | 0 | 2 |
 | Sécurité | 5 | 0 | 3 |
-| **TOTAL** | **93** | **5** | **39** |
+| **TOTAL** | **98** | **5** | **34** |
 
 ---
 
@@ -282,16 +282,22 @@
 | Sprint 10 | Email Resend transactionnel, dark mode admin/landing, 41 tests | ✅ |
 | Sprint 11 | Zones de livraison carte polygones, push VAPID, service worker | ✅ |
 | Sprint 12 | QR codes dashboard, fidélité backend réel (earnPoints/redeemPoints) | ✅ |
-| **Sprint 13** | **App mobile consommateur, Super Admin SaaS, coupons backend** | 🔄 En cours |
+| Sprint 13 | App mobile consommateur, Super Admin SaaS, coupons backend | ✅ |
+| Sprint 14 | CouponsModule wired (POST /coupons, applyCoupon, redeemCoupon), Super Admin dashboard (/superadmin), tests E2E Supertest (11 tests), 70 tests total | ✅ |
+| **Sprint 15** | **Settings page restaurant, notifications push livreur assigné, tests coupons.service.spec** | 🔄 En cours |
 
 ---
 
-## Prochaines priorités (Sprint 13+)
+## Prochaines priorités (Sprint 15+)
 
-1. **App mobile consommateur** — Expo React Native (structure + écrans home/menu/panier)
-2. **Super Admin SaaS** — dashboard métriques globales, gestion plans
-3. **Coupons backend** — `CouponsModule` API + intégration checkout
+### 🔄 Sprint 15 — En cours
+1. **Settings page restaurant** — Général, Paiement, Notifications, Horaires
+2. **Notifications push → livreur assigné** — push VAPID déclenché à l'assignation
+3. **Tests coupons.service.spec** — couverture unitaire CouponsModule
+
+### ❌ Backlog
 4. **OAuth Google/Apple** — login social
 5. **2FA TOTP** — sécurité renforcée
-6. **Tests E2E** — Playwright sur parcours critiques
+6. **Tests E2E Playwright** — parcours critiques (checkout, commande, livraison)
 7. **SMS (Twilio)** — notifications SMS commande
+8. **App mobile consommateur** — Expo React Native (structure + écrans home/menu/panier)
