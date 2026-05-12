@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
@@ -50,10 +50,13 @@ export default function CheckoutPage() {
     setLoading(false);
   };
 
-  if (items.length === 0) {
-    router.replace('/menu');
-    return null;
-  }
+  useEffect(() => {
+    if (items.length === 0) {
+      router.replace('/menu');
+    }
+  }, [items.length, router]);
+
+  if (items.length === 0) return null;
 
   return (
     <>
