@@ -150,7 +150,7 @@ export default function LandingPage() {
             <span className="text-lg font-bold text-surface-900">FoodStack</span>
           </div>
           <nav className="hidden items-center gap-6 md:flex">
-            {['Fonctionnalités', 'Tarifs', 'À propos', 'Blog'].map((item) => (
+            {['Fonctionnalités', 'Tarifs', 'À propos', 'Blogue'].map((item) => (
               <a key={item} href="#" className="text-sm text-surface-600 hover:text-surface-900">
                 {item}
               </a>
@@ -218,8 +218,8 @@ export default function LandingPage() {
             <div className="aspect-[16/9] w-full rounded-xl bg-gradient-to-br from-surface-800 to-surface-900 flex items-center justify-center">
               <div className="text-center text-white/40">
                 <BarChart3 className="mx-auto h-16 w-16 mb-4" />
-                <p className="text-lg font-medium">Dashboard Preview</p>
-                <p className="text-sm">Analytics & Reporting Interface</p>
+                <p className="text-lg font-medium">Aperçu tableau de bord</p>
+                <p className="text-sm">Analytique & Rapports</p>
               </div>
             </div>
           </div>

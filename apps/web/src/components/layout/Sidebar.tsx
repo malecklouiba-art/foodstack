@@ -131,7 +131,7 @@ export function Sidebar() {
             <Avatar name="Jean Dupont" size="sm" />
             <div className="flex-1 min-w-0">
               <p className="truncate text-sm font-medium text-surface-900">Jean Dupont</p>
-              <p className="truncate text-xs text-surface-400">Restaurant Owner</p>
+              <p className="truncate text-xs text-surface-400">Propriétaire</p>
             </div>
           </div>
         </div>
