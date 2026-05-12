@@ -5,6 +5,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class OrdersService {
@@ -14,6 +15,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly events: EventsGateway,
     private readonly notifications: NotificationsService,
+    private readonly loyaltyService: LoyaltyService,
   ) {}
 
   async createOrder(dto: CreateOrderDto) {
@@ -114,6 +116,15 @@ export class OrdersService {
       status: dto.status,
       updatedAt: updated.updatedAt.toISOString(),
     });
+
+    if (dto.status === 'delivered' && order.customerId) {
+      this.loyaltyService
+        .earnPoints(order.customerId, id, order.total, order.restaurantId)
+        .catch((err: Error) => {
+          this.logger.error(`Failed to award loyalty points for order ${id}: ${err.message}`);
+        });
+    }
+
     return updated;
   }
 
