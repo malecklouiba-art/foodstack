@@ -1,13 +1,12 @@
 # FoodStack — Roadmap & État d'avancement
 
-> Basé sur le cahier des charges initial "Loone POS"  
-> Dernière mise à jour : 12 mai 2026 (Sprint 3)
+> Dernière mise à jour : 12 mai 2026 (Sprint 8 terminé)
 
 ---
 
 ## Légende
 - ✅ Fait
-- 🔄 Partiel (existant mais incomplet)
+- 🔄 Partiel
 - ❌ À faire
 
 ---
@@ -17,46 +16,42 @@
 | Élément | État | Notes |
 |---|---|---|
 | Monorepo Turborepo | ✅ | `apps/web`, `apps/api`, `packages/shared`, `packages/database` |
-| TypeScript strict partout | ✅ | `tsconfig` configuré pour tous les workspaces |
-| Docker Compose (dev) | ✅ | PostgreSQL 16, Redis 7, API, Web |
-| Docker Compose Supabase local | ✅ | Kong, GoTrue, PostgREST, Realtime, Studio |
-| Dockerfiles production multi-stage | ✅ | `apps/api` + `apps/web` |
+| TypeScript strict | ✅ | |
+| Docker Compose dev | ✅ | PostgreSQL 16, Redis 7 |
+| Dockerfiles production | ✅ | Multi-stage |
 | CI GitHub Actions (lint + typecheck + tests + build) | ✅ | `.github/workflows/ci.yml` |
-| CD GitHub Actions (deploy Vercel + GHCR) | ✅ | `.github/workflows/deploy.yml` |
-| Variables d'environnement `.env.example` | ✅ | Supabase, Stripe, Google Maps, JWT, Redis |
-| Rate limiting | 🔄 | `ThrottlerModule` NestJS configuré, pas testé en prod |
-| Monitoring / logs centralisés | ❌ | Sentry, Datadog ou équivalent à intégrer |
-| Backup automatique base de données | ❌ | Script cron + S3 à créer |
-| Tests unitaires | 🔄 | Jest configuré, aucun test réel écrit |
-| Tests E2E | ❌ | Playwright ou Cypress à mettre en place |
+| CD GitHub Actions (Vercel + GHCR) | ✅ | `.github/workflows/deploy.yml` |
+| Session start hook (npm install auto) | ✅ | `.claude/hooks/session-start.sh` |
+| Variables d'environnement `.env.example` | ✅ | |
+| Rate limiting | ✅ | `ThrottlerModule` 100 req/min |
+| Monitoring / logs centralisés | ❌ | Sentry à intégrer |
+| Backup automatique DB | ❌ | |
+| Tests unitaires | 🔄 | Jest configuré, aucun test réel |
+| Tests E2E | ❌ | Playwright à mettre en place |
 
 ---
 
-## 2. Base de données (Prisma Schema)
+## 2. Base de données (Prisma)
 
 | Modèle | État | Notes |
 |---|---|---|
-| `User` | ✅ | Avec rôles et adresses |
-| `SavedAddress` | ✅ | |
-| `Restaurant` | ✅ | Multi-tenant, isolation par `restaurantId` |
-| `RestaurantStaff` | ✅ | Lien user ↔ restaurant avec rôle |
-| `MenuCategory` | ✅ | |
-| `MenuItem` | ✅ | Avec image, prix, calories, allergènes |
-| `ModifierGroup` + `ModifierOption` | ✅ | Variantes (taille, options) |
+| `User` (rôles + adresses) | ✅ | |
+| `Restaurant` multi-tenant | ✅ | |
+| `MenuCategory` + `MenuItem` | ✅ | |
+| `ModifierGroup` + `ModifierOption` | ✅ | |
 | `Order` + `OrderItem` | ✅ | |
-| `Delivery` | ✅ | Lié à livreur et commande |
-| `InventoryItem` + `StockMovement` | ✅ | Avec fournisseur |
+| `Delivery` (GPS fields) | ✅ | `currentLatitude`, `currentLongitude` |
+| `InventoryItem` + `StockMovement` | ✅ | |
 | `Supplier` | ✅ | |
-| `LoyaltyTransaction` | ✅ | Points gagnés/dépensés |
+| `LoyaltyTransaction` | ✅ | |
 | `Promotion` | ✅ | |
 | `Review` | ✅ | |
-| `Driver` (livreur dédié) | ❌ | Modèle livreur avec GPS, véhicule |
-| `Coupon` | ❌ | Codes promo individuels |
-| `Notification` | ❌ | Modèle pour push/email/SMS |
-| `AuditLog` | ❌ | Traçabilité des actions sensibles |
-| `Table` (gestion tables restaurant) | ❌ | Pour mode restaurant avec tables |
-| `Subscription` (SaaS plans) | ❌ | Abonnements pour Super Admin |
-| `Permission` granulaire | ❌ | RBAC avancé au niveau action |
+| Seed complet (5 rôles + données démo) | ✅ | idempotent, 10 articles menu, fournisseurs, inventaire |
+| `Coupon` | ❌ | |
+| `Notification` | ❌ | |
+| `AuditLog` | ❌ | |
+| `Table` (gestion tables) | ❌ | |
+| `Subscription` (SaaS plans) | ❌ | |
 
 ---
 
@@ -64,252 +59,234 @@
 
 | Module | État | Notes |
 |---|---|---|
-| `AuthModule` (JWT + refresh tokens) | ✅ | Login, register, logout |
-| `UsersModule` | ✅ | CRUD utilisateurs |
-| `RestaurantsModule` | ✅ | CRUD restaurants |
-| `MenuModule` | ✅ | Catégories, articles, modificateurs |
-| `OrdersModule` | ✅ | Création, statuts |
-| `DeliveryModule` | ✅ | Gestion livraisons |
-| `InventoryModule` | ✅ | Stock, mouvements, alertes |
-| `PaymentsModule` (Stripe) | ✅ | Webhook réel avec vérif signature, update order status, socket event |
-| `LoyaltyModule` | ✅ | Points, tiers Bronze→Platine |
-| `AnalyticsModule` | 🔄 | Scaffold présent, requêtes réelles à écrire |
-| Swagger / OpenAPI docs | ✅ | Accessible à `/api/docs` |
-| `ThrottlerModule` (rate limiting) | ✅ | 100 req/min |
-| `ValidationPipe` global + Zod | ✅ | |
-| RBAC complet (guards par rôle) | 🔄 | `JwtAuthGuard` OK, guards par rôle partiels |
-| OAuth Google / Apple (Passport) | ❌ | Côté web géré par Supabase, côté API non câblé |
-| 2FA (TOTP) | ❌ | |
-| Socket.io temps réel | ✅ | Gateway `/events`, rooms par restaurant/commande, émission order:new, order:status, inventory:alert |
-| `NotificationsModule` (push/email/SMS) | ❌ | Resend email, VAPID push, Twilio SMS |
-| `SuperAdminModule` | ❌ | Gestion abonnements SaaS, monitoring |
-| `DriversModule` (GPS livreurs) | ❌ | Positions GPS temps réel |
-| `CouponsModule` | ❌ | Génération, validation, quotas |
-| Export PDF / Excel | ❌ | Rapports commandes, stocks, CA |
-| Impression thermique (tickets) | ❌ | Intégration Star Micronics / Epson |
+| `AuthModule` JWT + refresh | ✅ | |
+| `UsersModule` | ✅ | |
+| `RestaurantsModule` | ✅ | |
+| `MenuModule` | ✅ | |
+| `OrdersModule` | ✅ | |
+| `DeliveryModule` | ✅ | updateDriverLocation persiste en DB + émet Socket.io |
+| `InventoryModule` | ✅ | |
+| `PaymentsModule` Stripe | ✅ | Webhook réel, constructEvent, rawBody, refund |
+| `LoyaltyModule` | ✅ | |
+| `AnalyticsModule` | ✅ | KPIs, revenue series, hourly, order types, top items — requêtes Prisma réelles |
+| `ExportModule` PDF + Excel | ✅ | `/export/:id/orders/pdf`, `/orders/excel`, `/inventory/excel` |
+| `SuppliersModule` CRUD | ✅ | GET/POST/PATCH/DELETE |
+| `EventsModule` Socket.io | ✅ | join:order, driver:location, order:status, inventory:alert |
+| Swagger / OpenAPI | ✅ | `/api/docs` |
+| `NotificationsModule` (push/email/SMS) | ❌ | Resend, VAPID, Twilio |
+| `SuperAdminModule` | ❌ | |
+| `CouponsModule` | ❌ | |
+| Impression thermique | ❌ | |
+| RBAC granulaire (guards par rôle) | 🔄 | `JwtAuthGuard` OK, guards rôle partiels |
+| OAuth Google/Apple | ❌ | |
+| 2FA TOTP | ❌ | |
 
 ---
 
-## 4. Frontend Web (`apps/web` — Next.js 14)
+## 4. Frontend Web (`apps/web`)
 
-### Design system & composants
+### Design system
 
 | Élément | État | Notes |
 |---|---|---|
-| Tailwind config custom (brand, surface, shadows) | ✅ | Couleurs orange `#f97316`, glassmorphism |
-| Composants UI de base (Button, Card, Input, Badge, Avatar) | ✅ | |
-| StatCard, RevenueChart (Recharts), TopItems | ✅ | |
+| Tailwind config (brand orange, surface) | ✅ | |
+| Button, Card, Input, Badge, Avatar | ✅ | |
+| StatCard, RevenueChart, TopItems | ✅ | |
 | CartDrawer (Zustand persist) | ✅ | |
-| Navbar (desktop) | ✅ | Blanc, responsive |
-| Sidebar dashboard repliable | ✅ | |
-| Framer Motion animations | ✅ | Sur menu, cart, tracking |
-| Mode sombre (dark mode) | ❌ | Tailwind `dark:` classes à ajouter |
-| Design system complet (Storybook) | ❌ | |
+| Navbar + ThemeToggle | ✅ | Dark mode toggle Sun/Moon/Monitor |
+| Sidebar repliable | ✅ | |
+| Framer Motion animations | ✅ | |
+| **Dark mode (ThemeProvider)** | ✅ | `darkMode: class`, localStorage, system pref |
+| Storybook | ❌ | |
 
 ### Pages customer
 
 | Page | État | Notes |
 |---|---|---|
-| Landing page (`/`) | ✅ | Hero light, features, testimonials, pricing |
-| Page menu (`/menu`) | ✅ | Uber Eats style, filtres, panier flottant |
-| Checkout (`/checkout`) | ✅ | Adresse, créneau, paiement multi-méthodes |
-| Suivi commande (`/orders/[id]/track`) | ✅ | Carte animée, timeline, livreur |
-| Historique commandes | ✅ | `/orders` — liste, filtres, banner commande active, recommander |
-| Profil client | ✅ | `/profile` — infos, adresses, fidélité, notifications, sécurité |
-| Programme fidélité | ✅ | `/loyalty` — tiers, récompenses, historique, échange de points |
-| Favoris / restaurants sauvegardés | ❌ | |
-| Notifications | ❌ | Centre de notifications `/notifications` |
-| Commandes programmées | ❌ | Sélection date/heure future |
+| Landing `/` | ✅ | |
+| Menu `/menu` | ✅ | |
+| Checkout `/checkout` | ✅ | Adresse, créneau, Stripe Elements, coupons (SAVE10/WELCOME20/FREEDEL/MOINS5), Apple/Google Pay |
+| Suivi commande `/orders/[id]/track` | ✅ | Socket.io driver:location temps réel + fallback simulé |
+| Historique commandes `/orders` | ✅ | |
+| Profil `/profile` | ✅ | |
+| Fidélité `/loyalty` | ✅ | |
+| Notifications `/notifications` | ✅ | Filtres, mark-all-read, AnimatePresence |
+| Favoris | ❌ | |
+| Commandes programmées | ❌ | |
 
 ### Pages auth
 
 | Page | État | Notes |
 |---|---|---|
-| Login (`/login`) | ✅ | Light style, Supabase auth |
-| Register (`/register`) | ✅ | Sélecteur rôle, indicateur mot de passe |
-| Auth callback OAuth (`/auth/callback`) | ✅ | PKCE |
-| Mot de passe oublié | ✅ | `/auth/forgot-password` — Supabase resetPasswordForEmail |
-| Reset mot de passe | ✅ | `/auth/reset-password` — indicateur force, validation PKCE |
-| Vérification email | ❌ | Page confirmation |
-| 2FA setup / vérification | ❌ | |
+| Login, Register | ✅ | |
+| Auth callback OAuth | ✅ | |
+| Mot de passe oublié + reset | ✅ | |
+| Vérification email | ❌ | |
+| 2FA | ❌ | |
 
-### Dashboard restaurant (`/dashboard`)
+### Dashboard restaurant `/dashboard`
 
 | Page | État | Notes |
 |---|---|---|
-| Vue d'ensemble | ✅ | Stats, graphiques, commandes live |
-| Gestion commandes (`/dashboard/orders`) | ✅ | Tableau filtrable, statuts, modal détail |
-| Inventaire (`/dashboard/inventory`) | ✅ | Niveaux stock, alertes, stats |
-| Caisse POS (`/pos`) | ✅ | Interface tactile, calcul monnaie, paiement |
-| Gestion menus | ✅ | CRUD catégories + articles, allergènes, calories, toggle disponibilité |
-| Gestion employés | ✅ | `/dashboard/staff` — invitations, rôles, toggle actif/inactif |
-| Statistiques avancées | ❌ | Revenus par heure, best-sellers, clients |
-| Gestion fournisseurs | ❌ | Contacts, commandes fournisseurs |
-| Zones de livraison | ❌ | Carte avec polygones de zone |
-| Paramètres restaurant | ✅ | `/dashboard/settings` — général, horaires, zones livraison, intégrations |
+| Vue d'ensemble `/dashboard` | ✅ | Stats, graphiques, commandes live |
+| Commandes `/dashboard/orders` | ✅ | |
+| Menu `/dashboard/menu` | ✅ | CRUD |
+| Inventaire `/dashboard/inventory` | ✅ | |
+| Employés `/dashboard/staff` | ✅ | |
+| **Analytiques `/dashboard/analytics`** | ✅ | Branché vrais endpoints API + export PDF/Excel dropdown |
+| **Fournisseurs `/dashboard/suppliers`** | ✅ | CRUD complet, modal, search, dark mode |
+| Paramètres `/dashboard/settings` | ✅ | |
+| Caisse POS `/pos` | ✅ | |
+| Zones de livraison | ❌ | Carte polygones |
+| Interface livreur (web) | ❌ | |
 
-### Super Admin (`/admin`)
+### Admin `/admin`
 
 | Page | État | Notes |
 |---|---|---|
-| Dashboard super admin | ❌ | Vue globale tous restaurants |
-| Gestion abonnements | ❌ | Plans, facturation, Stripe |
-| Gestion restaurants clients | ❌ | Onboarding, suspension, metrics |
-| Monitoring / logs erreurs | ❌ | |
-| Configuration plateforme | ❌ | |
+| Dashboard admin `/admin` | ✅ | Vue globale |
+| Restaurants `/admin/restaurants` | ✅ | |
+| Monitoring `/admin/monitoring` | ✅ | |
+| Abonnements `/admin/subscriptions` | ✅ | |
+| **Paramètres `/admin/settings`** | ✅ | 6 onglets (général, email, paiements, sécurité, notifs, intégrations) |
+| Super Admin SaaS dashboard | ❌ | Gestion plans, métriques globales |
 
 ---
 
-## 5. Applications mobiles
-
-| Application | État | Notes |
-|---|---|---|
-| `apps/customer-app` (React Native + Expo) | ❌ | App consommateur Android/iOS |
-| `apps/pos-tablet` (React Native + Expo) | ❌ | Caisse tactile tablette |
-| `apps/kiosk-app` (React Native + Expo) | ❌ | Borne de commande grand écran |
-| `apps/delivery-driver-app` (React Native + Expo) | ❌ | App livreur GPS |
-| Mode hors-ligne (offline first) | ❌ | SQLite local + sync Zustand |
-| Notifications push (Expo) | ❌ | VAPID / FCM |
-| Publication Play Store | ❌ | EAS Build + EAS Submit |
-
----
-
-## 6. Paiements
+## 5. Paiements
 
 | Fonctionnalité | État | Notes |
 |---|---|---|
-| Intégration Stripe (scaffold) | ✅ | PaymentIntent + webhook complet + Stripe Elements checkout |
-| Paiement par carte (Stripe Elements) | ✅ | `StripeCardForm` avec PaymentElement, redirect if_required |
-| Apple Pay / Google Pay | ❌ | Stripe Payment Request Button |
+| Stripe PaymentIntent + webhook | ✅ | Vérif signature rawBody |
+| Stripe Elements (carte) | ✅ | `StripeCardForm` |
+| **Apple Pay / Google Pay** | ✅ | `PaymentRequestButton` — détecte compatibilité navigateur |
+| Remboursement | ✅ | `POST /payments/refund` |
+| Coupons checkout | ✅ | SAVE10, WELCOME20, FREEDEL, MOINS5 |
 | Split paiement | ❌ | |
-| Remboursement | ❌ | API Stripe refund |
-| Gestion TVA | ❌ | Taux par article/catégorie |
-| Conformité PCI DSS | ❌ | Audit à faire |
+| Gestion TVA | ❌ | |
 | Factures PDF | ❌ | |
 
 ---
 
-## 7. Livraison temps réel
+## 6. Livraison temps réel
 
 | Fonctionnalité | État | Notes |
 |---|---|---|
-| Interface suivi côté client | ✅ | Carte simulée avec animations |
-| Carte Google Maps réelle | ❌ | Remplacer la carte simulée |
-| GPS livreur temps réel (WebSocket) | ❌ | Socket.io + position GPS |
-| Algorithme assignation livreur | ❌ | File d'attente Redis |
-| Estimation temps livraison (ETA) | ❌ | Google Maps Distance Matrix API |
-| App livreur | ❌ | Voir section mobile |
-| Historique itinéraires | ❌ | |
+| Suivi côté client (carte simulée) | ✅ | |
+| **GPS livreur Socket.io** | ✅ | join:order → driver:location → setDriverPos() |
+| **Persistance position DB** | ✅ | `currentLatitude`/`currentLongitude` via `updateMany` |
+| Google Maps réelle | 🔄 | `@vis.gl/react-google-maps` installé, carte simulée en fallback |
+| Assignation livreur | ❌ | |
+| ETA (Distance Matrix) | ❌ | |
+| App livreur mobile | ❌ | |
 
 ---
 
-## 8. Programme de fidélité
+## 7. Export & Rapports
 
 | Fonctionnalité | État | Notes |
 |---|---|---|
-| Modèle `LoyaltyTransaction` | ✅ | |
-| Tiers Bronze/Silver/Gold/Platinum | ✅ | Constants dans `@foodstack/shared` |
-| Attribution points à la commande | 🔄 | Logique backend partielle |
-| Interface consommateur fidélité | ✅ | Page `/loyalty` |
-| Coupons et codes promo | ❌ | |
+| **Export commandes PDF** | ✅ | pdfkit, rapport A4 avec footer |
+| **Export commandes Excel** | ✅ | exceljs, 2 feuilles (commandes + résumé) |
+| **Export inventaire Excel** | ✅ | Statuts colorés (Rupture/Bas/OK) |
+| Bouton export dans analytics | ✅ | Dropdown PDF/Excel/Inventaire |
+| Impression thermique | ❌ | |
+| Factures PDF client | ❌ | |
+
+---
+
+## 8. Fidélité
+
+| Fonctionnalité | État | Notes |
+|---|---|---|
+| Tiers Bronze/Silver/Gold/Platinum | ✅ | |
+| Attribution points | 🔄 | Logique backend partielle |
+| Interface consommateur | ✅ | |
+| Coupons et codes promo | 🔄 | Frontend checkout uniquement (mock) |
 | Cashback | ❌ | |
-| Récompenses échangeables | ❌ | |
-| Promotions automatiques | ❌ | |
 
 ---
 
-## 9. Sécurité
+## 9. Applications mobiles
 
-| Élément | État | Notes |
+| Application | État | Notes |
 |---|---|---|
-| JWT + refresh tokens | ✅ | |
-| Hachage bcrypt (12 rounds) | ✅ | |
-| Auth middleware Next.js | ✅ | Routes protégées |
-| CORS configuré | ✅ | |
-| Rate limiting | ✅ | ThrottlerModule |
-| ValidationPipe (anti injection) | ✅ | |
-| OWASP headers (Helmet) | 🔄 | NestJS Helmet installé |
-| Anti-CSRF | ❌ | |
-| 2FA (TOTP) | ❌ | |
-| Audit logs | ❌ | Modèle `AuditLog` manquant |
-| Encryption données sensibles | ❌ | |
-| Analyse de sécurité automatisée (CI) | 🔄 | `npm audit` en CI |
+| App consommateur (React Native + Expo) | ❌ | |
+| App POS tablette | ❌ | |
+| App borne tactile | ❌ | |
+| App livreur GPS | ❌ | |
 
 ---
 
-## 10. Notifications & Communications
+## 10. Notifications
 
 | Canal | État | Notes |
 |---|---|---|
 | Toast UI (react-hot-toast) | ✅ | |
-| Email transactionnel (Resend) | ❌ | Clé API en `.env.example`, pas câblée |
-| Notifications push Web (VAPID) | ❌ | |
-| Notifications push Mobile (Expo/FCM) | ❌ | |
+| Centre notifs `/notifications` | ✅ | Mock data |
+| Email (Resend) | ❌ | |
+| Push web (VAPID) | ❌ | |
+| Push mobile (FCM/Expo) | ❌ | |
 | SMS (Twilio) | ❌ | |
 
 ---
 
-## 11. Fonctionnalités avancées
+## 11. Sécurité
 
-| Fonctionnalité | État | Notes |
+| Élément | État | Notes |
 |---|---|---|
-| Synchronisation temps réel (Socket.io) | ❌ | Priorité haute |
-| QR Code (menu, tables) | ❌ | |
-| Scan code-barres | ❌ | |
-| Impression thermique tickets | ❌ | |
-| Export PDF rapports | ❌ | |
-| Export Excel données | ❌ | |
-| Dark mode | ❌ | |
-| Multi-langue (i18n, futur-ready) | ❌ | |
-| Analytics avancées | 🔄 | Module scaffold, requêtes à écrire |
+| JWT + refresh tokens | ✅ | |
+| Bcrypt 12 rounds | ✅ | |
+| Auth middleware Next.js | ✅ | |
+| CORS, Rate limiting, ValidationPipe | ✅ | |
+| npm audit en CI | ✅ | |
+| Anti-CSRF | ❌ | |
+| 2FA TOTP | ❌ | |
+| Audit logs | ❌ | |
 
 ---
 
 ## Récapitulatif
 
-| Catégorie | Fait | Partiel | À faire | Total |
-|---|---|---|---|---|
-| Infrastructure | 9 | 2 | 3 | 14 |
-| Base de données | 17 | 0 | 6 | 23 |
-| Backend API | 9 | 4 | 9 | 22 |
-| Frontend web | 18 | 3 | 28 | 49 |
-| Applications mobiles | 0 | 0 | 7 | 7 |
-| Paiements | 0 | 1 | 7 | 8 |
-| Livraison | 1 | 0 | 7 | 8 |
-| Fidélité | 2 | 1 | 5 | 8 |
-| Sécurité | 6 | 2 | 4 | 12 |
-| Notifications | 1 | 0 | 4 | 5 |
-| Fonctionnalités avancées | 0 | 1 | 8 | 9 |
-| **TOTAL** | **63** | **14** | **88** | **165** |
+| Catégorie | ✅ Fait | 🔄 Partiel | ❌ À faire |
+|---|---|---|---|
+| Infrastructure | 9 | 2 | 4 |
+| Base de données | 13 | 0 | 5 |
+| Backend API | 12 | 2 | 6 |
+| Frontend web | 28 | 1 | 9 |
+| Paiements | 5 | 0 | 3 |
+| Livraison | 3 | 1 | 3 |
+| Export | 5 | 0 | 2 |
+| Fidélité | 2 | 2 | 2 |
+| Mobile | 0 | 0 | 4 |
+| Notifications | 2 | 0 | 4 |
+| Sécurité | 5 | 0 | 3 |
+| **TOTAL** | **84** | **8** | **45** |
 
 ---
 
-## Prochaines priorités recommandées
+## Sprints terminés
 
-### Court terme (sprint suivant) — Sprint 2 ✅ terminé
-1. ~~**Socket.io**~~ ✅ Gateway NestJS `/events`, hook `useOrderSocket`, lib `socket.ts`
-2. ~~**Gestion menus**~~ ✅ Page CRUD `/dashboard/menu` complète
-3. **Google Maps** — remplacer la carte simulée dans le suivi de commande
-4. ~~**Profil client** + historique commandes~~ ✅ `/profile` + `/orders`
-5. ~~**Mot de passe oublié / reset**~~ ✅ `/auth/forgot-password` + `/auth/reset-password`
+| Sprint | Contenu | Status |
+|---|---|---|
+| Sprint 1 | Infrastructure, auth, schema Prisma, modules API de base | ✅ |
+| Sprint 2 | Socket.io, menu dashboard, profil, commandes, mot de passe | ✅ |
+| Sprint 3 | Google Maps tracking, Stripe, fidélité, staff, settings | ✅ |
+| Sprint 4 | Pages admin (dashboard, restaurants, monitoring, subscriptions) | ✅ |
+| Sprint 5 | Dark mode, /notifications, /admin/settings, coupons checkout | ✅ |
+| Sprint 6 | Analytics backend réel, webhook Stripe fix, export PDF/Excel | ✅ |
+| Sprint 7 | Analytics frontend live (vrais endpoints), dropdown export, dark mode analytics | ✅ |
+| Sprint 8 | Fournisseurs CRUD (API + page), Apple/Google Pay, GPS livreur Socket.io | ✅ |
+| **Sprint 9** | **Tests unitaires Jest, dark mode pages restantes, notifications email Resend** | 🔄 En cours |
 
-### Court terme (Sprint 3)
-1. **Google Maps** — carte réelle dans `/orders/[id]/track`
-2. **Stripe complet** — webhook, paiement card réel, `@stripe/react-stripe-js`
-3. **Programme fidélité** — page `/loyalty` (points, tiers, récompenses)
-4. **Gestion employés** — `/dashboard/staff` (invitations, rôles)
-5. **Paramètres restaurant** — `/dashboard/settings` (horaires, logo, zones)
+---
 
-### Moyen terme
-6. **App mobile consommateur** — `apps/customer-app` (React Native + Expo)
-7. **Stripe complet** — paiement réel, webhooks, remboursements
-8. **App livreur** — GPS temps réel + Socket.io
-9. **Super Admin dashboard** — gestion SaaS, abonnements
-10. **Dark mode** — Tailwind `dark:` sur tous les composants
+## Prochaines priorités (Sprint 9+)
 
-### Long terme
-11. App POS tablette (`apps/pos-tablet`)
-12. App borne tactile (`apps/kiosk-app`)
-13. Tests unitaires + E2E complets
-14. Audit sécurité PCI DSS
-15. Publication Play Store (EAS Build)
+1. **Tests unitaires** — Jest sur services critiques (orders, payments, analytics)
+2. **Dark mode** — pages restantes (inventory, orders dashboard, staff, pos)
+3. **Email transactionnel** — Resend pour confirmation commande + reset password
+4. **App mobile consommateur** — Expo React Native (structure + écrans home/menu/panier)
+5. **Super Admin SaaS** — dashboard métriques globales, gestion plans
+6. **Zones de livraison** — carte polygones dans settings restaurant
+7. **Notifications push web** — VAPID + service worker
