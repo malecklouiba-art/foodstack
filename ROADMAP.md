@@ -1,6 +1,6 @@
 # FoodStack — Roadmap & État d'avancement
 
-> Dernière mise à jour : 12 mai 2026 (Sprint 14 terminé)
+> Dernière mise à jour : 12 mai 2026 (Sprint 16 terminé)
 
 ---
 
@@ -26,7 +26,7 @@
 | Rate limiting | ✅ | `ThrottlerModule` 100 req/min |
 | Monitoring / logs centralisés | ❌ | Sentry à intégrer |
 | Backup automatique DB | ❌ | |
-| Tests unitaires | ✅ | Jest configuré, 70 tests (orders, payments, analytics, loyalty, coupons, suppliers) |
+| Tests unitaires | ✅ | Jest configuré, 107 tests (orders, payments, analytics, loyalty, coupons, suppliers, delivery, notifications) |
 | Tests E2E Supertest | ✅ | orders.controller.spec + suppliers.controller.spec (11 tests) |
 
 ---
@@ -132,13 +132,15 @@
 | Commandes `/dashboard/orders` | ✅ | Dark mode complet |
 | Menu `/dashboard/menu` | ✅ | CRUD |
 | Inventaire `/dashboard/inventory` | ✅ | Dark mode complet |
-| Employés `/dashboard/staff` | ✅ | Dark mode complet |
+| Employés `/dashboard/staff` | ✅ | Table, modal add/edit, planning hebdo, désactivation confirm |
+| **Avis clients `/dashboard/reviews`** | ✅ | KPIs, distribution, 12 avis, réponse inline, pagination |
 | **Analytiques `/dashboard/analytics`** | ✅ | Branché vrais endpoints API + export PDF/Excel dropdown |
 | **Fournisseurs `/dashboard/suppliers`** | ✅ | CRUD complet, modal, search, dark mode |
 | Paramètres `/dashboard/settings` | ✅ | |
 | Caisse POS `/pos` | ✅ | |
 | QR codes `/dashboard/qr` | ✅ | Génération QR codes menu/table |
 | Zones de livraison | ✅ | Carte polygones dans settings restaurant |
+| **Programme fidélité `/dashboard/loyalty`** | 🔄 | Sprint 17 en cours |
 | Interface livreur (web) | ❌ | |
 
 ### Admin `/admin`
@@ -253,8 +255,8 @@
 |---|---|---|---|
 | Infrastructure | 11 | 1 | 3 |
 | Base de données | 14 | 0 | 4 |
-| Backend API | 15 | 2 | 3 |
-| Frontend web | 31 | 1 | 7 |
+| Backend API | 17 | 2 | 3 |
+| Frontend web | 32 | 2 | 6 |
 | Paiements | 5 | 0 | 3 |
 | Livraison | 4 | 1 | 2 |
 | Export | 5 | 0 | 2 |
@@ -262,7 +264,7 @@
 | Mobile | 0 | 0 | 4 |
 | Notifications | 4 | 0 | 2 |
 | Sécurité | 5 | 0 | 3 |
-| **TOTAL** | **98** | **5** | **34** |
+| **TOTAL** | **101** | **6** | **33** |
 
 ---
 
@@ -284,16 +286,18 @@
 | Sprint 12 | QR codes dashboard, fidélité backend réel (earnPoints/redeemPoints) | ✅ |
 | Sprint 13 | App mobile consommateur, Super Admin SaaS, coupons backend | ✅ |
 | Sprint 14 | CouponsModule wired (POST /coupons, applyCoupon, redeemCoupon), Super Admin dashboard (/superadmin), tests E2E Supertest (11 tests), 70 tests total | ✅ |
-| **Sprint 15** | **Settings page restaurant, notifications push livreur assigné, tests coupons.service.spec** | 🔄 En cours |
+| Sprint 15 | Settings page restaurant, notifications push livreur assigné, tests coupons.service.spec | ✅ |
+| Sprint 16 | Avis clients (/dashboard/reviews), Gestion équipe (/dashboard/staff) amélioré, delivery.service.spec (15 tests), notifications.service.spec (9 tests), 107 tests total | ✅ |
+| **Sprint 17** | **Programme fidélité dashboard (/dashboard/loyalty), push.service.spec, events.gateway.spec** | 🔄 En cours |
 
 ---
 
-## Prochaines priorités (Sprint 15+)
+## Prochaines priorités (Sprint 17+)
 
-### 🔄 Sprint 15 — En cours
-1. **Settings page restaurant** — Général, Paiement, Notifications, Horaires
-2. **Notifications push → livreur assigné** — push VAPID déclenché à l'assignation
-3. **Tests coupons.service.spec** — couverture unitaire CouponsModule
+### 🔄 Sprint 17 — En cours
+1. **Programme fidélité `/dashboard/loyalty`** — page dashboard restaurant : KPIs, transactions, tiers, export
+2. **push.service.spec** — couverture unitaire PushService (VAPID)
+3. **events.gateway.spec** — couverture unitaire EventsGateway (Socket.io)
 
 ### ❌ Backlog
 4. **OAuth Google/Apple** — login social
