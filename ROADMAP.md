@@ -1,7 +1,7 @@
 # FoodStack — Roadmap & État d'avancement
 
 > Basé sur le cahier des charges initial "Loone POS"  
-> Dernière mise à jour : 12 mai 2026
+> Dernière mise à jour : 12 mai 2026 (Sprint 2)
 
 ---
 
@@ -80,7 +80,7 @@
 | RBAC complet (guards par rôle) | 🔄 | `JwtAuthGuard` OK, guards par rôle partiels |
 | OAuth Google / Apple (Passport) | ❌ | Côté web géré par Supabase, côté API non câblé |
 | 2FA (TOTP) | ❌ | |
-| Socket.io temps réel | ❌ | Synchronisation commandes/stocks en live |
+| Socket.io temps réel | ✅ | Gateway `/events`, rooms par restaurant/commande, émission order:new, order:status, inventory:alert |
 | `NotificationsModule` (push/email/SMS) | ❌ | Resend email, VAPID push, Twilio SMS |
 | `SuperAdminModule` | ❌ | Gestion abonnements SaaS, monitoring |
 | `DriversModule` (GPS livreurs) | ❌ | Positions GPS temps réel |
@@ -114,8 +114,8 @@
 | Page menu (`/menu`) | ✅ | Uber Eats style, filtres, panier flottant |
 | Checkout (`/checkout`) | ✅ | Adresse, créneau, paiement multi-méthodes |
 | Suivi commande (`/orders/[id]/track`) | ✅ | Carte animée, timeline, livreur |
-| Historique commandes | ❌ | `/orders` — liste des commandes passées |
-| Profil client | ❌ | `/profile` — infos, adresses, préférences |
+| Historique commandes | ✅ | `/orders` — liste, filtres, banner commande active, recommander |
+| Profil client | ✅ | `/profile` — infos, adresses, fidélité, notifications, sécurité |
 | Programme fidélité | ❌ | `/loyalty` — points, niveaux, récompenses |
 | Favoris / restaurants sauvegardés | ❌ | |
 | Notifications | ❌ | Centre de notifications `/notifications` |
@@ -128,8 +128,8 @@
 | Login (`/login`) | ✅ | Light style, Supabase auth |
 | Register (`/register`) | ✅ | Sélecteur rôle, indicateur mot de passe |
 | Auth callback OAuth (`/auth/callback`) | ✅ | PKCE |
-| Mot de passe oublié | ❌ | `/auth/forgot-password` |
-| Reset mot de passe | ❌ | `/auth/reset-password` |
+| Mot de passe oublié | ✅ | `/auth/forgot-password` — Supabase resetPasswordForEmail |
+| Reset mot de passe | ✅ | `/auth/reset-password` — indicateur force, validation PKCE |
 | Vérification email | ❌ | Page confirmation |
 | 2FA setup / vérification | ❌ | |
 
@@ -141,7 +141,7 @@
 | Gestion commandes (`/dashboard/orders`) | ✅ | Tableau filtrable, statuts, modal détail |
 | Inventaire (`/dashboard/inventory`) | ✅ | Niveaux stock, alertes, stats |
 | Caisse POS (`/pos`) | ✅ | Interface tactile, calcul monnaie, paiement |
-| Gestion menus | ❌ | CRUD catégories + articles + modificateurs |
+| Gestion menus | ✅ | CRUD catégories + articles, allergènes, calories, toggle disponibilité |
 | Gestion employés | ❌ | Invitations, rôles, permissions |
 | Statistiques avancées | ❌ | Revenus par heure, best-sellers, clients |
 | Gestion fournisseurs | ❌ | Contacts, commandes fournisseurs |
@@ -286,12 +286,19 @@
 
 ## Prochaines priorités recommandées
 
-### Court terme (sprint suivant)
-1. **Socket.io** — synchronisation temps réel commandes/stocks (backend + frontend)
-2. **Gestion menus** — page CRUD `/dashboard/menu` (création articles, catégories, variantes)
+### Court terme (sprint suivant) — Sprint 2 ✅ terminé
+1. ~~**Socket.io**~~ ✅ Gateway NestJS `/events`, hook `useOrderSocket`, lib `socket.ts`
+2. ~~**Gestion menus**~~ ✅ Page CRUD `/dashboard/menu` complète
 3. **Google Maps** — remplacer la carte simulée dans le suivi de commande
-4. **Profil client** + historique commandes (`/profile`, `/orders`)
-5. **Mot de passe oublié / reset** — pages auth manquantes
+4. ~~**Profil client** + historique commandes~~ ✅ `/profile` + `/orders`
+5. ~~**Mot de passe oublié / reset**~~ ✅ `/auth/forgot-password` + `/auth/reset-password`
+
+### Court terme (Sprint 3)
+1. **Google Maps** — carte réelle dans `/orders/[id]/track`
+2. **Stripe complet** — webhook, paiement card réel, `@stripe/react-stripe-js`
+3. **Programme fidélité** — page `/loyalty` (points, tiers, récompenses)
+4. **Gestion employés** — `/dashboard/staff` (invitations, rôles)
+5. **Paramètres restaurant** — `/dashboard/settings` (horaires, logo, zones)
 
 ### Moyen terme
 6. **App mobile consommateur** — `apps/customer-app` (React Native + Expo)

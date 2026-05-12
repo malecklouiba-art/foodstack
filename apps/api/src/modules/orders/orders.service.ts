@@ -3,13 +3,17 @@ import { PrismaService } from '../../database/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsGateway,
+  ) {}
 
   async createOrder(dto: CreateOrderDto) {
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         restaurantId: dto.restaurantId,
         customerId: dto.customerId,
@@ -32,6 +36,8 @@ export class OrdersService {
       } as any,
       include: { items: true },
     });
+    this.events.emitNewOrder(order.restaurantId, order as unknown as Record<string, unknown>);
+    return order;
   }
 
   async findById(id: string) {
@@ -71,11 +77,18 @@ export class OrdersService {
   }
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
-    await this.findById(id);
-    return this.prisma.order.update({
+    const order = await this.findById(id);
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { status: dto.status as any },
     });
+    this.events.emitOrderStatusUpdate({
+      orderId: id,
+      restaurantId: order.restaurantId,
+      status: dto.status,
+      updatedAt: updated.updatedAt.toISOString(),
+    });
+    return updated;
   }
 
   async cancelOrder(id: string, reason: string) {

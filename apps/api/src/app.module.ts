@@ -12,6 +12,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { DatabaseModule } from './database/database.module';
+import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { DatabaseModule } from './database/database.module';
     PaymentsModule,
     LoyaltyModule,
     AnalyticsModule,
+    EventsModule,
   ],
 })
 export class AppModule {}
