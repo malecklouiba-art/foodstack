@@ -54,3 +54,7 @@ uploads/
 # Docker
 docker-data/
 next-env.d.ts
+
+# External repos cloned locally
+superpowers/
+claude-code/
