@@ -4,13 +4,13 @@ import { OrdersService } from './orders.service';
 import { PrismaService } from '../../database/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
 
-const mockNotifications = {
-  sendOrderConfirmation: jest.fn(),
-};
+const mockNotifications = { sendOrderConfirmation: jest.fn() };
+const mockLoyalty = { earnPoints: jest.fn() };
 
 const mockPrisma = {
   order: {
@@ -36,6 +36,7 @@ describe('OrdersService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventsGateway, useValue: mockEventsGateway },
         { provide: NotificationsService, useValue: mockNotifications },
+        { provide: LoyaltyService, useValue: mockLoyalty },
       ],
     }).compile();
 
