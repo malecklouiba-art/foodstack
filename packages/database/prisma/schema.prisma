@@ -59,6 +59,11 @@ enum PaymentMethod {
   loyalty_points
 }
 
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
 enum StockMovementType {
   restock
   usage
@@ -170,6 +175,7 @@ model Restaurant {
   suppliers   Supplier[]
   promotions  Promotion[]
   reviews     Review[]
+  coupons     Coupon[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -459,6 +465,27 @@ model Promotion {
 
   @@index([code])
   @@map("promotions")
+}
+
+model Coupon {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  discountType    DiscountType
+  discountValue   Float
+  minOrderAmount  Float?
+  maxUses         Int?
+  usedCount       Int          @default(0)
+  expiresAt       DateTime?
+  restaurantId    String?
+  restaurant      Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  active          Boolean      @default(true)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([code])
+  @@index([restaurantId])
+  @@map("coupons")
 }
 
 model Review {
