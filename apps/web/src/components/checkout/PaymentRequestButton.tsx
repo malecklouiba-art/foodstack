@@ -47,8 +47,7 @@ export function PaymentRequestButton({
         onSuccess();
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stripe, clientSecret, totalCents]);
+  }, [stripe, clientSecret, totalCents, onSuccess]);
 
   if (!paymentRequest) return null;
 
