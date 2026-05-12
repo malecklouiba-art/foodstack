@@ -74,8 +74,8 @@ export default function OrdersPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Commandes</h1>
-          <p className="mt-1 text-sm text-surface-500">{ORDERS.length} commandes aujourd'hui</p>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-50">Commandes</h1>
+          <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{ORDERS.length} commandes aujourd'hui</p>
         </div>
         <Button variant="ghost" size="sm" icon={<RefreshCw className="h-4 w-4" />}>
           Actualiser
@@ -100,7 +100,7 @@ export default function OrdersPage() {
               className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
                 statusFilter === status
                   ? 'border-brand-500 bg-brand-50 text-brand-700'
-                  : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300'
+                  : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-400 dark:hover:border-surface-600'
               }`}
             >
               {status === 'all' ? 'Toutes' : STATUS_CONFIG[status as OrderStatus].label}
@@ -110,19 +110,19 @@ export default function OrdersPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm dark:border-surface-700 dark:bg-surface-900">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-surface-100 bg-surface-50">
+              <tr className="border-b border-surface-100 bg-surface-50 dark:border-surface-700 dark:bg-surface-800">
                 {['Commande', 'Client', 'Type', 'Articles', 'Total', 'Statut', 'Heure', 'Actions'].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-surface-100 dark:divide-surface-700">
               {filtered.map((order, i) => {
                 const status = STATUS_CONFIG[order.status];
                 const next = nextStatus[order.status];
@@ -132,21 +132,21 @@ export default function OrdersPage() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className="hover:bg-surface-50"
+                    className="hover:bg-surface-50 dark:hover:bg-surface-800"
                   >
-                    <td className="px-4 py-3.5 text-sm font-semibold text-surface-900">{order.id}</td>
+                    <td className="px-4 py-3.5 text-sm font-semibold text-surface-900 dark:text-surface-50">{order.id}</td>
                     <td className="px-4 py-3.5">
-                      <p className="text-sm font-medium text-surface-900">{order.customer}</p>
-                      <p className="text-xs text-surface-400">{order.phone}</p>
+                      <p className="text-sm font-medium text-surface-900 dark:text-surface-50">{order.customer}</p>
+                      <p className="text-xs text-surface-400 dark:text-surface-500">{order.phone}</p>
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-surface-600">{TYPE_LABELS[order.type]}</td>
-                    <td className="px-4 py-3.5 text-sm text-surface-600">{order.items.length} article{order.items.length !== 1 ? 's' : ''}</td>
-                    <td className="px-4 py-3.5 text-sm font-semibold text-surface-900">{order.total.toFixed(2)}€</td>
+                    <td className="px-4 py-3.5 text-sm text-surface-600 dark:text-surface-400">{TYPE_LABELS[order.type]}</td>
+                    <td className="px-4 py-3.5 text-sm text-surface-600 dark:text-surface-400">{order.items.length} article{order.items.length !== 1 ? 's' : ''}</td>
+                    <td className="px-4 py-3.5 text-sm font-semibold text-surface-900 dark:text-surface-50">{order.total.toFixed(2)}€</td>
                     <td className="px-4 py-3.5">
                       <Badge variant={status.variant} dot>{status.label}</Badge>
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-1 text-xs text-surface-400">
+                      <div className="flex items-center gap-1 text-xs text-surface-400 dark:text-surface-500">
                         <Clock className="h-3 w-3" />
                         {order.createdAt}
                       </div>
@@ -155,7 +155,7 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setSelectedOrder(order)}
-                          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700"
+                          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:text-surface-500 dark:hover:bg-surface-700 dark:hover:text-surface-300"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
@@ -185,15 +185,15 @@ export default function OrdersPage() {
         >
           <div className="space-y-4">
             <div>
-              <h4 className="mb-2 text-sm font-semibold text-surface-700">Articles</h4>
-              <div className="space-y-2 rounded-xl border border-surface-100 p-3">
+              <h4 className="mb-2 text-sm font-semibold text-surface-700 dark:text-surface-300">Articles</h4>
+              <div className="space-y-2 rounded-xl border border-surface-100 p-3 dark:border-surface-700">
                 {selectedOrder.items.map((item) => (
                   <div key={item.name} className="flex items-center justify-between text-sm">
-                    <span className="text-surface-700">{item.quantity}x {item.name}</span>
-                    <span className="font-medium text-surface-900">{(item.price * item.quantity).toFixed(2)}€</span>
+                    <span className="text-surface-700 dark:text-surface-300">{item.quantity}x {item.name}</span>
+                    <span className="font-medium text-surface-900 dark:text-surface-50">{(item.price * item.quantity).toFixed(2)}€</span>
                   </div>
                 ))}
-                <div className="border-t border-surface-100 pt-2 flex justify-between font-bold">
+                <div className="border-t border-surface-100 pt-2 flex justify-between font-bold dark:border-surface-700 dark:text-surface-50">
                   <span>Total</span>
                   <span>{selectedOrder.total.toFixed(2)}€</span>
                 </div>
@@ -201,18 +201,18 @@ export default function OrdersPage() {
             </div>
             {selectedOrder.address && (
               <div>
-                <h4 className="mb-1 text-sm font-semibold text-surface-700">Adresse</h4>
-                <p className="text-sm text-surface-600">{selectedOrder.address}</p>
+                <h4 className="mb-1 text-sm font-semibold text-surface-700 dark:text-surface-300">Adresse</h4>
+                <p className="text-sm text-surface-600 dark:text-surface-400">{selectedOrder.address}</p>
               </div>
             )}
             {selectedOrder.driver && (
               <div>
-                <h4 className="mb-1 text-sm font-semibold text-surface-700">Livreur</h4>
-                <p className="text-sm text-surface-600">{selectedOrder.driver}</p>
+                <h4 className="mb-1 text-sm font-semibold text-surface-700 dark:text-surface-300">Livreur</h4>
+                <p className="text-sm text-surface-600 dark:text-surface-400">{selectedOrder.driver}</p>
               </div>
             )}
-            <div className="flex items-center justify-between rounded-xl bg-surface-50 p-3">
-              <span className="text-sm text-surface-600">Statut</span>
+            <div className="flex items-center justify-between rounded-xl bg-surface-50 p-3 dark:bg-surface-800">
+              <span className="text-sm text-surface-600 dark:text-surface-400">Statut</span>
               <Badge variant={STATUS_CONFIG[selectedOrder.status].variant}>
                 {STATUS_CONFIG[selectedOrder.status].label}
               </Badge>

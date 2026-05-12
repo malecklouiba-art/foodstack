@@ -125,8 +125,8 @@ export default function StaffPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Équipe</h1>
-          <p className="mt-1 text-sm text-surface-500">
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-50">Équipe</h1>
+          <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">
             {activeCount} actifs · {invitedCount} invitation{invitedCount !== 1 ? 's' : ''} en attente
           </p>
         </div>
@@ -146,12 +146,12 @@ export default function StaffPage() {
               onClick={() => setRoleFilter(role)}
               className={`rounded-xl border p-3 text-left transition-colors ${
                 roleFilter === role
-                  ? 'border-brand-300 bg-brand-50'
-                  : 'border-surface-200 bg-white hover:border-surface-300'
+                  ? 'border-brand-300 bg-brand-50 dark:border-brand-600 dark:bg-brand-900/30'
+                  : 'border-surface-200 bg-white hover:border-surface-300 dark:border-surface-700 dark:bg-surface-900 dark:hover:border-surface-600'
               }`}
             >
-              <p className="text-lg font-bold text-surface-900">{count}</p>
-              <p className="text-xs text-surface-500">{role === 'all' ? 'Tous' : cfg!.label}</p>
+              <p className="text-lg font-bold text-surface-900 dark:text-surface-50">{count}</p>
+              <p className="text-xs text-surface-500 dark:text-surface-400">{role === 'all' ? 'Tous' : cfg!.label}</p>
             </button>
           );
         })}
@@ -160,30 +160,30 @@ export default function StaffPage() {
       {/* Search */}
       <div className="mb-4 max-w-sm">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-surface-400 dark:text-surface-500" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un membre..."
-            className="h-10 w-full rounded-xl border border-surface-200 bg-white pl-9 pr-4 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="h-10 w-full rounded-xl border border-surface-200 bg-white pl-9 pr-4 text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-50 dark:placeholder-surface-500 dark:focus:border-brand-500 dark:focus:ring-brand-900/30"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm dark:border-surface-700 dark:bg-surface-900">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-surface-100 bg-surface-50">
+              <tr className="border-b border-surface-100 bg-surface-50 dark:border-surface-700 dark:bg-surface-800">
                 {['Membre', 'Rôle', 'Statut', 'Rejoint le', 'Dernière activité', ''].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-50">
+            <tbody className="divide-y divide-surface-50 dark:divide-surface-700">
               {filtered.map((member, i) => {
                 const roleCfg = ROLE_CONFIG[member.role];
                 const statusCfg = STATUS_BADGE[member.status];
@@ -193,14 +193,14 @@ export default function StaffPage() {
                     initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    className="hover:bg-surface-50"
+                    className="hover:bg-surface-50 dark:hover:bg-surface-800"
                   >
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
                         <Avatar name={member.name} size="sm" />
                         <div>
-                          <p className="text-sm font-semibold text-surface-900">{member.name}</p>
-                          <p className="text-xs text-surface-400">{member.email}</p>
+                          <p className="text-sm font-semibold text-surface-900 dark:text-surface-50">{member.name}</p>
+                          <p className="text-xs text-surface-400 dark:text-surface-500">{member.email}</p>
                         </div>
                       </div>
                     </td>
