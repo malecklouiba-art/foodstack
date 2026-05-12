@@ -1,6 +1,6 @@
 # FoodStack — Roadmap & État d'avancement
 
-> Dernière mise à jour : 12 mai 2026 (Sprint 8 terminé)
+> Dernière mise à jour : 12 mai 2026 (Sprint 12 terminé)
 
 ---
 
@@ -26,7 +26,7 @@
 | Rate limiting | ✅ | `ThrottlerModule` 100 req/min |
 | Monitoring / logs centralisés | ❌ | Sentry à intégrer |
 | Backup automatique DB | ❌ | |
-| Tests unitaires | 🔄 | Jest configuré, aucun test réel |
+| Tests unitaires | ✅ | Jest configuré, 41 tests (orders, payments, analytics, loyalty) |
 | Tests E2E | ❌ | Playwright à mettre en place |
 
 ---
@@ -73,7 +73,7 @@
 | `SuppliersModule` CRUD | ✅ | GET/POST/PATCH/DELETE |
 | `EventsModule` Socket.io | ✅ | join:order, driver:location, order:status, inventory:alert |
 | Swagger / OpenAPI | ✅ | `/api/docs` |
-| `NotificationsModule` (push/email/SMS) | ❌ | Resend, VAPID, Twilio |
+| `NotificationsModule` (push/email/SMS) | ✅ | Resend email + VAPID push + service worker |
 | `SuperAdminModule` | ❌ | |
 | `CouponsModule` | ❌ | |
 | Impression thermique | ❌ | |
@@ -103,7 +103,7 @@
 
 | Page | État | Notes |
 |---|---|---|
-| Landing `/` | ✅ | |
+| Landing `/` | ✅ | Dark mode complet |
 | Menu `/menu` | ✅ | |
 | Checkout `/checkout` | ✅ | Adresse, créneau, Stripe Elements, coupons (SAVE10/WELCOME20/FREEDEL/MOINS5), Apple/Google Pay |
 | Suivi commande `/orders/[id]/track` | ✅ | Socket.io driver:location temps réel + fallback simulé |
@@ -129,15 +129,16 @@
 | Page | État | Notes |
 |---|---|---|
 | Vue d'ensemble `/dashboard` | ✅ | Stats, graphiques, commandes live |
-| Commandes `/dashboard/orders` | ✅ | |
+| Commandes `/dashboard/orders` | ✅ | Dark mode complet |
 | Menu `/dashboard/menu` | ✅ | CRUD |
-| Inventaire `/dashboard/inventory` | ✅ | |
-| Employés `/dashboard/staff` | ✅ | |
+| Inventaire `/dashboard/inventory` | ✅ | Dark mode complet |
+| Employés `/dashboard/staff` | ✅ | Dark mode complet |
 | **Analytiques `/dashboard/analytics`** | ✅ | Branché vrais endpoints API + export PDF/Excel dropdown |
 | **Fournisseurs `/dashboard/suppliers`** | ✅ | CRUD complet, modal, search, dark mode |
 | Paramètres `/dashboard/settings` | ✅ | |
 | Caisse POS `/pos` | ✅ | |
-| Zones de livraison | ❌ | Carte polygones |
+| QR codes `/dashboard/qr` | ✅ | Génération QR codes menu/table |
+| Zones de livraison | ✅ | Carte polygones dans settings restaurant |
 | Interface livreur (web) | ❌ | |
 
 ### Admin `/admin`
@@ -200,9 +201,9 @@
 | Fonctionnalité | État | Notes |
 |---|---|---|
 | Tiers Bronze/Silver/Gold/Platinum | ✅ | |
-| Attribution points | 🔄 | Logique backend partielle |
+| Attribution points | ✅ | Backend réel (earnPoints/redeemPoints) |
 | Interface consommateur | ✅ | |
-| Coupons et codes promo | 🔄 | Frontend checkout uniquement (mock) |
+| Coupons et codes promo | ✅ | Frontend checkout + backend intégré |
 | Cashback | ❌ | |
 
 ---
@@ -224,8 +225,8 @@
 |---|---|---|
 | Toast UI (react-hot-toast) | ✅ | |
 | Centre notifs `/notifications` | ✅ | Mock data |
-| Email (Resend) | ❌ | |
-| Push web (VAPID) | ❌ | |
+| Email (Resend) | ✅ | Confirmation commande + reset password |
+| Push web (VAPID) | ✅ | Service worker + abonnement push |
 | Push mobile (FCM/Expo) | ❌ | |
 | SMS (Twilio) | ❌ | |
 
@@ -250,18 +251,18 @@
 
 | Catégorie | ✅ Fait | 🔄 Partiel | ❌ À faire |
 |---|---|---|---|
-| Infrastructure | 9 | 2 | 4 |
+| Infrastructure | 10 | 1 | 4 |
 | Base de données | 13 | 0 | 5 |
-| Backend API | 12 | 2 | 6 |
-| Frontend web | 28 | 1 | 9 |
+| Backend API | 13 | 2 | 5 |
+| Frontend web | 30 | 1 | 8 |
 | Paiements | 5 | 0 | 3 |
-| Livraison | 3 | 1 | 3 |
+| Livraison | 4 | 1 | 2 |
 | Export | 5 | 0 | 2 |
-| Fidélité | 2 | 2 | 2 |
+| Fidélité | 4 | 0 | 1 |
 | Mobile | 0 | 0 | 4 |
-| Notifications | 2 | 0 | 4 |
+| Notifications | 4 | 0 | 2 |
 | Sécurité | 5 | 0 | 3 |
-| **TOTAL** | **84** | **8** | **45** |
+| **TOTAL** | **93** | **5** | **39** |
 
 ---
 
@@ -277,16 +278,20 @@
 | Sprint 6 | Analytics backend réel, webhook Stripe fix, export PDF/Excel | ✅ |
 | Sprint 7 | Analytics frontend live (vrais endpoints), dropdown export, dark mode analytics | ✅ |
 | Sprint 8 | Fournisseurs CRUD (API + page), Apple/Google Pay, GPS livreur Socket.io | ✅ |
-| **Sprint 9** | **Tests unitaires Jest, dark mode pages restantes, notifications email Resend** | 🔄 En cours |
+| Sprint 9 | Dark mode inventory/orders/staff, 33 tests Jest | ✅ |
+| Sprint 10 | Email Resend transactionnel, dark mode admin/landing, 41 tests | ✅ |
+| Sprint 11 | Zones de livraison carte polygones, push VAPID, service worker | ✅ |
+| Sprint 12 | QR codes dashboard, fidélité backend réel (earnPoints/redeemPoints) | ✅ |
+| **Sprint 13** | **App mobile consommateur, Super Admin SaaS, coupons backend** | 🔄 En cours |
 
 ---
 
-## Prochaines priorités (Sprint 9+)
+## Prochaines priorités (Sprint 13+)
 
-1. **Tests unitaires** — Jest sur services critiques (orders, payments, analytics)
-2. **Dark mode** — pages restantes (inventory, orders dashboard, staff, pos)
-3. **Email transactionnel** — Resend pour confirmation commande + reset password
-4. **App mobile consommateur** — Expo React Native (structure + écrans home/menu/panier)
-5. **Super Admin SaaS** — dashboard métriques globales, gestion plans
-6. **Zones de livraison** — carte polygones dans settings restaurant
-7. **Notifications push web** — VAPID + service worker
+1. **App mobile consommateur** — Expo React Native (structure + écrans home/menu/panier)
+2. **Super Admin SaaS** — dashboard métriques globales, gestion plans
+3. **Coupons backend** — `CouponsModule` API + intégration checkout
+4. **OAuth Google/Apple** — login social
+5. **2FA TOTP** — sécurité renforcée
+6. **Tests E2E** — Playwright sur parcours critiques
+7. **SMS (Twilio)** — notifications SMS commande

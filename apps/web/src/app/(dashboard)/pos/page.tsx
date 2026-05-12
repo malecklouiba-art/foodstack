@@ -57,6 +57,92 @@ const MENU_ITEMS: POSItem[] = [
 
 type PayStep = 'cart' | 'payment' | 'success';
 
+interface ReceiptData {
+  orderNumber: number;
+  items: CartLine[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  payMethod: 'card' | 'cash' | 'mobile';
+  tableNumber: number | null;
+}
+
+function generateReceiptHtml(order: ReceiptData): string {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('fr-FR');
+  const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  const divider = '--------------------------------';
+
+  const payLabels: Record<string, string> = {
+    card: 'Carte bancaire',
+    cash: 'Espèces',
+    mobile: 'Paiement mobile',
+  };
+
+  const itemLines = order.items
+    .map((line) => {
+      const name = line.item.name.length > 16 ? line.item.name.slice(0, 16) : line.item.name;
+      const right = `${line.quantity}x${line.item.price.toFixed(2)}€`;
+      const spaces = Math.max(1, 32 - name.length - right.length);
+      return `<div style="display:flex;justify-content:space-between;"><span>${name}</span><span>${right}</span></div>`;
+    })
+    .join('');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Ticket #${order.orderNumber}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      width: 300px;
+      margin: 0 auto;
+      padding: 16px 8px;
+      color: #000;
+      background: #fff;
+    }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .divider { border-top: 1px dashed #000; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; margin: 2px 0; }
+    .total { font-size: 16px; font-weight: bold; }
+    .footer { margin-top: 12px; text-align: center; font-size: 11px; color: #555; }
+    @media print {
+      body { width: 80mm; padding: 8px 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="center bold" style="font-size:14px;">LE COMPTOIR MODERNE</div>
+  <div class="center" style="margin-top:4px;">12 Rue de la Paix, 75001 Paris</div>
+  <div class="center">Tél : 01 42 00 00 00</div>
+  <div class="center" style="margin-top:4px;">${dateStr} à ${timeStr}</div>
+  <div class="center">Ticket #${order.orderNumber}</div>
+  <div class="divider"></div>
+  ${itemLines}
+  <div class="divider"></div>
+  <div class="row"><span>Sous-total</span><span>${order.subtotal.toFixed(2)} €</span></div>
+  <div class="row"><span>TVA (10%)</span><span>${order.tax.toFixed(2)} €</span></div>
+  <div class="divider"></div>
+  <div class="row total"><span>TOTAL</span><span>${order.total.toFixed(2)} €</span></div>
+  <div class="divider"></div>
+  <div class="row"><span>Règlement</span><span>${payLabels[order.payMethod] ?? order.payMethod}</span></div>
+  <div class="divider"></div>
+  <div class="footer">
+    <div>Merci de votre visite !</div>
+    ${order.tableNumber ? `<div>Table ${order.tableNumber}</div>` : ''}
+    <div style="margin-top:6px;">WiFi : comptoir2024</div>
+    <div style="margin-top:8px; font-size:22px;">▪ ▪ ▪ ▪ ▪</div>
+    <div style="font-size:10px;">[ QR Code ]</div>
+    <div style="font-size:10px;">www.lecomptoirmoderne.fr</div>
+  </div>
+</body>
+</html>`;
+}
+
 export default function POSPage() {
   const [activeCategory, setActiveCategory] = useState('Tout');
   const [search, setSearch] = useState('');
@@ -95,6 +181,25 @@ export default function POSPage() {
   const tax = subtotal * 0.1;
   const total = subtotal + tax;
   const cashChange = cashGiven ? parseFloat(cashGiven) - total : 0;
+
+  const printReceipt = () => {
+    const html = generateReceiptHtml({
+      orderNumber: orderCount,
+      items: cart,
+      subtotal,
+      tax,
+      total,
+      payMethod,
+      tableNumber,
+    });
+    const win = window.open('', '_blank', 'width=400,height=600');
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
+  };
 
   const handlePayment = () => {
     setPayStep('success');
@@ -286,12 +391,13 @@ export default function POSPage() {
 
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {[
-                    { icon: Percent, label: 'Remise' },
-                    { icon: Receipt, label: 'Ticket' },
-                    { icon: Users, label: 'Partager' },
-                  ].map(({ icon: Icon, label }) => (
+                    { icon: Percent, label: 'Remise', onClick: undefined },
+                    { icon: Receipt, label: 'Ticket', onClick: printReceipt },
+                    { icon: Users, label: 'Partager', onClick: undefined },
+                  ].map(({ icon: Icon, label, onClick }) => (
                     <button
                       key={label}
+                      onClick={onClick}
                       className="flex flex-col items-center gap-1 rounded-xl border border-white/10 py-2.5 text-xs text-white/60 hover:bg-white/10"
                     >
                       <Icon className="h-4 w-4" />
@@ -442,6 +548,13 @@ export default function POSPage() {
               <h2 className="text-2xl font-bold text-white">Paiement accepté !</h2>
               <p className="mt-2 text-white/60">Commande #{orderCount + 1} validée</p>
               <p className="mt-1 text-3xl font-black text-green-400">{total.toFixed(2)}€</p>
+              <button
+                onClick={printReceipt}
+                className="mt-6 flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/20"
+              >
+                <Receipt className="h-4 w-4" />
+                Imprimer le ticket
+              </button>
               <p className="mt-4 text-sm text-white/40">Réinitialisation en cours...</p>
             </motion.div>
           )}
