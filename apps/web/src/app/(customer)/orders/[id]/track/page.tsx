@@ -17,6 +17,7 @@ import {
 import { APIProvider, Map, Marker, useMap } from '@vis.gl/react-google-maps';
 import { Button } from '@/components/ui/Button';
 import { Navbar } from '@/components/layout/Navbar';
+import { getSocket } from '@/lib/socket';
 
 const MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
@@ -235,6 +236,28 @@ export default function OrderTrackingPage() {
       return () => clearInterval(interval);
     }
   }, [currentStep]);
+
+  // Real-time GPS tracking via Socket.io
+  useEffect(() => {
+    if (!orderId) return;
+
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+
+    socket.emit('join:order', orderId);
+
+    const handleDriverLocation = (data: { lat: number; lng: number }) => {
+      setDriverPos({ lat: data.lat, lng: data.lng });
+    };
+
+    socket.on('driver:location', handleDriverLocation);
+
+    return () => {
+      socket.off('driver:location', handleDriverLocation);
+    };
+  }, [orderId]);
 
   const isDelivered = currentStep === ORDER_STEPS.length - 1;
   const showDriver = currentStep >= 3;

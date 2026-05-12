@@ -84,7 +84,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`restaurant:${event.restaurantId}`).emit('inventory:alert', event);
   }
 
-  emitDriverLocation(orderId: string, location: { lat: number; lng: number }) {
-    this.server.to(`order:${orderId}`).emit('driver:location', { orderId, ...location });
+  emitDriverLocation(driverId: string, orderId: string, lat: number, lng: number) {
+    this.server
+      .to(`order:${orderId}`)
+      .emit('driver:location', { driverId, lat, lng, timestamp: new Date() });
   }
 }

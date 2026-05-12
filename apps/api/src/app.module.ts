@@ -14,6 +14,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { ExportModule } from './modules/export/export.module';
 import { DatabaseModule } from './database/database.module';
 import { EventsModule } from './modules/events/events.module';
+import { SuppliersModule } from './modules/suppliers/suppliers.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EventsModule } from './modules/events/events.module';
     AnalyticsModule,
     ExportModule,
     EventsModule,
+    SuppliersModule,
   ],
 })
 export class AppModule {}

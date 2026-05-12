@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Navbar } from '@/components/layout/Navbar';
 import { StripeCardForm } from '@/components/checkout/StripeCardForm';
+import { PaymentRequestButton } from '@/components/checkout/PaymentRequestButton';
 import { useCartStore } from '@/store/cart';
 import axios from 'axios';
 
@@ -198,6 +199,16 @@ function CheckoutForm() {
                   </div>
                   {clientSecret ? (
                     <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#f97316' } } }}>
+                      <PaymentRequestButton
+                        totalCents={Math.round(orderTotal * 100)}
+                        clientSecret={clientSecret}
+                        onSuccess={() => onPaymentSuccess('wallet')}
+                      />
+                      <div className="relative my-4 flex items-center">
+                        <div className="flex-1 border-t border-surface-200" />
+                        <span className="mx-3 text-xs text-surface-400">— ou —</span>
+                        <div className="flex-1 border-t border-surface-200" />
+                      </div>
                       <StripeCardForm total={orderTotal} onSuccess={onPaymentSuccess} onError={onPaymentError} />
                     </Elements>
                   ) : (
