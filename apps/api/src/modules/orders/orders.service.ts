@@ -6,6 +6,7 @@ import { OrderFiltersDto } from './dto/order-filters.dto';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { CouponsService } from '../coupons/coupons.service';
 
 @Injectable()
 export class OrdersService {
@@ -16,9 +17,26 @@ export class OrdersService {
     private readonly events: EventsGateway,
     private readonly notifications: NotificationsService,
     private readonly loyaltyService: LoyaltyService,
+    private readonly couponsService: CouponsService,
   ) {}
 
   async createOrder(dto: CreateOrderDto) {
+    // Compute a placeholder subtotal (price resolution happens elsewhere)
+    const subtotal = 0;
+
+    let couponDiscount = 0;
+    let couponId: string | undefined;
+
+    if (dto.couponCode) {
+      const couponResult = await this.couponsService.applyCoupon({
+        code: dto.couponCode,
+        restaurantId: dto.restaurantId,
+        orderTotal: subtotal,
+      });
+      couponDiscount = couponResult.discount;
+      couponId = couponResult.couponId;
+    }
+
     const order = await this.prisma.order.create({
       data: {
         restaurantId: dto.restaurantId,
@@ -26,8 +44,9 @@ export class OrdersService {
         deliveryAddress: dto.deliveryAddress ? { address: dto.deliveryAddress } : undefined,
         notes: dto.deliveryNotes,
         orderNumber: `ORD-${Date.now()}`,
-        subtotal: 0,
-        total: 0,
+        subtotal,
+        discount: couponDiscount,
+        total: Math.max(subtotal - couponDiscount, 0),
         status: 'pending',
         items: {
           create: dto.items.map((item) => ({
@@ -46,6 +65,12 @@ export class OrdersService {
         restaurant: { select: { name: true } },
       },
     });
+
+    if (couponId) {
+      void this.couponsService.redeemCoupon(couponId).catch((err: Error) => {
+        this.logger.error(`Failed to redeem coupon ${couponId}: ${err.message}`);
+      });
+    }
 
     this.events.emitNewOrder(order.restaurantId, order as unknown as Record<string, unknown>);
 
