@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell, ShoppingBag, Star, Truck, Tag, X,
-  CheckCheck, Filter, Package,
+  CheckCheck, Package,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Navbar } from '@/components/layout/Navbar';
 import { Badge } from '@/components/ui/Badge';
+import { subscribeToPush } from '@/lib/push';
 
 type NotifType = 'order' | 'promo' | 'loyalty' | 'delivery' | 'system';
 type Filter = 'all' | NotifType;
@@ -56,6 +58,25 @@ const FILTER_LABELS: Record<Filter, string> = {
 export default function NotificationsPage() {
   const [notifs, setNotifs] = useState<Notif[]>(INITIAL);
   const [filter, setFilter] = useState<Filter>('all');
+  const [pushSubscribed, setPushSubscribed] = useState<boolean>(
+    typeof window !== 'undefined' && localStorage.getItem('push-subscribed') === 'true',
+  );
+  const [subscribing, setSubscribing] = useState(false);
+
+  async function handleSubscribePush() {
+    setSubscribing(true);
+    try {
+      const sub = await subscribeToPush();
+      if (sub) {
+        setPushSubscribed(true);
+        toast.success('Notifications push activées !');
+      } else {
+        toast.error('Impossible d\'activer les notifications push.');
+      }
+    } finally {
+      setSubscribing(false);
+    }
+  }
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 
@@ -70,6 +91,22 @@ export default function NotificationsPage() {
       <Navbar />
       <div className="min-h-screen bg-surface-50 dark:bg-surface-950 py-8">
         <div className="mx-auto max-w-2xl px-4 sm:px-6">
+          {/* Push subscription banner */}
+          {!pushSubscribed && (
+            <div className="mb-6 flex items-center justify-between rounded-2xl border border-brand-200 dark:border-brand-800/50 bg-brand-50 dark:bg-brand-900/10 px-4 py-3">
+              <p className="text-sm text-surface-700 dark:text-surface-300">
+                Recevez les mises à jour de commandes en temps réel.
+              </p>
+              <button
+                onClick={handleSubscribePush}
+                disabled={subscribing}
+                className="ml-4 flex-shrink-0 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 transition-colors"
+              >
+                {subscribing ? 'Activation…' : '🔔 Activer les notifications push'}
+              </button>
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-6 flex items-center justify-between">
             <div>

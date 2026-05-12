@@ -35,7 +35,8 @@
     "reflect-metadata": "^0.2.1",
     "resend": "^6.12.3",
     "rxjs": "^7.8.1",
-    "stripe": "^14.17.0"
+    "stripe": "^14.17.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.3.2",
@@ -46,6 +47,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/pdfkit": "^0.17.6",
+    "@types/web-push": "^3.6.4",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.56.0",
