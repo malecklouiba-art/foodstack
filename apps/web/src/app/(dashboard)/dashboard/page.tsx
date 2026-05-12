@@ -28,7 +28,7 @@ const stats = [
     iconBg: 'bg-green-50',
   },
   {
-    title: 'Commandes aujourd'hui',
+    title: "Commandes aujourd'hui",
     value: '84',
     change: 8.2,
     changeLabel: 'vs hier',
