@@ -1,15 +1,19 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly events: EventsGateway,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async createOrder(dto: CreateOrderDto) {
@@ -34,9 +38,31 @@ export class OrdersService {
           })),
         },
       } as any,
-      include: { items: true },
+      include: {
+        items: true,
+        customer: { select: { email: true, firstName: true } },
+        restaurant: { select: { name: true } },
+      },
     });
+
     this.events.emitNewOrder(order.restaurantId, order as unknown as Record<string, unknown>);
+
+    const orderAny = order as any;
+    if (orderAny.customer?.email) {
+      void this.notifications.sendOrderConfirmation(orderAny.customer.email, {
+        orderNumber: order.orderNumber,
+        total: order.total,
+        restaurantName: orderAny.restaurant?.name ?? 'Unknown Restaurant',
+        items: orderAny.items.map((item: any) => ({
+          name: item.name || 'Item',
+          qty: item.quantity,
+          price: item.price,
+        })),
+      }).catch((err) => {
+        this.logger.error(`Order confirmation email failed: ${(err as Error).message}`);
+      });
+    }
+
     return order;
   }
 

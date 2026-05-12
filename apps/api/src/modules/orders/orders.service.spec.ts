@@ -3,9 +3,14 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../../database/prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
+
+const mockNotifications = {
+  sendOrderConfirmation: jest.fn(),
+};
 
 const mockPrisma = {
   order: {
@@ -30,6 +35,7 @@ describe('OrdersService', () => {
         OrdersService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EventsGateway, useValue: mockEventsGateway },
+        { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
 
@@ -73,7 +79,7 @@ describe('OrdersService', () => {
             customerId: 'cust-1',
             status: 'pending',
           }),
-          include: { items: true },
+          include: expect.objectContaining({ items: true }),
         }),
       );
       expect(mockEventsGateway.emitNewOrder).toHaveBeenCalledWith(

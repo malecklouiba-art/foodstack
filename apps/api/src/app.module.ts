@@ -15,6 +15,7 @@ import { ExportModule } from './modules/export/export.module';
 import { DatabaseModule } from './database/database.module';
 import { EventsModule } from './modules/events/events.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { SuppliersModule } from './modules/suppliers/suppliers.module';
     ExportModule,
     EventsModule,
     SuppliersModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}
