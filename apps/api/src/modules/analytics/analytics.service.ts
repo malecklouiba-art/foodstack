@@ -106,12 +106,13 @@ export class AnalyticsService {
       select: { id: true, name: true, price: true },
     });
 
-    const menuMap = new Map(menuItems.map((m) => [m.id, m]));
+    const menuMap: Record<string, { id: string; name: string; price: number }> =
+      Object.fromEntries(menuItems.map((m) => [m.id, m]));
 
     return items.map((item) => ({
       menuItemId: item.menuItemId,
-      name: menuMap.get(item.menuItemId)?.name ?? 'Unknown',
-      price: menuMap.get(item.menuItemId)?.price ?? 0,
+      name: menuMap[item.menuItemId]?.name ?? 'Unknown',
+      price: menuMap[item.menuItemId]?.price ?? 0,
       totalQuantity: item._sum.quantity ?? 0,
       totalRevenue: item._sum.subtotal ?? 0,
     }));
