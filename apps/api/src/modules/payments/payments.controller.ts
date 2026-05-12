@@ -8,6 +8,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import Stripe from 'stripe';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -20,7 +21,16 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @ApiTags('payments')
 @Controller('payments')
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  private readonly stripe: Stripe;
+
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly config: ConfigService,
+  ) {
+    this.stripe = new Stripe(this.config.get<string>('STRIPE_SECRET_KEY') ?? '', {
+      apiVersion: '2024-04-10' as any,
+    });
+  }
 
   @Post('intent')
   @ApiBearerAuth()
@@ -41,7 +51,7 @@ export class PaymentsController {
   @Post('refund')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Refund a payment (full or partial)' })
+  @ApiOperation({ summary: 'Refund a payment — full or partial (amount in cents)' })
   refund(@Body() dto: RefundPaymentDto) {
     return this.paymentsService.refund(dto.paymentIntentId, dto.amount);
   }
@@ -52,18 +62,21 @@ export class PaymentsController {
     @Headers('stripe-signature') signature: string,
     @Req() req: RawBodyRequest<Request>,
   ) {
-    // TODO: Move secret to ConfigService
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? '';
+    const webhookSecret = this.config.get<string>('STRIPE_WEBHOOK_SECRET') ?? '';
     if (!webhookSecret) {
-      throw new BadRequestException('Stripe webhook secret is not configured');
+      throw new BadRequestException('Stripe webhook secret not configured');
     }
+    if (!req.rawBody) {
+      throw new BadRequestException('Raw body unavailable — check NestJS rawBody config');
+    }
+
     let event: Stripe.Event;
     try {
-      const stripe = new (require('stripe'))(process.env.STRIPE_SECRET_KEY ?? '');
-      event = stripe.webhooks.constructEvent(req.rawBody, signature, webhookSecret);
+      event = this.stripe.webhooks.constructEvent(req.rawBody, signature, webhookSecret);
     } catch {
       throw new BadRequestException('Webhook signature verification failed');
     }
+
     return this.paymentsService.handleWebhook(event);
   }
 }
