@@ -46,9 +46,9 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'succe
 };
 
 const PLAN_COLORS: Record<Plan, string> = {
-  Starter: 'bg-surface-100 text-surface-600',
-  Pro: 'bg-brand-100 text-brand-700',
-  Enterprise: 'bg-purple-100 text-purple-700',
+  Starter: 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-400',
+  Pro: 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400',
+  Enterprise: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
 };
 
 export default function AdminRestaurantsPage() {
@@ -74,8 +74,8 @@ export default function AdminRestaurantsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Restaurants</h1>
-          <p className="mt-1 text-sm text-surface-500">{RESTAURANTS.length} établissements · MRR total : {totalMRR} €/mois</p>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-50">Restaurants</h1>
+          <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{RESTAURANTS.length} établissements · MRR total : {totalMRR} €/mois</p>
         </div>
       </div>
 
@@ -87,7 +87,7 @@ export default function AdminRestaurantsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un restaurant, ville, propriétaire…"
-            className="w-full rounded-xl border border-surface-200 bg-white py-2.5 pl-9 pr-4 text-sm text-surface-900 placeholder-surface-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            className="w-full rounded-xl border border-surface-200 bg-white py-2.5 pl-9 pr-4 text-sm text-surface-900 placeholder-surface-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 dark:bg-surface-800 dark:border-surface-700 dark:text-surface-50 dark:placeholder-surface-500"
           />
         </div>
         <div className="flex gap-2 overflow-x-auto">
@@ -97,8 +97,8 @@ export default function AdminRestaurantsPage() {
               onClick={() => setStatusFilter(s)}
               className={`flex-shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 statusFilter === s
-                  ? 'bg-surface-900 text-white'
-                  : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50'
+                  ? 'bg-surface-900 text-white dark:bg-surface-50 dark:text-surface-900'
+                  : 'bg-white border border-surface-200 text-surface-600 hover:bg-surface-50 dark:bg-surface-800 dark:border-surface-700 dark:text-surface-400 dark:hover:bg-surface-700'
               }`}
             >
               {s === 'all' ? 'Tous' : STATUS_CONFIG[s].label}
@@ -108,34 +108,34 @@ export default function AdminRestaurantsPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden dark:bg-surface-900 dark:border-surface-700">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-surface-100 bg-surface-50">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Restaurant</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Plan</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Statut</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400">MRR</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400">Commandes</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400">CA total</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Dernière cmd</th>
+              <tr className="border-b border-surface-100 bg-surface-50 dark:border-surface-700 dark:bg-surface-800">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Restaurant</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Plan</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">MRR</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Commandes</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">CA total</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Dernière cmd</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-surface-100 dark:divide-surface-700">
               {filtered.map((r) => {
                 const sc = STATUS_CONFIG[r.status];
                 return (
-                  <tr key={r.id} className="hover:bg-surface-50 transition-colors">
+                  <tr key={r.id} className="hover:bg-surface-50 transition-colors dark:hover:bg-surface-800">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 text-sm font-bold text-brand-700">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
                           {r.name.charAt(0)}
                         </div>
                         <div>
-                          <p className="font-medium text-surface-900">{r.name}</p>
-                          <div className="flex items-center gap-1 text-xs text-surface-400">
+                          <p className="font-medium text-surface-900 dark:text-surface-50">{r.name}</p>
+                          <div className="flex items-center gap-1 text-xs text-surface-400 dark:text-surface-500">
                             <MapPin className="h-3 w-3" />
                             {r.city}
                           </div>
@@ -150,19 +150,19 @@ export default function AdminRestaurantsPage() {
                     <td className="px-4 py-4">
                       <Badge variant={sc.variant} size="sm">{sc.label}</Badge>
                     </td>
-                    <td className="px-4 py-4 text-right font-medium text-surface-900">
+                    <td className="px-4 py-4 text-right font-medium text-surface-900 dark:text-surface-50">
                       {r.mrr > 0 ? `${r.mrr} €` : '—'}
                     </td>
-                    <td className="px-4 py-4 text-right text-surface-600">{r.orders}</td>
-                    <td className="px-4 py-4 text-right font-medium text-surface-900">
+                    <td className="px-4 py-4 text-right text-surface-600 dark:text-surface-400">{r.orders}</td>
+                    <td className="px-4 py-4 text-right font-medium text-surface-900 dark:text-surface-50">
                       {r.revenue > 0 ? `${r.revenue.toLocaleString('fr-FR')} €` : '—'}
                     </td>
-                    <td className="px-4 py-4 text-xs text-surface-400">{r.lastOrder}</td>
+                    <td className="px-4 py-4 text-xs text-surface-400 dark:text-surface-500">{r.lastOrder}</td>
                     <td className="px-4 py-4">
                       <div className="relative">
                         <button
                           onClick={() => setMenuOpenId(menuOpenId === r.id ? null : r.id)}
-                          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100"
+                          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </button>
@@ -173,25 +173,25 @@ export default function AdminRestaurantsPage() {
                               animate={{ opacity: 1, scale: 1 }}
                               exit={{ opacity: 0, scale: 0.95 }}
                               transition={{ duration: 0.1 }}
-                              className="absolute right-0 top-full z-10 mt-1 w-48 overflow-hidden rounded-xl border border-surface-200 bg-white shadow-glass-lg"
+                              className="absolute right-0 top-full z-10 mt-1 w-48 overflow-hidden rounded-xl border border-surface-200 bg-white shadow-glass-lg dark:bg-surface-900 dark:border-surface-700"
                             >
                               <button
                                 onClick={() => { setDetailId(r.id); setMenuOpenId(null); }}
-                                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50"
+                                className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 dark:text-surface-300 dark:hover:bg-surface-800"
                               >
-                                <Eye className="h-4 w-4 text-surface-400" />
+                                <Eye className="h-4 w-4 text-surface-400 dark:text-surface-500" />
                                 Voir les détails
                               </button>
-                              <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50">
-                                <Mail className="h-4 w-4 text-surface-400" />
+                              <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 dark:text-surface-300 dark:hover:bg-surface-800">
+                                <Mail className="h-4 w-4 text-surface-400 dark:text-surface-500" />
                                 Envoyer un email
                               </button>
-                              <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50">
-                                <RefreshCw className="h-4 w-4 text-surface-400" />
+                              <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50 dark:text-surface-300 dark:hover:bg-surface-800">
+                                <RefreshCw className="h-4 w-4 text-surface-400 dark:text-surface-500" />
                                 {r.status === 'suspended' ? 'Réactiver' : 'Réinitialiser'}
                               </button>
-                              <div className="border-t border-surface-100" />
-                              <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">
+                              <div className="border-t border-surface-100 dark:border-surface-700" />
+                              <button className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
                                 <Ban className="h-4 w-4" />
                                 {r.status === 'suspended' ? 'Supprimer' : 'Suspendre'}
                               </button>
@@ -224,22 +224,22 @@ export default function AdminRestaurantsPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 40 }}
               transition={{ type: 'spring', damping: 25 }}
-              className="fixed right-0 top-0 z-50 h-full w-96 overflow-y-auto border-l border-surface-200 bg-white shadow-glass-lg"
+              className="fixed right-0 top-0 z-50 h-full w-96 overflow-y-auto border-l border-surface-200 bg-white shadow-glass-lg dark:bg-surface-900 dark:border-surface-700"
             >
-              <div className="flex items-center justify-between border-b border-surface-100 p-5">
-                <h3 className="font-semibold text-surface-900">Détails</h3>
-                <button onClick={() => setDetailId(null)} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100">
+              <div className="flex items-center justify-between border-b border-surface-100 p-5 dark:border-surface-700">
+                <h3 className="font-semibold text-surface-900 dark:text-surface-50">Détails</h3>
+                <button onClick={() => setDetailId(null)} className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="p-5 space-y-5">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-xl font-bold text-brand-700">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-xl font-bold text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
                     {detail.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-semibold text-surface-900">{detail.name}</p>
-                    <p className="text-sm text-surface-500">{detail.city}</p>
+                    <p className="font-semibold text-surface-900 dark:text-surface-50">{detail.name}</p>
+                    <p className="text-sm text-surface-500 dark:text-surface-400">{detail.city}</p>
                     <span className="mt-1 block">
                       <Badge variant={STATUS_CONFIG[detail.status].variant} size="sm">
                         {STATUS_CONFIG[detail.status].label}
@@ -248,10 +248,10 @@ export default function AdminRestaurantsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-2 rounded-xl bg-surface-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-surface-400">Propriétaire</p>
-                  <p className="text-sm font-medium text-surface-900">{detail.owner}</p>
-                  <p className="text-sm text-surface-500">{detail.email}</p>
+                <div className="space-y-2 rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Propriétaire</p>
+                  <p className="text-sm font-medium text-surface-900 dark:text-surface-50">{detail.owner}</p>
+                  <p className="text-sm text-surface-500 dark:text-surface-400">{detail.email}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -261,22 +261,22 @@ export default function AdminRestaurantsPage() {
                     { label: 'Commandes', value: detail.orders.toString(), icon: ShoppingBag },
                     { label: 'CA total', value: detail.revenue > 0 ? `${detail.revenue.toLocaleString('fr-FR')} €` : '—', icon: TrendingUp },
                   ].map((item) => (
-                    <div key={item.label} className="rounded-xl border border-surface-200 p-3">
-                      <item.icon className="mb-1 h-4 w-4 text-surface-400" />
-                      <p className="text-lg font-bold text-surface-900">{item.value}</p>
-                      <p className="text-xs text-surface-500">{item.label}</p>
+                    <div key={item.label} className="rounded-xl border border-surface-200 p-3 dark:border-surface-700 dark:bg-surface-800">
+                      <item.icon className="mb-1 h-4 w-4 text-surface-400 dark:text-surface-500" />
+                      <p className="text-lg font-bold text-surface-900 dark:text-surface-50">{item.value}</p>
+                      <p className="text-xs text-surface-500 dark:text-surface-400">{item.label}</p>
                     </div>
                   ))}
                 </div>
 
-                <div className="space-y-2 rounded-xl bg-surface-50 p-4">
+                <div className="space-y-2 rounded-xl bg-surface-50 p-4 dark:bg-surface-800">
                   <div className="flex justify-between text-sm">
-                    <span className="text-surface-500">Inscrit le</span>
-                    <span className="font-medium text-surface-900">{detail.joined}</span>
+                    <span className="text-surface-500 dark:text-surface-400">Inscrit le</span>
+                    <span className="font-medium text-surface-900 dark:text-surface-50">{detail.joined}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-surface-500">Dernière commande</span>
-                    <span className="font-medium text-surface-900">{detail.lastOrder}</span>
+                    <span className="text-surface-500 dark:text-surface-400">Dernière commande</span>
+                    <span className="font-medium text-surface-900 dark:text-surface-50">{detail.lastOrder}</span>
                   </div>
                 </div>
 

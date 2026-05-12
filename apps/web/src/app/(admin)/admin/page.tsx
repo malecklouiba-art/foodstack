@@ -60,10 +60,10 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'succe
 
 export default function SuperAdminDashboard() {
   const kpis = [
-    { label: 'Restaurants actifs', value: '24', change: +4, icon: Store, color: 'bg-brand-100 text-brand-600' },
-    { label: 'Utilisateurs total', value: '8 412', change: +12, icon: Users, color: 'bg-blue-100 text-blue-600' },
-    { label: 'MRR', value: '13 400 €', change: +10, icon: Euro, color: 'bg-green-100 text-green-600' },
-    { label: 'Commandes (7j)', value: '4 891', change: +8, icon: Activity, color: 'bg-purple-100 text-purple-600' },
+    { label: 'Restaurants actifs', value: '24', change: +4, icon: Store, color: 'bg-brand-100 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400' },
+    { label: 'Utilisateurs total', value: '8 412', change: +12, icon: Users, color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
+    { label: 'MRR', value: '13 400 €', change: +10, icon: Euro, color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' },
+    { label: 'Commandes (7j)', value: '4 891', change: +8, icon: Activity, color: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' },
   ];
 
   return (
@@ -71,8 +71,8 @@ export default function SuperAdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Vue globale</h1>
-          <p className="mt-1 text-sm text-surface-500">Plateforme FoodStack · {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-50">Vue globale</h1>
+          <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">Plateforme FoodStack · {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
       </div>
 
@@ -84,7 +84,7 @@ export default function SuperAdminDashboard() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm dark:bg-surface-900 dark:border-surface-700"
           >
             <div className="mb-3 flex items-center justify-between">
               <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${kpi.color}`}>
@@ -95,17 +95,17 @@ export default function SuperAdminDashboard() {
                 {kpi.change >= 0 ? '+' : ''}{kpi.change}%
               </span>
             </div>
-            <p className="text-2xl font-bold text-surface-900">{kpi.value}</p>
-            <p className="mt-0.5 text-sm text-surface-500">{kpi.label}</p>
+            <p className="text-2xl font-bold text-surface-900 dark:text-surface-50">{kpi.value}</p>
+            <p className="mt-0.5 text-sm text-surface-500 dark:text-surface-400">{kpi.label}</p>
           </motion.div>
         ))}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* MRR chart */}
-        <div className="lg:col-span-2 rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
+        <div className="lg:col-span-2 rounded-2xl border border-surface-200 bg-white p-6 shadow-sm dark:bg-surface-900 dark:border-surface-700">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="font-semibold text-surface-900">MRR (Monthly Recurring Revenue)</h2>
+            <h2 className="font-semibold text-surface-900 dark:text-surface-50">MRR (Monthly Recurring Revenue)</h2>
             <span className="flex items-center gap-1 text-xs font-semibold text-green-600">
               <TrendingUp className="h-3.5 w-3.5" />
               +63% sur 6 mois
@@ -132,8 +132,8 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* System status */}
-        <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-surface-900">Statut système</h2>
+        <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm dark:bg-surface-900 dark:border-surface-700">
+          <h2 className="mb-4 font-semibold text-surface-900 dark:text-surface-50">Statut système</h2>
           <div className="space-y-3">
             {SYSTEM_ALERTS.map((alert, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -141,8 +141,8 @@ export default function SuperAdminDashboard() {
                 {alert.type === 'warning' && <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-500" />}
                 {alert.type === 'error' && <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" />}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-surface-800 leading-tight">{alert.message}</p>
-                  <div className="mt-0.5 flex items-center gap-1 text-xs text-surface-400">
+                  <p className="text-xs font-medium text-surface-800 leading-tight dark:text-surface-200">{alert.message}</p>
+                  <div className="mt-0.5 flex items-center gap-1 text-xs text-surface-400 dark:text-surface-500">
                     <Clock className="h-3 w-3" />
                     {alert.time}
                   </div>
@@ -154,8 +154,8 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Orders by restaurant */}
-      <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-semibold text-surface-900">Commandes par restaurant (7 jours)</h2>
+      <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm dark:bg-surface-900 dark:border-surface-700">
+        <h2 className="mb-4 font-semibold text-surface-900 dark:text-surface-50">Commandes par restaurant (7 jours)</h2>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={ORDERS_BY_RESTAURANT} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" vertical={false} />
@@ -168,9 +168,9 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Restaurants table */}
-      <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-100">
-          <h2 className="font-semibold text-surface-900">Restaurants récents</h2>
+      <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden dark:bg-surface-900 dark:border-surface-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-100 dark:border-surface-700">
+          <h2 className="font-semibold text-surface-900 dark:text-surface-50">Restaurants récents</h2>
           <a href="/admin/restaurants" className="flex items-center gap-1 text-xs text-brand-600 font-medium hover:underline">
             Voir tous <ArrowUpRight className="h-3 w-3" />
           </a>
@@ -178,31 +178,31 @@ export default function SuperAdminDashboard() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-surface-100 bg-surface-50">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Restaurant</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Plan</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Statut</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400">MRR</th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400">Commandes</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">Inscription</th>
+              <tr className="border-b border-surface-100 bg-surface-50 dark:border-surface-700 dark:bg-surface-800">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Restaurant</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Plan</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Statut</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">MRR</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Commandes</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">Inscription</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-surface-100 dark:divide-surface-700">
               {RECENT_RESTAURANTS.map((r) => {
                 const sc = STATUS_CONFIG[r.status];
                 return (
-                  <tr key={r.name} className="hover:bg-surface-50 transition-colors">
+                  <tr key={r.name} className="hover:bg-surface-50 transition-colors dark:hover:bg-surface-800">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-100 text-xs font-bold text-surface-600">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-100 text-xs font-bold text-surface-600 dark:bg-surface-800 dark:text-surface-300">
                           {r.name.charAt(0)}
                         </div>
-                        <span className="font-medium text-surface-900">{r.name}</span>
+                        <span className="font-medium text-surface-900 dark:text-surface-50">{r.name}</span>
                       </div>
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        r.plan === 'Pro' ? 'bg-brand-100 text-brand-700' : 'bg-surface-100 text-surface-600'
+                        r.plan === 'Pro' ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400' : 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-400'
                       }`}>
                         {r.plan}
                       </span>
@@ -210,11 +210,11 @@ export default function SuperAdminDashboard() {
                     <td className="px-4 py-4">
                       <Badge variant={sc.variant} size="sm">{sc.label}</Badge>
                     </td>
-                    <td className="px-4 py-4 text-right font-medium text-surface-900">
+                    <td className="px-4 py-4 text-right font-medium text-surface-900 dark:text-surface-50">
                       {r.mrr > 0 ? `${r.mrr} €` : '—'}
                     </td>
-                    <td className="px-4 py-4 text-right text-surface-600">{r.orders}</td>
-                    <td className="px-6 py-4 text-surface-400">{r.joined}</td>
+                    <td className="px-4 py-4 text-right text-surface-600 dark:text-surface-400">{r.orders}</td>
+                    <td className="px-6 py-4 text-surface-400 dark:text-surface-500">{r.joined}</td>
                   </tr>
                 );
               })}

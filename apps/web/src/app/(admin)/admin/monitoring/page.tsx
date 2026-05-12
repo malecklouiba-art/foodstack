@@ -64,10 +64,10 @@ export default function MonitoringPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Monitoring</h1>
-          <p className="mt-1 text-sm text-surface-500">Infrastructure en temps réel</p>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-50">Monitoring</h1>
+          <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">Infrastructure en temps réel</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-surface-500">
+        <div className="flex items-center gap-2 text-sm text-surface-500 dark:text-surface-400">
           <motion.div
             animate={{ opacity: [1, 0.3, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
@@ -89,13 +89,13 @@ export default function MonitoringPage() {
             key={m.label}
             animate={{ opacity: 1 }}
             transition={{ delay: i * 0.05 }}
-            className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm"
+            className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm dark:bg-surface-900 dark:border-surface-700"
           >
             <div className="mb-2 flex items-center justify-between">
-              <m.icon className="h-4 w-4 text-surface-400" />
+              <m.icon className="h-4 w-4 text-surface-400 dark:text-surface-500" />
               <span className={`text-xs font-semibold ${m.color}`}>{m.value}{m.unit}</span>
             </div>
-            <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-surface-100">
+            <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-700">
               <motion.div
                 animate={{ width: `${Math.min(100, (m.value / (m.unit === '/100' ? 100 : m.unit === '%' ? 100 : 50)) * 100)}%` }}
                 transition={{ duration: 0.5 }}
@@ -105,15 +105,15 @@ export default function MonitoringPage() {
                 }`}
               />
             </div>
-            <p className="text-xs text-surface-500">{m.label}</p>
+            <p className="text-xs text-surface-500 dark:text-surface-400">{m.label}</p>
           </motion.div>
         ))}
       </div>
 
       {/* Latency chart & services */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-surface-900">Latence API & DB (20 dernières secondes)</h2>
+        <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm dark:bg-surface-900 dark:border-surface-700">
+          <h2 className="mb-4 font-semibold text-surface-900 dark:text-surface-50">Latence API & DB (20 dernières secondes)</h2>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={LATENCY_DATA} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f4f4f5" />
@@ -124,26 +124,26 @@ export default function MonitoringPage() {
               <Line type="monotone" dataKey="db" name="DB" stroke="#60a5fa" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
-          <div className="mt-2 flex gap-4 text-xs text-surface-500">
+          <div className="mt-2 flex gap-4 text-xs text-surface-500 dark:text-surface-400">
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-brand-500" /> API NestJS</span>
             <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-400" /> PostgreSQL</span>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 font-semibold text-surface-900">Services</h2>
+        <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm dark:bg-surface-900 dark:border-surface-700">
+          <h2 className="mb-4 font-semibold text-surface-900 dark:text-surface-50">Services</h2>
           <div className="space-y-3">
             {SERVICES.map((svc) => {
               const st = STATUS_STYLE[svc.status];
               return (
                 <div key={svc.name} className="flex items-center gap-3">
                   <div className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${st.dot}`} />
-                  <svc.icon className="h-4 w-4 flex-shrink-0 text-surface-400" />
+                  <svc.icon className="h-4 w-4 flex-shrink-0 text-surface-400 dark:text-surface-500" />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-surface-900">{svc.name}</p>
+                    <p className="text-sm font-medium text-surface-900 dark:text-surface-50">{svc.name}</p>
                   </div>
-                  <span className="text-xs text-surface-400">{svc.latency}</span>
-                  <span className="text-xs text-surface-400">{svc.uptime}</span>
+                  <span className="text-xs text-surface-400 dark:text-surface-500">{svc.latency}</span>
+                  <span className="text-xs text-surface-400 dark:text-surface-500">{svc.uptime}</span>
                   <span className={`text-xs font-medium ${svc.status === 'up' ? 'text-green-600' : svc.status === 'degraded' ? 'text-yellow-600' : 'text-red-500'}`}>
                     {st.label}
                   </span>
@@ -155,22 +155,22 @@ export default function MonitoringPage() {
       </div>
 
       {/* Logs */}
-      <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between border-b border-surface-100 px-6 py-4">
-          <h2 className="font-semibold text-surface-900">Logs récents</h2>
+      <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden dark:bg-surface-900 dark:border-surface-700">
+        <div className="flex items-center justify-between border-b border-surface-100 px-6 py-4 dark:border-surface-700">
+          <h2 className="font-semibold text-surface-900 dark:text-surface-50">Logs récents</h2>
           <button className="flex items-center gap-1.5 text-xs text-brand-600 hover:underline">
             <RefreshCw className="h-3 w-3" /> Actualiser
           </button>
         </div>
-        <div className="divide-y divide-surface-50 font-mono text-xs">
+        <div className="divide-y divide-surface-50 font-mono text-xs dark:divide-surface-700">
           {LOG_ENTRIES.map((log, i) => (
             <div key={i} className={`flex items-start gap-3 px-6 py-2.5 ${
-              log.level === 'error' ? 'bg-red-50' :
-              log.level === 'warn' ? 'bg-yellow-50' : ''
+              log.level === 'error' ? 'bg-red-50 dark:bg-red-900/20' :
+              log.level === 'warn' ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''
             }`}>
               <div className="flex items-center gap-2 flex-shrink-0 w-32">
-                <Clock className="h-3 w-3 text-surface-300" />
-                <span className="text-surface-400">{log.time}</span>
+                <Clock className="h-3 w-3 text-surface-300 dark:text-surface-600" />
+                <span className="text-surface-400 dark:text-surface-500">{log.time}</span>
               </div>
               <span className={`w-12 flex-shrink-0 font-bold uppercase ${
                 log.level === 'error' ? 'text-red-500' :
@@ -179,7 +179,7 @@ export default function MonitoringPage() {
               }`}>
                 {log.level}
               </span>
-              <span className="text-surface-700 leading-relaxed">{log.message}</span>
+              <span className="text-surface-700 leading-relaxed dark:text-surface-300">{log.message}</span>
             </div>
           ))}
         </div>
