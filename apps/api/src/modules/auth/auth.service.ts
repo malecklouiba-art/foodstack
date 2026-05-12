@@ -41,7 +41,12 @@ export class AuthService {
     if (existing) throw new ConflictException('Email déjà utilisé');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const user = await this.usersService.create({ ...dto, passwordHash });
+    const [firstName, ...rest] = dto.name.trim().split(' ');
+    const lastName = rest.join(' ') || '';
+    const user = await this.usersService.create(
+      { email: dto.email, firstName, lastName, password: dto.password, phone: dto.phone },
+      passwordHash,
+    );
 
     const { passwordHash: _, ...result } = user;
     return this.login(result);
@@ -54,9 +59,7 @@ export class AuthService {
       });
       const user = await this.usersService.findById(payload.sub);
       if (!user) throw new UnauthorizedException();
-
-      const { passwordHash: _, ...result } = user;
-      return this.login(result);
+      return this.login(user);
     } catch {
       throw new UnauthorizedException('Token de rafraîchissement invalide');
     }

@@ -93,7 +93,7 @@ export default function OrdersPage() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {(['all', ...Object.keys(STATUS_CONFIG)] as const).map((status) => (
+          {(['all', ...Object.keys(STATUS_CONFIG)] as Array<'all' | OrderStatus>).map((status) => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
@@ -103,7 +103,7 @@ export default function OrdersPage() {
                   : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300'
               }`}
             >
-              {status === 'all' ? 'Toutes' : STATUS_CONFIG[status].label}
+              {status === 'all' ? 'Toutes' : STATUS_CONFIG[status as OrderStatus].label}
             </button>
           ))}
         </div>

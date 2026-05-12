@@ -30,7 +30,7 @@ interface MenuItemCardProps {
   onCartOpen?: () => void;
 }
 
-const tagVariants: Record<string, 'brand' | 'success' | 'warning' | 'danger' | 'info'> = {
+const tagVariants: Record<string, 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
   Bestseller: 'brand',
   Populaire: 'brand',
   Premium: 'info',

@@ -2,13 +2,14 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  PREPARING = 'PREPARING',
-  READY = 'READY',
-  OUT_FOR_DELIVERY = 'OUT_FOR_DELIVERY',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED',
+  PENDING = 'pending',
+  CONFIRMED = 'confirmed',
+  PREPARING = 'preparing',
+  READY = 'ready',
+  DELIVERING = 'delivering',
+  DELIVERED = 'delivered',
+  CANCELLED = 'cancelled',
+  REFUNDED = 'refunded',
 }
 
 export class UpdateOrderStatusDto {

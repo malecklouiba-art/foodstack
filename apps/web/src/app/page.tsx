@@ -150,7 +150,7 @@ export default function LandingPage() {
             <span className="text-lg font-bold text-surface-900">FoodStack</span>
           </div>
           <nav className="hidden items-center gap-6 md:flex">
-            {['Fonctionnalités', 'Tarifs', 'À propos', 'Blog'].map((item) => (
+            {['Fonctionnalités', 'Tarifs', 'À propos', 'Blogue'].map((item) => (
               <a key={item} href="#" className="text-sm text-surface-600 hover:text-surface-900">
                 {item}
               </a>
@@ -168,58 +168,87 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-surface-800 px-4 py-24 text-white sm:px-6 lg:px-8 lg:py-36">
-        {/* Background decoration */}
+      <section className="relative overflow-hidden bg-white px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-brand-600/10 blur-3xl" />
+          <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-orange-50" />
+          <div className="absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-orange-50/60" />
         </div>
 
-        <div className="relative mx-auto max-w-4xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm backdrop-blur-md">
-            <Star className="h-3.5 w-3.5 text-brand-400" />
-            <span className="text-white/90">Plateforme tout-en-un pour la restauration</span>
-          </div>
+        <div className="relative mx-auto max-w-7xl">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            {/* Left */}
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-1.5 text-sm font-medium text-orange-600">
+                <Star className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
+                Noté 4.9/5 par 10 000+ restaurants
+              </div>
 
-          <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-7xl">
-            Gérez votre restaurant
-            <span className="block bg-gradient-to-r from-brand-400 to-orange-300 bg-clip-text text-transparent">
-              comme les pros
-            </span>
-          </h1>
+              <h1 className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-6xl">
+                Obtenez vos repas
+                <span className="block text-brand-500">favoris livrés</span>
+                partout, toujours
+              </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-white/70 sm:text-xl">
-            FoodStack unifie votre POS, gestion des stocks, commandes en ligne et livraison
-            dans une seule plateforme élégante. Du comptoir à la porte.
-          </p>
+              <p className="mt-5 text-lg text-gray-500 leading-relaxed">
+                FoodStack unifie commandes en ligne, livraison et gestion restaurant dans une seule plateforme. Rapide, fiable, garanti.
+              </p>
 
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/auth/register">
-              <Button size="xl" className="gap-3 shadow-brand-lg">
-                Commencer gratuitement
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/menu">
-              <Button variant="glass" size="xl">
-                Voir la démo
-              </Button>
-            </Link>
-          </div>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/register">
+                  <Button size="xl" className="rounded-2xl gap-2 shadow-lg shadow-orange-200">
+                    Commander maintenant
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/menu">
+                  <Button variant="secondary" size="xl" className="rounded-2xl">
+                    Voir le menu
+                  </Button>
+                </Link>
+              </div>
 
-          <p className="mt-4 text-sm text-white/50">
-            Aucune carte de crédit requise · 14 jours d'essai gratuit
-          </p>
-        </div>
+              <div className="mt-8 flex items-center gap-6">
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Truck className="h-4 w-4 text-brand-500" />
+                  Livraison rapide
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Shield className="h-4 w-4 text-brand-500" />
+                  Paiement sécurisé
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Star className="h-4 w-4 text-brand-500" />
+                  100% frais
+                </div>
+              </div>
+            </div>
 
-        {/* Hero image placeholder */}
-        <div className="relative mx-auto mt-16 max-w-5xl">
-          <div className="overflow-hidden rounded-2xl border border-white/20 bg-white/5 p-1 shadow-glass-lg backdrop-blur-sm">
-            <div className="aspect-[16/9] w-full rounded-xl bg-gradient-to-br from-surface-800 to-surface-900 flex items-center justify-center">
-              <div className="text-center text-white/40">
-                <BarChart3 className="mx-auto h-16 w-16 mb-4" />
-                <p className="text-lg font-medium">Dashboard Preview</p>
-                <p className="text-sm">Analytics & Reporting Interface</p>
+            {/* Right — visual */}
+            <div className="relative hidden lg:flex items-center justify-center">
+              <div className="relative rounded-3xl bg-gradient-to-br from-orange-500 to-orange-400 p-8 shadow-2xl shadow-orange-200">
+                <div className="grid grid-cols-2 gap-3">
+                  {['🍔 Burgers', '🍕 Pizzas', '🥗 Salades', '🍟 Frites', '🥤 Boissons', '🍮 Desserts'].map((cat) => (
+                    <div key={cat} className="flex items-center gap-2 rounded-2xl bg-white/20 px-3 py-2.5 text-sm font-medium text-white backdrop-blur-sm">
+                      {cat}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 rounded-2xl bg-white p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-2xl">🍔</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900">Classic Smash Burger</p>
+                      <p className="text-xs text-gray-400">Le Comptoir Moderne · 12 min</p>
+                    </div>
+                    <span className="font-bold text-brand-500">14.90€</span>
+                  </div>
+                </div>
+              </div>
+              {/* Floating badge */}
+              <div className="absolute -bottom-4 -left-4 rounded-2xl bg-white px-4 py-3 shadow-lg">
+                <p className="text-xs text-gray-500">Commandes aujourd&apos;hui</p>
+                <p className="text-2xl font-bold text-gray-900">2 847</p>
+                <p className="text-xs text-green-500 font-medium">↑ 12% vs hier</p>
               </div>
             </div>
           </div>

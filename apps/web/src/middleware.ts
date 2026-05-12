@@ -1,0 +1,40 @@
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+const PROTECTED_PREFIXES = ['/dashboard', '/pos', '/orders', '/checkout'];
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const path = req.nextUrl.pathname;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) return res;
+
+  const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
+  const isAuthPage = path === '/login' || path === '/register';
+
+  if (!isProtected && !isAuthPage) return res;
+
+  try {
+    const supabase = createMiddlewareClient({ req, res });
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session && isProtected) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+    if (session && isAuthPage) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+  } catch {
+    return res;
+  }
+
+  return res;
+}
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+};

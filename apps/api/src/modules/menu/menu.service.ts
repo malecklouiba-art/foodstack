@@ -13,8 +13,8 @@ export class MenuService {
     // TODO: Return categories with nested items, sorted by sortOrder
     return this.prisma.menuCategory.findMany({
       where: { restaurantId },
-      include: { items: { orderBy: { sortOrder: 'asc' } } },
-      orderBy: { sortOrder: 'asc' },
+      include: { items: { orderBy: { position: 'asc' } } },
+      orderBy: { position: 'asc' },
     });
   }
 
@@ -36,7 +36,7 @@ export class MenuService {
   }
 
   async createItem(dto: CreateMenuItemDto) {
-    return this.prisma.menuItem.create({ data: dto });
+    return this.prisma.menuItem.create({ data: dto as any });
   }
 
   async updateItem(id: string, dto: UpdateMenuItemDto) {
@@ -56,7 +56,7 @@ export class MenuService {
     if (!item) throw new NotFoundException(`Menu item #${id} not found`);
     return this.prisma.menuItem.update({
       where: { id },
-      data: { isAvailable: !item.isAvailable },
+      data: { isActive: !item.isActive },
     });
   }
 }
