@@ -175,7 +175,7 @@ export default function OrdersHistoryPage() {
                 </div>
                 <p className="font-semibold text-surface-600">Aucune commande trouvée</p>
                 <p className="mt-1 text-sm text-surface-400">
-                  {search ? 'Essayez un autre terme de recherche' : 'Vous n'avez pas encore passé de commande'}
+                  {search ? 'Essayez un autre terme de recherche' : "Vous n'avez pas encore passé de commande"}
                 </p>
                 <Link href="/menu">
                   <Button className="mt-4" size="sm">Commander maintenant</Button>

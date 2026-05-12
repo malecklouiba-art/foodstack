@@ -404,7 +404,7 @@ export default function MenuPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="mb-1.5 block text-sm font-semibold text-surface-700">Nom de l'article *</label>
+              <label className="mb-1.5 block text-sm font-semibold text-surface-700">Nom de l&apos;article *</label>
               <input
                 type="text"
                 value={itemForm.name}
