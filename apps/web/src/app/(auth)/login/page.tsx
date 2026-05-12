@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { createClient } from '@/lib/supabase';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,22 +22,36 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast.error(error.message === 'Invalid login credentials'
+        ? 'Email ou mot de passe incorrect'
+        : error.message);
+      setLoading(false);
+      return;
+    }
     toast.success('Connexion réussie !');
     router.push('/dashboard');
-    setLoading(false);
+    router.refresh();
+  };
+
+  const handleOAuth = async (provider: 'google' | 'apple') => {
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${location.origin}/auth/callback` },
+    });
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-surface-950 via-surface-900 to-surface-800 px-4">
-      {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-[300px] w-[300px] rounded-full bg-brand-600/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Logo */}
         <div className="mb-8 text-center">
           <Link href="/" className="inline-flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-brand shadow-brand-lg">
@@ -47,7 +61,6 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {/* Card */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-glass-lg">
           <h1 className="text-2xl font-bold text-white">Bon retour !</h1>
           <p className="mt-1 text-sm text-white/60">Connectez-vous à votre compte</p>
@@ -106,7 +119,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Social login */}
           <div className="mt-6">
             <div className="relative flex items-center">
               <div className="flex-1 border-t border-white/10" />
@@ -114,22 +126,25 @@ export default function LoginPage() {
               <div className="flex-1 border-t border-white/10" />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              {['Google', 'Apple'].map((provider) => (
-                <button
-                  key={provider}
-                  className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 text-sm text-white/80 transition-colors hover:bg-white/10"
-                >
-                  <span>{provider === 'Google' ? '🇬' : ''}</span>
-                  {provider}
-                </button>
-              ))}
+              <button
+                onClick={() => handleOAuth('google')}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 text-sm text-white/80 transition-colors hover:bg-white/10"
+              >
+                <span>🇬</span> Google
+              </button>
+              <button
+                onClick={() => handleOAuth('apple')}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 text-sm text-white/80 transition-colors hover:bg-white/10"
+              >
+                <span></span> Apple
+              </button>
             </div>
           </div>
 
           <p className="mt-6 text-center text-sm text-white/50">
             Pas encore de compte ?{' '}
-            <Link href="/auth/register" className="font-medium text-brand-400 hover:text-brand-300">
-              S'inscrire gratuitement
+            <Link href="/register" className="font-medium text-brand-400 hover:text-brand-300">
+              S&apos;inscrire gratuitement
             </Link>
           </p>
         </div>

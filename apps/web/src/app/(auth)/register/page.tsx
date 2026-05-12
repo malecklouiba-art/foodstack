@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
+import { createClient } from '@/lib/supabase';
 
 const passwordRules = [
   { label: 'Au moins 8 caractères', test: (p: string) => p.length >= 8 },
@@ -29,8 +30,21 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    toast.success('Compte créé avec succès !');
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({
+      email: form.email,
+      password: form.password,
+      options: {
+        data: { name: form.name, role },
+        emailRedirectTo: `${location.origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+    toast.success('Compte créé ! Vérifiez votre email pour confirmer.');
     router.push('/dashboard');
     setLoading(false);
   };
