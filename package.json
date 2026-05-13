@@ -4,7 +4,8 @@
   "private": true,
   "description": "Unified Retail & Delivery Platform",
   "workspaces": [
-    "apps/*",
+    "apps/api",
+    "apps/web",
     "packages/*"
   ],
   "scripts": {
