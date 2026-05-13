@@ -61,8 +61,8 @@ export default function InventoryPage() {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Inventaire</h1>
-          <p className="mt-1 text-sm text-surface-500">{STOCK_ITEMS.length} références · mis à jour aujourd'hui</p>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-50">Inventaire</h1>
+          <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{STOCK_ITEMS.length} références · mis à jour aujourd'hui</p>
         </div>
         <Button icon={<Plus className="h-4 w-4" />}>Ajouter un article</Button>
       </div>
@@ -86,7 +86,9 @@ export default function InventoryPage() {
               key={cat}
               onClick={() => setCategory(cat)}
               className={`rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
-                category === cat ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300'
+                category === cat
+                  ? 'border-brand-500 bg-brand-50 text-brand-700'
+                  : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-400 dark:hover:border-surface-600'
               }`}
             >
               {cat}
@@ -96,7 +98,9 @@ export default function InventoryPage() {
         <button
           onClick={() => setShowLowOnly(!showLowOnly)}
           className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
-            showLowOnly ? 'border-red-400 bg-red-50 text-red-700' : 'border-surface-200 bg-white text-surface-600'
+            showLowOnly
+              ? 'border-red-400 bg-red-50 text-red-700'
+              : 'border-surface-200 bg-white text-surface-600 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-400'
           }`}
         >
           <AlertTriangle className="h-4 w-4" />
@@ -105,35 +109,35 @@ export default function InventoryPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm dark:border-surface-700 dark:bg-surface-900">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-surface-100 bg-surface-50">
+            <tr className="border-b border-surface-100 bg-surface-50 dark:border-surface-700 dark:bg-surface-800">
               {['Article', 'Catégorie', 'Stock actuel', 'Stock min.', 'Valeur', 'Fournisseur', 'Statut', 'Actions'].map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">{h}</th>
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400 dark:text-surface-500">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-surface-100">
+          <tbody className="divide-y divide-surface-100 dark:divide-surface-700">
             {filtered.map((item) => {
               const status = getStockStatus(item);
               const ratio = (item.currentStock / item.minStock) * 100;
               return (
-                <tr key={item.id} className="hover:bg-surface-50">
+                <tr key={item.id} className="hover:bg-surface-50 dark:hover:bg-surface-800">
                   <td className="px-4 py-3.5">
-                    <p className="text-sm font-medium text-surface-900">{item.name}</p>
-                    <p className="text-xs text-surface-400">Mis à jour : {item.lastUpdated}</p>
+                    <p className="text-sm font-medium text-surface-900 dark:text-surface-50">{item.name}</p>
+                    <p className="text-xs text-surface-400 dark:text-surface-500">Mis à jour : {item.lastUpdated}</p>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-surface-600">{item.category}</td>
+                  <td className="px-4 py-3.5 text-sm text-surface-600 dark:text-surface-400">{item.category}</td>
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold ${
-                        status === 'critical' ? 'text-red-600' : status === 'low' ? 'text-yellow-600' : 'text-surface-900'
+                        status === 'critical' ? 'text-red-600' : status === 'low' ? 'text-yellow-600' : 'text-surface-900 dark:text-surface-50'
                       }`}>
                         {item.currentStock} {item.unit}
                       </span>
                     </div>
-                    <div className="mt-1 h-1.5 w-20 rounded-full bg-surface-100">
+                    <div className="mt-1 h-1.5 w-20 rounded-full bg-surface-100 dark:bg-surface-700">
                       <div
                         className={`h-full rounded-full ${
                           status === 'critical' ? 'bg-red-500' : status === 'low' ? 'bg-yellow-500' : 'bg-green-500'
@@ -142,11 +146,11 @@ export default function InventoryPage() {
                       />
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-surface-500">{item.minStock} {item.unit}</td>
-                  <td className="px-4 py-3.5 text-sm font-medium text-surface-700">
+                  <td className="px-4 py-3.5 text-sm text-surface-500 dark:text-surface-400">{item.minStock} {item.unit}</td>
+                  <td className="px-4 py-3.5 text-sm font-medium text-surface-700 dark:text-surface-300">
                     {(item.currentStock * item.costPerUnit).toFixed(2)}€
                   </td>
-                  <td className="px-4 py-3.5 text-sm text-surface-600">{item.supplier}</td>
+                  <td className="px-4 py-3.5 text-sm text-surface-600 dark:text-surface-400">{item.supplier}</td>
                   <td className="px-4 py-3.5">
                     <Badge
                       variant={status === 'critical' ? 'danger' : status === 'low' ? 'warning' : 'success'}

@@ -50,4 +50,9 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   deliveryNotes?: string;
+
+  @ApiPropertyOptional({ example: 'SUMMER20', description: 'Optional coupon code to apply' })
+  @IsOptional()
+  @IsString()
+  couponCode?: string;
 }

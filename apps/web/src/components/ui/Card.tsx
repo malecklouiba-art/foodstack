@@ -32,8 +32,8 @@ export function Card({
         clsx(
           'rounded-2xl border',
           glass
-            ? 'border-white/20 bg-white/80 shadow-glass backdrop-blur-xl'
-            : 'border-surface-200 bg-white shadow-sm',
+            ? 'border-white/20 bg-white/80 dark:bg-surface-900/80 shadow-glass backdrop-blur-xl'
+            : 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 shadow-sm',
           hover && 'cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
           paddingClasses[padding],
           onClick && 'cursor-pointer',
@@ -66,7 +66,7 @@ export function CardTitle({
   className?: string;
 }) {
   return (
-    <h3 className={twMerge('text-lg font-semibold text-surface-900', className)}>{children}</h3>
+    <h3 className={twMerge('text-lg font-semibold text-surface-900 dark:text-surface-50', className)}>{children}</h3>
   );
 }
 
@@ -78,6 +78,6 @@ export function CardDescription({
   className?: string;
 }) {
   return (
-    <p className={twMerge('text-sm text-surface-500', className)}>{children}</p>
+    <p className={twMerge('text-sm text-surface-500 dark:text-surface-400', className)}>{children}</p>
   );
 }

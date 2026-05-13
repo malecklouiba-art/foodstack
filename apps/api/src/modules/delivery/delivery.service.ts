@@ -1,10 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { EventsGateway } from '../events/events.gateway';
+import { PushService } from '../notifications/push.service';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 
 @Injectable()
 export class DeliveryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventsGateway: EventsGateway,
+    private readonly pushService: PushService,
+  ) {}
 
   async getActiveDeliveries(restaurantId: string) {
     // TODO: Filter by active delivery statuses (ASSIGNED, PICKED_UP, EN_ROUTE)
@@ -21,8 +27,34 @@ export class DeliveryService {
   }
 
   async updateDriverLocation(driverId: string, lat: number, lng: number) {
-    // TODO: Persist driver location to a DriverLocation table or Redis for real-time tracking
-    // TODO: Broadcast location update via WebSocket/SSE to connected clients
+    // Persist current GPS coordinates on all active deliveries for this driver
+    const updated = await this.prisma.delivery.updateMany({
+      where: {
+        driverId,
+        status: {
+          in: ['assigned', 'en_route_to_restaurant', 'at_restaurant', 'picked_up', 'en_route_to_customer'],
+        },
+      },
+      data: { currentLatitude: lat, currentLongitude: lng },
+    });
+
+    // Broadcast to any active delivery room so customers see real-time movement
+    if (updated.count > 0) {
+      const deliveries = await this.prisma.delivery.findMany({
+        where: {
+          driverId,
+          status: {
+            in: ['assigned', 'en_route_to_restaurant', 'at_restaurant', 'picked_up', 'en_route_to_customer'],
+          },
+        },
+        select: { orderId: true },
+      });
+
+      for (const delivery of deliveries) {
+        this.eventsGateway.emitDriverLocation(driverId, delivery.orderId, lat, lng);
+      }
+    }
+
     return { driverId, lat, lng, updatedAt: new Date() };
   }
 
@@ -41,11 +73,17 @@ export class DeliveryService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException(`Order #${orderId} not found`);
     // TODO: Check driver availability before assigning
-    // TODO: Send push notification to driver with order details
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
       data: { driverId },
     });
+    this.pushService
+      .sendPushNotification(driverId, {
+        title: 'Nouvelle livraison',
+        body: 'Une commande vous a été assignée',
+      })
+      .catch(() => null);
+    return updated;
   }
 
   async getDeliveryETA(orderId: string) {

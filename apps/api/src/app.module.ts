@@ -11,7 +11,12 @@ import { DeliveryModule } from './modules/delivery/delivery.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { ExportModule } from './modules/export/export.module';
 import { DatabaseModule } from './database/database.module';
+import { EventsModule } from './modules/events/events.module';
+import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CouponsModule } from './modules/coupons/coupons.module';
 
 @Module({
   imports: [
@@ -28,6 +33,11 @@ import { DatabaseModule } from './database/database.module';
     PaymentsModule,
     LoyaltyModule,
     AnalyticsModule,
+    ExportModule,
+    EventsModule,
+    SuppliersModule,
+    NotificationsModule,
+    CouponsModule,
   ],
 })
 export class AppModule {}

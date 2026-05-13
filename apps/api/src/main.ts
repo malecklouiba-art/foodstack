@@ -14,7 +14,13 @@ async function bootstrap() {
     })
   );
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api/v1', { exclude: ['/health'] });
+
+  // Health check for Railway / load balancers
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/health', (_req: unknown, res: { status: (code: number) => { json: (body: object) => void } }) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 
   const config = new DocumentBuilder()
     .setTitle('FoodStack API')

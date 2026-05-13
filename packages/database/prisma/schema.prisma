@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ─── Enums ───────────────────────────────────────────────────
@@ -60,6 +59,11 @@ enum PaymentMethod {
   loyalty_points
 }
 
+enum DiscountType {
+  PERCENT
+  FIXED
+}
+
 enum StockMovementType {
   restock
   usage
@@ -84,7 +88,8 @@ model User {
   id             String      @id @default(cuid())
   email          String      @unique
   passwordHash   String
-  name           String
+  firstName      String
+  lastName       String
   phone          String?
   avatar         String?
   role           UserRole    @default(customer)
@@ -93,6 +98,12 @@ model User {
 
   loyaltyPoints  Int         @default(0)
   loyaltyTier    LoyaltyTier @default(bronze)
+
+  // OAuth
+  googleId           String?     @unique
+  // 2FA TOTP
+  twoFactorSecret    String?
+  twoFactorEnabled   Boolean     @default(false)
 
   // Relations
   ownedRestaurants Restaurant[]    @relation("Owner")
@@ -170,6 +181,7 @@ model Restaurant {
   suppliers   Supplier[]
   promotions  Promotion[]
   reviews     Review[]
+  coupons     Coupon[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -459,6 +471,27 @@ model Promotion {
 
   @@index([code])
   @@map("promotions")
+}
+
+model Coupon {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  discountType    DiscountType
+  discountValue   Float
+  minOrderAmount  Float?
+  maxUses         Int?
+  usedCount       Int          @default(0)
+  expiresAt       DateTime?
+  restaurantId    String?
+  restaurant      Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  active          Boolean      @default(true)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([code])
+  @@index([restaurantId])
+  @@map("coupons")
 }
 
 model Review {

@@ -17,6 +17,7 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  UserCog,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed, section: 'Gestion' },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package, section: 'Gestion' },
   { href: '/dashboard/delivery', label: 'Livraisons', icon: Truck, badge: 2, section: 'Gestion' },
+  { href: '/dashboard/staff', label: 'Équipe', icon: UserCog, section: 'Administration' },
   { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration' },
   { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration' },
   { href: '/dashboard/loyalty', label: 'Fidélité', icon: Star, section: 'Administration' },
@@ -55,12 +57,12 @@ export function Sidebar() {
   return (
     <aside
       className={clsx(
-        'relative flex h-full flex-col border-r border-surface-200 bg-white transition-all duration-300',
+        'relative flex h-full flex-col border-r border-surface-200 dark:border-surface-800 bg-white dark:bg-surface-950 transition-all duration-300',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Logo */}
-      <div className={clsx('flex h-16 items-center border-b border-surface-200 px-4', collapsed && 'justify-center')}>
+      <div className={clsx('flex h-16 items-center border-b border-surface-200 dark:border-surface-800 px-4', collapsed && 'justify-center')}>
         {collapsed ? (
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-brand shadow-brand">
             <span className="text-sm font-bold text-white">F</span>
@@ -70,7 +72,7 @@ export function Sidebar() {
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-brand shadow-brand">
               <span className="text-sm font-bold text-white">F</span>
             </div>
-            <span className="text-lg font-bold text-surface-900">FoodStack</span>
+            <span className="text-lg font-bold text-surface-900 dark:text-surface-50">FoodStack</span>
           </Link>
         )}
       </div>
@@ -94,16 +96,16 @@ export function Sidebar() {
                     className={clsx(
                       'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive(item.href)
-                        ? 'bg-brand-50 text-brand-700'
-                        : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900',
+                        ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
+                        : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 hover:text-surface-900 dark:hover:text-surface-100',
                       collapsed && 'justify-center px-2'
                     )}
                     title={collapsed ? item.label : undefined}
                   >
                     <item.icon
                       className={clsx(
-                        'h-4.5 w-4.5 flex-shrink-0',
-                        isActive(item.href) ? 'text-brand-600' : 'text-surface-400'
+                        'flex-shrink-0',
+                        isActive(item.href) ? 'text-brand-600 dark:text-brand-400' : 'text-surface-400'
                       )}
                       style={{ width: '18px', height: '18px' }}
                     />
@@ -126,12 +128,12 @@ export function Sidebar() {
 
       {/* User section */}
       {!collapsed && (
-        <div className="border-t border-surface-200 p-3">
+        <div className="border-t border-surface-200 dark:border-surface-800 p-3">
           <div className="flex items-center gap-3 rounded-xl p-2">
             <Avatar name="Jean Dupont" size="sm" />
             <div className="flex-1 min-w-0">
-              <p className="truncate text-sm font-medium text-surface-900">Jean Dupont</p>
-              <p className="truncate text-xs text-surface-400">Restaurant Owner</p>
+              <p className="truncate text-sm font-medium text-surface-900 dark:text-surface-50">Jean Dupont</p>
+              <p className="truncate text-xs text-surface-400">Propriétaire</p>
             </div>
           </div>
         </div>
@@ -140,7 +142,7 @@ export function Sidebar() {
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-surface-200 bg-white shadow-sm hover:bg-surface-50"
+        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-900 shadow-sm hover:bg-surface-50 dark:hover:bg-surface-800"
       >
         {collapsed ? (
           <ChevronRight className="h-3 w-3 text-surface-400" />
