@@ -99,6 +99,12 @@ model User {
   loyaltyPoints  Int         @default(0)
   loyaltyTier    LoyaltyTier @default(bronze)
 
+  // OAuth
+  googleId           String?     @unique
+  // 2FA TOTP
+  twoFactorSecret    String?
+  twoFactorEnabled   Boolean     @default(false)
+
   // Relations
   ownedRestaurants Restaurant[]    @relation("Owner")
   staffAt          RestaurantStaff[]
