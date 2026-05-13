@@ -19,7 +19,8 @@ export async function middleware(req: NextRequest) {
   if (!isProtected && !isAuthPage) return res;
 
   try {
-    const supabase = createMiddlewareClient({ req, res });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = createMiddlewareClient({ req: req as any, res: res as any });
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session && isProtected) {

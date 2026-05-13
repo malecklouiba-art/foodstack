@@ -2,11 +2,13 @@ import { createServerComponentClient, createRouteHandlerClient } from '@supabase
 import { cookies } from 'next/headers';
 
 export function createServerClient() {
-  return createServerComponentClient({ cookies });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createServerComponentClient({ cookies: cookies as any });
 }
 
 export function createRouteClient() {
-  return createRouteHandlerClient({ cookies });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return createRouteHandlerClient({ cookies: cookies as any });
 }
 
 export async function getSession() {
