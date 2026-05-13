@@ -1,6 +1,6 @@
 # FoodStack — Roadmap & État d'avancement
 
-> Dernière mise à jour : 13 mai 2026 (Sprint 17 terminé)
+> Dernière mise à jour : 13 mai 2026 (Sprint 18 terminé)
 
 ---
 
