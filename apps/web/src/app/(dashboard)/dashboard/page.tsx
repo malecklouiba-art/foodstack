@@ -1,76 +1,127 @@
+'use client';
+
+import { useState, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
 import {
-  ShoppingBag,
-  TrendingUp,
-  Users,
-  Euro,
-  Truck,
-  Star,
-  ArrowUpRight,
-  Clock,
+  ShoppingBag, Users, Euro, Truck, Star,
+  ArrowUpRight, TrendingUp, Clock, Zap,
 } from 'lucide-react';
-import { StatCard } from '@/components/ui/StatCard';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
-import { RecentOrders } from '@/components/dashboard/RecentOrders';
 import { TopItems } from '@/components/dashboard/TopItems';
+import { HourlyChart } from '@/components/dashboard/HourlyChart';
+import { LiveFeed, type FeedEvent } from '@/components/dashboard/LiveFeed';
+import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
+import { useRealtimeInventory, type InventoryEvent } from '@/hooks/useRealtimeInventory';
 
-export const metadata = { title: 'Tableau de bord' };
+// ── KPI helpers ───────────────────────────────────────────────────────────────
 
-const stats = [
-  {
-    title: 'Chiffre d\'affaires',
-    value: '12 450€',
-    change: 12.5,
-    changeLabel: 'vs semaine dernière',
-    icon: Euro,
-    iconColor: 'text-green-600',
-    iconBg: 'bg-green-50',
-  },
-  {
-    title: "Commandes aujourd'hui",
-    value: '84',
-    change: 8.2,
-    changeLabel: 'vs hier',
-    icon: ShoppingBag,
-    iconColor: 'text-brand-600',
-    iconBg: 'bg-brand-50',
-  },
-  {
-    title: 'Nouveaux clients',
-    value: '23',
-    change: 15.3,
-    changeLabel: 'vs semaine dernière',
-    icon: Users,
-    iconColor: 'text-blue-600',
-    iconBg: 'bg-blue-50',
-  },
-  {
-    title: 'Livraisons actives',
-    value: '7',
-    icon: Truck,
-    iconColor: 'text-purple-600',
-    iconBg: 'bg-purple-50',
-  },
-];
+function useCounter(initial: number) {
+  const [value, setValue] = useState(initial);
+  const inc = useCallback((by = 1) => setValue((v) => v + by), []);
+  return [value, inc] as const;
+}
 
-const liveOrders = [
-  { id: 'ORD-8821', customer: 'Marie L.', items: 3, total: 42.50, status: 'preparing', time: '12 min' },
-  { id: 'ORD-8820', customer: 'Pierre D.', items: 2, total: 28.90, status: 'delivering', time: '8 min' },
-  { id: 'ORD-8819', customer: 'Sophie M.', items: 5, total: 67.30, status: 'ready', time: '3 min' },
+let feedSeq = 0;
+function makeEvent(type: FeedEvent['type'], message: string, detail?: string): FeedEvent {
+  return { id: String(++feedSeq), type, message, detail, ts: new Date() };
+}
+
+// ── Static KPI data ───────────────────────────────────────────────────────────
+
+const BASE_STATS = {
+  revenue:     12450,
+  orders:      84,
+  customers:   23,
+  deliveries:  7,
+  avgOrder:    148.2,
+  rating:      4.8,
+  cancelRate:  2.3,
+  prepTime:    11.4,
+};
+
+const statusConfig = {
+  confirmed:  { label: 'Confirmée',     variant: 'info'    as const },
+  preparing:  { label: 'En préparation',variant: 'warning' as const },
+  ready:      { label: 'Prête',         variant: 'brand'   as const },
+  delivering: { label: 'En livraison',  variant: 'success' as const },
+  delivered:  { label: 'Livrée',        variant: 'success' as const },
+  cancelled:  { label: 'Annulée',       variant: 'danger'  as const },
+};
+
+const LIVE_ORDERS_INIT = [
+  { id: 'ORD-8821', customer: 'Marie L.',  items: 3, total: 42.50, status: 'preparing', time: '12 min' },
+  { id: 'ORD-8820', customer: 'Pierre D.', items: 2, total: 28.90, status: 'delivering',time: '8 min'  },
+  { id: 'ORD-8819', customer: 'Sophie M.', items: 5, total: 67.30, status: 'ready',     time: '3 min'  },
   { id: 'ORD-8818', customer: 'Julien K.', items: 1, total: 16.90, status: 'confirmed', time: '18 min' },
 ];
 
-const statusConfig = {
-  confirmed: { label: 'Confirmée', variant: 'info' as const },
-  preparing: { label: 'En préparation', variant: 'warning' as const },
-  ready: { label: 'Prête', variant: 'brand' as const },
-  delivering: { label: 'En livraison', variant: 'success' as const },
-  delivered: { label: 'Livrée', variant: 'success' as const },
-  cancelled: { label: 'Annulée', variant: 'danger' as const },
-};
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const [ordersCount,    incOrders   ] = useCounter(BASE_STATS.orders);
+  const [revenue,        incRevenue  ] = useCounter(BASE_STATS.revenue);
+  const [deliveriesCount,incDeliveries] = useCounter(BASE_STATS.deliveries);
+  const [feedEvents, setFeedEvents]    = useState<FeedEvent[]>([]);
+  const [liveOrders, setLiveOrders]    = useState(LIVE_ORDERS_INIT);
+  const pushEvent = useCallback((ev: FeedEvent) => {
+    setFeedEvents((prev) => [ev, ...prev].slice(0, 30));
+  }, []);
+
+  // ── Socket hooks ────────────────────────────────────────────────────────────
+  useRealtimeOrders({
+    restaurantId: 'r1',
+    onOrderCreated: useCallback((e: OrderEvent) => {
+      incOrders();
+      incRevenue(Math.round(e.total ?? 0));
+      setLiveOrders((prev) => [
+        { id: e.orderNumber, customer: 'Nouveau client', items: e.itemCount ?? 1, total: e.total ?? 0, status: 'confirmed', time: 'À l\'instant' },
+        ...prev.slice(0, 3),
+      ]);
+      pushEvent(makeEvent('order_new', `Nouvelle commande ${e.orderNumber}`, `${e.itemCount} articles · ${e.total?.toFixed(2)}€`));
+    }, [incOrders, incRevenue, pushEvent]),
+    onStatusUpdated: useCallback((e: OrderEvent) => {
+      if (e.status === 'delivering') incDeliveries();
+      setLiveOrders((prev) => prev.map((o) => o.id === e.orderNumber ? { ...o, status: e.status } : o));
+      pushEvent(makeEvent('order_status', `${e.orderNumber} → ${statusConfig[e.status as keyof typeof statusConfig]?.label ?? e.status}`));
+    }, [incDeliveries, pushEvent]),
+    showToasts: false,
+  });
+
+  useRealtimeInventory({
+    restaurantId: 'r1',
+    onLowStock: useCallback((e: InventoryEvent) => {
+      pushEvent(makeEvent('inventory_low', `Stock bas : ${e.name}`, `${e.currentStock} restant (min. ${e.minStock})`));
+    }, [pushEvent]),
+  });
+
+  const stats = [
+    {
+      title: "Chiffre d'affaires", value: `${revenue.toLocaleString('fr-FR')}€`,
+      change: 12.5, icon: Euro,     iconColor: 'text-green-600',  iconBg: 'bg-green-50',
+    },
+    {
+      title: "Commandes aujourd'hui", value: String(ordersCount),
+      change: 8.2,  icon: ShoppingBag, iconColor: 'text-brand-600', iconBg: 'bg-brand-50',
+    },
+    {
+      title: 'Livraisons actives', value: String(deliveriesCount),
+      icon: Truck, iconColor: 'text-purple-600', iconBg: 'bg-purple-50',
+    },
+    {
+      title: 'Panier moyen', value: `${BASE_STATS.avgOrder.toFixed(2)}€`,
+      change: 3.1, icon: TrendingUp, iconColor: 'text-blue-600', iconBg: 'bg-blue-50',
+    },
+  ];
+
+  const kpis = [
+    { label: 'Note moy.',   value: `${BASE_STATS.rating}/5`, icon: Star,  color: 'text-yellow-600' },
+    { label: 'Taux annul.', value: `${BASE_STATS.cancelRate}%`, icon: Zap, color: 'text-red-500' },
+    { label: 'Temps prép.', value: `${BASE_STATS.prepTime} min`, icon: Clock, color: 'text-brand-600' },
+    { label: 'Nouveaux clients', value: String(BASE_STATS.customers), icon: Users, color: 'text-green-600' },
+  ];
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -78,7 +129,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Tableau de bord</h1>
           <p className="mt-1 text-sm text-surface-500">
-            Lundi 11 mai 2026 · Mis à jour il y a 2 min
+            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
         <div className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2">
@@ -87,16 +138,68 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats grid */}
+      {/* Main KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.title} {...stat} />
-        ))}
+        {stats.map((stat, i) => {
+          const Icon = stat.icon;
+          return (
+            <motion.div
+              key={stat.title}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+            >
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{stat.title}</p>
+                    <p className="mt-2 text-2xl font-bold text-surface-900">{stat.value}</p>
+                    {stat.change != null && (
+                      <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+                        stat.change >= 0 ? 'text-green-600' : 'text-red-500'
+                      }`}>
+                        <TrendingUp className="h-3 w-3" />
+                        {stat.change >= 0 ? '+' : ''}{stat.change}% vs hier
+                      </p>
+                    )}
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${stat.iconBg}`}>
+                    <Icon className={`h-5 w-5 ${stat.iconColor}`} />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* Charts */}
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {kpis.map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <Card key={kpi.label} padding="md" className="flex items-center gap-3">
+              <div className="rounded-lg bg-surface-100 p-2">
+                <Icon className={`h-4 w-4 ${kpi.color}`} />
+              </div>
+              <div>
+                <p className="text-xs text-surface-400">{kpi.label}</p>
+                <p className="text-base font-bold text-surface-900">{kpi.value}</p>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Revenue chart + Live feed */}
       <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-        <RevenueChart />
+        <RevenueChart extraRevenue={revenue - BASE_STATS.revenue} />
+        <LiveFeed events={feedEvents} />
+      </div>
+
+      {/* Hourly chart + Top items */}
+      <div className="grid gap-6 xl:grid-cols-[1fr,1fr]">
+        <HourlyChart liveOrderCount={ordersCount - BASE_STATS.orders} />
         <TopItems />
       </div>
 
@@ -109,7 +212,7 @@ export default function DashboardPage() {
               <CardTitle>Commandes en cours</CardTitle>
             </div>
             <a href="/dashboard/orders" className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
-              Tout voir <ArrowUpRight className="h-4 w-4" />
+              Kanban <ArrowUpRight className="h-4 w-4" />
             </a>
           </div>
         </CardHeader>
@@ -117,24 +220,30 @@ export default function DashboardPage() {
           {liveOrders.map((order) => {
             const status = statusConfig[order.status as keyof typeof statusConfig];
             return (
-              <div key={order.id} className="flex items-center justify-between px-6 py-4 hover:bg-surface-50">
+              <motion.div
+                key={order.id}
+                layout
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center justify-between px-6 py-4 hover:bg-surface-50"
+              >
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-100">
                     <ShoppingBag className="h-5 w-5 text-surface-500" />
                   </div>
                   <div>
                     <p className="font-medium text-surface-900">{order.id}</p>
-                    <p className="text-sm text-surface-500">{order.customer} · {order.items} articles</p>
+                    <p className="text-sm text-surface-500">{order.customer} · {order.items} article{order.items !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
                 <div className="hidden items-center gap-4 sm:flex">
-                  <Badge variant={status.variant} dot>{status.label}</Badge>
+                  <Badge variant={status?.variant ?? 'default'} dot>{status?.label ?? order.status}</Badge>
                   <div className="text-right">
                     <p className="font-semibold text-surface-900">{order.total.toFixed(2)}€</p>
-                    <p className="text-xs text-surface-400">Il y a {order.time}</p>
+                    <p className="text-xs text-surface-400">{order.time}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -142,29 +251,61 @@ export default function DashboardPage() {
 
       {/* Bottom row */}
       <div className="grid gap-6 md:grid-cols-2">
-        <RecentOrders />
+        {/* Loyalty tiers */}
         <Card padding="lg">
           <CardHeader>
             <CardTitle>Programme Fidélité</CardTitle>
           </CardHeader>
           <div className="space-y-4">
             {[
-              { tier: 'Bronze', customers: 234, points: '0–499', color: 'bg-amber-700' },
-              { tier: 'Silver', customers: 89, points: '500–999', color: 'bg-slate-400' },
-              { tier: 'Gold', customers: 34, points: '1000–2499', color: 'bg-yellow-500' },
-              { tier: 'Platinum', customers: 12, points: '2500+', color: 'bg-purple-500' },
+              { tier: 'Bronze',   customers: 234, points: '0–499',   color: 'bg-amber-700', pct: 64 },
+              { tier: 'Silver',   customers: 89,  points: '500–999',  color: 'bg-slate-400', pct: 24 },
+              { tier: 'Gold',     customers: 34,  points: '1000–2499',color: 'bg-yellow-500',pct: 9 },
+              { tier: 'Platinum', customers: 12,  points: '2500+',    color: 'bg-purple-500',pct: 3 },
             ].map((tier) => (
-              <div key={tier.tier} className="flex items-center gap-3">
-                <div className={`h-3 w-3 rounded-full ${tier.color}`} />
-                <span className="flex-1 text-sm text-surface-700">{tier.tier}</span>
-                <span className="text-xs text-surface-400">{tier.points} pts</span>
-                <span className="w-12 text-right text-sm font-semibold text-surface-900">{tier.customers}</span>
+              <div key={tier.tier}>
+                <div className="mb-1 flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2.5 w-2.5 rounded-full ${tier.color}`} />
+                    <span className="font-medium text-surface-700">{tier.tier}</span>
+                    <span className="text-surface-400">{tier.points} pts</span>
+                  </div>
+                  <span className="font-semibold text-surface-900">{tier.customers}</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-surface-100">
+                  <div className={`h-full rounded-full ${tier.color} opacity-80 transition-all`} style={{ width: `${tier.pct}%` }} />
+                </div>
               </div>
             ))}
           </div>
           <div className="mt-4 flex items-center gap-1 text-xs text-surface-500">
             <Star className="h-3.5 w-3.5 text-brand-500" />
             <span>369 clients actifs dans le programme</span>
+          </div>
+        </Card>
+
+        {/* Performance recap */}
+        <Card padding="lg">
+          <CardHeader>
+            <CardTitle>Performance du jour</CardTitle>
+          </CardHeader>
+          <div className="space-y-3">
+            {[
+              { label: 'Commandes livrées à temps', value: '94%',   bar: 94, color: 'bg-green-500' },
+              { label: 'Satisfaction client',        value: '4.8/5', bar: 96, color: 'bg-yellow-400' },
+              { label: 'Taux de complétion',         value: '97.7%', bar: 97, color: 'bg-brand-500' },
+              { label: 'Taux d\'annulation',         value: `${BASE_STATS.cancelRate}%`, bar: 100 - BASE_STATS.cancelRate * 10, color: 'bg-red-400' },
+            ].map((item) => (
+              <div key={item.label}>
+                <div className="mb-1 flex justify-between text-sm">
+                  <span className="text-surface-600">{item.label}</span>
+                  <span className="font-semibold text-surface-900">{item.value}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-100">
+                  <div className={`h-full rounded-full ${item.color} transition-all`} style={{ width: `${item.bar}%` }} />
+                </div>
+              </div>
+            ))}
           </div>
         </Card>
       </div>
