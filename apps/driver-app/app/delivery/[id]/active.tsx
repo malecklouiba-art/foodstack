@@ -3,6 +3,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useDriverStore, DeliveryStatus } from '@/store/driver';
+import { useLocationTracking } from '@/hooks/useLocationTracking';
+import { getSocket } from '@/lib/socket';
+
+const DRIVER_ID = 'driver-001';
 
 const STEPS: { status: DeliveryStatus; label: string; emoji: string; action: string }[] = [
   { status: 'heading_to_restaurant', label: 'En route vers le restaurant', emoji: '🛵', action: "Je suis arrivé au restaurant" },
@@ -20,6 +24,9 @@ const NEXT_STATUS: Partial<Record<DeliveryStatus, DeliveryStatus>> = {
 export default function ActiveDeliveryScreen() {
   const { activeDelivery, updateDeliveryStatus, completeDelivery } = useDriverStore();
 
+  const isDelivering = activeDelivery?.status === 'delivering';
+  useLocationTracking(DRIVER_ID, activeDelivery?.orderId ?? null, isDelivering);
+
   if (!activeDelivery) {
     router.replace('/(tabs)');
     return null;
@@ -34,6 +41,18 @@ export default function ActiveDeliveryScreen() {
     Linking.openURL(`https://maps.google.com/?q=${encoded}`);
   };
 
+  const emitStatusUpdate = (status: string) => {
+    const socket = getSocket();
+    if (!socket.connected) socket.connect();
+    socket.emit('delivery:status_update', {
+      orderId: activeDelivery.orderId,
+      orderNumber: activeDelivery.orderNumber,
+      restaurantId: 'r1',
+      driverId: DRIVER_ID,
+      status,
+    });
+  };
+
   const handleNextStep = () => {
     if (activeDelivery.status === 'delivering') {
       Alert.alert('Confirmer la livraison', 'La commande a bien été remise au client ?', [
@@ -41,6 +60,7 @@ export default function ActiveDeliveryScreen() {
         {
           text: 'Oui, livrée !', onPress: () => {
             updateDeliveryStatus('delivered');
+            emitStatusUpdate('delivered');
             setTimeout(() => {
               completeDelivery();
               router.replace('/(tabs)');
@@ -50,6 +70,7 @@ export default function ActiveDeliveryScreen() {
       ]);
     } else if (nextStatus) {
       updateDeliveryStatus(nextStatus);
+      emitStatusUpdate(nextStatus);
     }
   };
 

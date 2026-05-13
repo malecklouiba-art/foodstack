@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import { useTrackOrder } from '@/hooks/useTrackOrder';
 
 type StepStatus = 'done' | 'active' | 'pending';
 
@@ -13,18 +14,28 @@ const STEPS = [
   { key: 'delivered', label: 'Livrée !', emoji: '🎉' },
 ];
 
-const CURRENT_STEP = 'delivering';
-
-function stepStatus(stepKey: string): StepStatus {
+function stepStatus(stepKey: string, currentStep: string): StepStatus {
   const stepIdx = STEPS.findIndex((s) => s.key === stepKey);
-  const currentIdx = STEPS.findIndex((s) => s.key === CURRENT_STEP);
+  const currentIdx = STEPS.findIndex((s) => s.key === currentStep);
   if (stepIdx < currentIdx) return 'done';
   if (stepIdx === currentIdx) return 'active';
   return 'pending';
 }
 
+const STATUS_ETA: Partial<Record<string, string>> = {
+  confirmed:  'Estimation : ~30 min',
+  preparing:  'En préparation · ~20 min',
+  ready:      'Recherche d\'un livreur…',
+  delivering: 'En route vers vous',
+  delivered:  'Livrée !',
+};
+
 export default function TrackOrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { status, driverLocation, connected } = useTrackOrder(id ?? null);
+
+  const currentStep = status ?? 'delivering';
+  const currentStepData = STEPS.find((s) => s.key === currentStep) ?? STEPS[3];
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -33,25 +44,29 @@ export default function TrackOrderScreen() {
           <Text style={styles.closeBtn}>✕</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Suivi de commande</Text>
-        <Text style={styles.orderNum}>#{id}</Text>
+        <View style={styles.headerRight}>
+          <View style={[styles.connDot, { backgroundColor: connected ? '#22c55e' : '#94a3b8' }]} />
+          <Text style={styles.orderNum}>#{id}</Text>
+        </View>
       </View>
 
       {/* ETA card */}
       <View style={styles.etaCard}>
-        <Text style={styles.etaEmoji}>🛵</Text>
+        <Text style={styles.etaEmoji}>{currentStepData.emoji}</Text>
         <View style={{ flex: 1 }}>
-          <Text style={styles.etaTitle}>En route vers vous</Text>
-          <Text style={styles.etaTime}>Arrivée estimée · 12:55</Text>
-        </View>
-        <View style={styles.etaBadge}>
-          <Text style={styles.etaBadgeText}>~15 min</Text>
+          <Text style={styles.etaTitle}>{STATUS_ETA[currentStep] ?? 'En cours'}</Text>
+          {driverLocation && (
+            <Text style={styles.etaTime}>
+              📍 {driverLocation.lat.toFixed(4)}, {driverLocation.lng.toFixed(4)}
+            </Text>
+          )}
         </View>
       </View>
 
       {/* Timeline */}
       <View style={styles.timeline}>
         {STEPS.map((step, idx) => {
-          const status = stepStatus(step.key);
+          const status = stepStatus(step.key, currentStep);
           return (
             <View key={step.key} style={styles.timelineRow}>
               <View style={styles.timelineLeft}>
@@ -95,9 +110,11 @@ export default function TrackOrderScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.surface[50] },
 
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
+  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
   closeBtn:    { fontSize: 18, color: Colors.surface[400], fontWeight: '600', padding: 4, marginRight: 8 },
   headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: Colors.surface[900] },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  connDot:     { width: 8, height: 8, borderRadius: 4 },
   orderNum:    { fontSize: 14, color: Colors.surface[400], fontWeight: '600' },
 
   etaCard: {
@@ -107,7 +124,7 @@ const styles = StyleSheet.create({
   etaEmoji: { fontSize: 28 },
   etaTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
   etaTime:  { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  etaBadge: { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
+  etaBadge:     { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
   etaBadgeText: { color: '#fff', fontWeight: '800', fontSize: 15 },
 
   timeline: { paddingHorizontal: 24 },

@@ -28,6 +28,22 @@ export type InventoryEvent = {
   minStock: number;
 };
 
+export type DriverLocationEvent = {
+  driverId: string;
+  orderId: string;
+  lat: number;
+  lng: number;
+  heading?: number;
+};
+
+export type DeliveryEvent = {
+  orderId: string;
+  orderNumber: string;
+  restaurantId: string;
+  driverId: string;
+  status: string;
+};
+
 @WebSocketGateway({
   cors: { origin: '*', credentials: true },
   namespace: '/realtime',
@@ -83,6 +99,64 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     return { event: 'order:untracked', data: orderId };
   }
 
+  // ── Driver room subscriptions ───────────────────────────────────────────
+
+  @SubscribeMessage('driver:join')
+  handleDriverJoin(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() driverId: string,
+  ) {
+    client.join(`driver:${driverId}`);
+    client.join('drivers:available');
+    this.logger.log(`Driver ${driverId} joined available pool`);
+    return { event: 'driver:joined', data: driverId };
+  }
+
+  @SubscribeMessage('driver:leave')
+  handleDriverLeave(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() driverId: string,
+  ) {
+    client.leave('drivers:available');
+    this.logger.log(`Driver ${driverId} left available pool`);
+    return { event: 'driver:left', data: driverId };
+  }
+
+  @SubscribeMessage('driver:location_update')
+  handleDriverLocation(
+    @ConnectedSocket() _client: Socket,
+    @MessageBody() payload: DriverLocationEvent,
+  ) {
+    // Forward live position to customer tracking the order
+    this.server.to(`order:${payload.orderId}`).emit('driver:location', payload);
+  }
+
+  @SubscribeMessage('delivery:accepted')
+  handleDeliveryAccepted(
+    @ConnectedSocket() _client: Socket,
+    @MessageBody() payload: DeliveryEvent,
+  ) {
+    this.server
+      .to(`restaurant:${payload.restaurantId}`)
+      .emit('delivery:accepted', payload);
+    this.server
+      .to(`order:${payload.orderId}`)
+      .emit('order:status_updated', { ...payload, status: 'delivering' });
+  }
+
+  @SubscribeMessage('delivery:status_update')
+  handleDeliveryStatus(
+    @ConnectedSocket() _client: Socket,
+    @MessageBody() payload: DeliveryEvent,
+  ) {
+    this.server
+      .to(`restaurant:${payload.restaurantId}`)
+      .emit('order:status_updated', payload);
+    this.server
+      .to(`order:${payload.orderId}`)
+      .emit('order:status_updated', payload);
+  }
+
   // ── Emit helpers (called by services) ──────────────────────────────────
 
   emitOrderCreated(payload: OrderEvent) {
@@ -100,6 +174,11 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
     this.server
       .to(`order:${payload.orderId}`)
       .emit('order:status_updated', payload);
+  }
+
+  emitOrderReady(payload: OrderEvent) {
+    // Broadcast to all online drivers
+    this.server.to('drivers:available').emit('order:available', payload);
   }
 
   emitInventoryLowStock(payload: InventoryEvent) {

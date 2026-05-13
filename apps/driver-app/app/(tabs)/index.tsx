@@ -4,32 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useDriverStore } from '@/store/driver';
+import { useAvailableOrders } from '@/hooks/useAvailableOrders';
 
-const MOCK_AVAILABLE = [
-  {
-    orderId: 'o-101', orderNumber: '#3012',
-    restaurantName: 'FoodStack Paris 1',
-    restaurantAddress: '12 rue de la Paix, Paris',
-    restaurantLat: 48.8698, restaurantLng: 2.3310,
-    customerAddress: '45 Bd Haussmann, Paris',
-    customerLat: 48.8738, customerLng: 2.3320,
-    items: [{ name: 'Classic Burger', qty: 2 }, { name: 'Tiramisu', qty: 1 }],
-    earnings: 5.80, distanceKm: 1.4, estimatedMinutes: 8,
-  },
-  {
-    orderId: 'o-102', orderNumber: '#3013',
-    restaurantName: 'FoodStack Paris 2',
-    restaurantAddress: '8 rue du Temple, Paris',
-    restaurantLat: 48.8609, restaurantLng: 2.3533,
-    customerAddress: '22 rue de Rivoli, Paris',
-    customerLat: 48.8566, customerLng: 2.3522,
-    items: [{ name: 'Margherita', qty: 1 }, { name: 'Diavola', qty: 1 }],
-    earnings: 7.20, distanceKm: 2.1, estimatedMinutes: 13,
-  },
-];
+const DRIVER_ID = 'driver-001';
 
 export default function HomeScreen() {
   const { isOnline, setOnline, activeDelivery, todayEarnings, todayDeliveries, rating } = useDriverStore();
+  const { orders: liveOrders, connected, removeOrder } = useAvailableOrders(DRIVER_ID);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -99,38 +80,73 @@ export default function HomeScreen() {
         {/* Available orders */}
         {isOnline && !activeDelivery && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Commandes disponibles</Text>
-            {MOCK_AVAILABLE.map((order) => (
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Commandes disponibles</Text>
+              <View style={[styles.connBadge, { backgroundColor: connected ? Colors.brand[50] : Colors.surface[100] }]}>
+                <View style={[styles.connDot, { backgroundColor: connected ? Colors.brand[500] : Colors.surface[400] }]} />
+                <Text style={[styles.connText, { color: connected ? Colors.brand[600] : Colors.surface[400] }]}>
+                  {connected ? 'Connecté' : 'Hors ligne'}
+                </Text>
+              </View>
+            </View>
+            {liveOrders.length === 0 && (
+              <View style={styles.waitingState}>
+                <Text style={styles.waitingEmoji}>⏳</Text>
+                <Text style={styles.waitingText}>En attente de commandes…</Text>
+              </View>
+            )}
+            {liveOrders.map((order) => (
               <View key={order.orderId} style={styles.orderCard}>
                 <View style={styles.orderCardTop}>
                   <View style={styles.orderInfo}>
                     <Text style={styles.orderNum}>{order.orderNumber}</Text>
-                    <Text style={styles.restaurantName}>{order.restaurantName}</Text>
+                    <Text style={styles.restaurantName}>{order.restaurantName ?? 'Restaurant'}</Text>
                     <Text style={styles.orderItems} numberOfLines={1}>
-                      {order.items.map((i) => `${i.qty}× ${i.name}`).join(', ')}
+                      {order.itemCount ? `${order.itemCount} articles` : ''}
                     </Text>
                   </View>
                   <View style={styles.orderMeta}>
-                    <Text style={styles.earnings}>{order.earnings.toFixed(2)}€</Text>
-                    <Text style={styles.metaSmall}>{order.distanceKm} km</Text>
-                    <Text style={styles.metaSmall}>~{order.estimatedMinutes} min</Text>
+                    <Text style={styles.earnings}>{(order.earnings ?? (order.total ? order.total * 0.15 : 5)).toFixed(2)}€</Text>
+                    {order.distanceKm && <Text style={styles.metaSmall}>{order.distanceKm} km</Text>}
+                    {order.estimatedMinutes && <Text style={styles.metaSmall}>~{order.estimatedMinutes} min</Text>}
                   </View>
                 </View>
-                <View style={styles.orderAddresses}>
-                  <View style={styles.addressRow}>
-                    <Text style={styles.addressDot}>🔴</Text>
-                    <Text style={styles.addressText} numberOfLines={1}>{order.restaurantAddress}</Text>
+                {(order.restaurantAddress || order.customerAddress) && (
+                  <View style={styles.orderAddresses}>
+                    {order.restaurantAddress && (
+                      <View style={styles.addressRow}>
+                        <Text style={styles.addressDot}>🔴</Text>
+                        <Text style={styles.addressText} numberOfLines={1}>{order.restaurantAddress}</Text>
+                      </View>
+                    )}
+                    {order.customerAddress && (
+                      <View style={[styles.addressRow, { marginTop: 4 }]}>
+                        <Text style={styles.addressDot}>🟢</Text>
+                        <Text style={styles.addressText} numberOfLines={1}>{order.customerAddress}</Text>
+                      </View>
+                    )}
                   </View>
-                  <View style={[styles.addressRow, { marginTop: 4 }]}>
-                    <Text style={styles.addressDot}>🟢</Text>
-                    <Text style={styles.addressText} numberOfLines={1}>{order.customerAddress}</Text>
-                  </View>
-                </View>
+                )}
                 <TouchableOpacity
                   style={styles.acceptBtn}
                   activeOpacity={0.85}
                   onPress={() => {
-                    useDriverStore.getState().acceptDelivery(order);
+                    useDriverStore.getState().acceptDelivery({
+                      orderId: order.orderId,
+                      orderNumber: order.orderNumber,
+                      restaurantName: order.restaurantName ?? 'Restaurant',
+                      restaurantAddress: order.restaurantAddress ?? '',
+                      restaurantLat: order.restaurantLat ?? 48.8566,
+                      restaurantLng: order.restaurantLng ?? 2.3522,
+                      customerAddress: order.customerAddress ?? '',
+                      customerLat: order.customerLat ?? 48.8566,
+                      customerLng: order.customerLng ?? 2.3522,
+                      items: [],
+                      earnings: order.earnings ?? 5,
+                      distanceKm: order.distanceKm ?? 1.5,
+                      estimatedMinutes: order.estimatedMinutes ?? 10,
+                    });
+                    removeOrder(order.orderId);
                     router.push(`/delivery/${order.orderId}/active`);
                   }}
                 >
@@ -182,8 +198,15 @@ const styles = StyleSheet.create({
   activeBannerSub:   { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   activeBannerArrow: { fontSize: 22, color: '#fff', fontWeight: '600' },
 
-  section:      { paddingHorizontal: 16 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: Colors.surface[900], marginBottom: 12 },
+  section:         { paddingHorizontal: 16 },
+  sectionHeaderRow:{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  sectionTitle:    { fontSize: 17, fontWeight: '800', color: Colors.surface[900] },
+  connBadge:       { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 },
+  connDot:         { width: 7, height: 7, borderRadius: 4 },
+  connText:        { fontSize: 11, fontWeight: '600' },
+  waitingState:    { alignItems: 'center', paddingVertical: 32, gap: 8 },
+  waitingEmoji:    { fontSize: 36 },
+  waitingText:     { fontSize: 14, color: Colors.surface[400] },
 
   orderCard: {
     backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 12,

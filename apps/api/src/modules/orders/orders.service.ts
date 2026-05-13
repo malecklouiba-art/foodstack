@@ -94,7 +94,7 @@ export class OrdersService {
       include: { items: true },
     });
 
-    this.realtime.emitOrderStatusUpdated({
+    const payload = {
       orderId: updated.id,
       orderNumber: updated.orderNumber,
       restaurantId: updated.restaurantId,
@@ -102,7 +102,13 @@ export class OrdersService {
       customerId: updated.customerId ?? undefined,
       total: updated.total,
       itemCount: (updated.items as unknown[]).length,
-    });
+    };
+
+    this.realtime.emitOrderStatusUpdated(payload);
+
+    if (updated.status === 'ready') {
+      this.realtime.emitOrderReady(payload);
+    }
 
     return updated;
   }
