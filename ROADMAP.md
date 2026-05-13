@@ -257,7 +257,7 @@
 | Infrastructure | 13 | 1 | 1 |
 | Base de données | 14 | 0 | 4 |
 | Backend API | 17 | 2 | 3 |
-| Frontend web | 33 | 2 | 6 |
+| Frontend web | 34 | 1 | 6 |
 | Paiements | 5 | 0 | 3 |
 | Livraison | 4 | 1 | 2 |
 | Export | 5 | 0 | 2 |
@@ -265,7 +265,7 @@
 | Mobile | 0 | 0 | 4 |
 | Notifications | 4 | 0 | 2 |
 | Sécurité | 5 | 0 | 3 |
-| **TOTAL** | **104** | **6** | **31** |
+| **TOTAL** | **107** | **5** | **31** |
 
 ---
 
@@ -290,20 +290,19 @@
 | Sprint 15 | Settings page restaurant, notifications push livreur assigné, tests coupons.service.spec | ✅ |
 | Sprint 16 | Avis clients (/dashboard/reviews), Gestion équipe (/dashboard/staff) amélioré, delivery.service.spec (15 tests), notifications.service.spec (9 tests), 107 tests total | ✅ |
 | Sprint 17 | Programme fidélité dashboard (/dashboard/loyalty), push.service.spec (15 tests), events.gateway.spec (19 tests), 141 tests total | ✅ |
-| **Sprint 18** | **Réservations (/dashboard/reservations), export.service.spec, coupons.controller.spec** | 🔄 En cours |
+| Sprint 18 | Réservations (/dashboard/reservations) — plan de salle, timeline, 18 réservations ; export.service.spec (15 tests) ; coupons.controller.spec (8 tests) ; 164 tests total | ✅ |
+| **Sprint 19** | **OAuth Google + 2FA TOTP backend, App mobile Expo (structure + écrans auth), auth.service.spec** | 🔄 En cours |
 
 ---
 
-## Prochaines priorités (Sprint 18+)
+## Prochaines priorités (Sprint 19+)
 
-### 🔄 Sprint 18 — En cours
-1. **Réservations `/dashboard/reservations`** — plan de salle, timeline, liste, modal nouvelle réservation
-2. **export.service.spec** — couverture unitaire ExportService (PDF + Excel)
-3. **coupons.controller.spec** — couverture E2E CouponsController
+### 🔄 Sprint 19 — En cours
+1. **OAuth Google + 2FA TOTP backend** — login social Google, sécurité renforcée TOTP
+2. **App mobile Expo** — structure + écrans auth (login/register)
+3. **auth.service.spec** — couverture unitaire AuthService (35 tests)
 
 ### ❌ Backlog
-4. **OAuth Google/Apple** — login social
-5. **2FA TOTP** — sécurité renforcée
-6. **Tests E2E Playwright** — parcours critiques (checkout, commande, livraison)
-7. **SMS (Twilio)** — notifications SMS commande
-8. **App mobile consommateur** — Expo React Native (structure + écrans home/menu/panier)
+4. **Tests E2E Playwright** — parcours critiques (checkout, commande, livraison)
+5. **SMS (Twilio)** — notifications SMS commande
+6. **App mobile consommateur** — Expo React Native (écrans home/menu/panier)
