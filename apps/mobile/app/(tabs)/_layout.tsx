@@ -12,6 +12,7 @@ interface TabConfig {
 
 const TABS: TabConfig[] = [
   { name: 'index', title: 'Accueil', icon: 'home-outline', iconFocused: 'home' },
+  { name: 'menu', title: 'Menu', icon: 'restaurant-outline', iconFocused: 'restaurant' },
   { name: 'orders', title: 'Commandes', icon: 'receipt-outline', iconFocused: 'receipt' },
   { name: 'delivery', title: 'Livreur', icon: 'bicycle-outline', iconFocused: 'bicycle' },
   { name: 'profile', title: 'Profil', icon: 'person-outline', iconFocused: 'person' },
@@ -54,6 +55,7 @@ export default function TabLayout() {
           }}
         />
       ))}
+      <Tabs.Screen name="cart" options={{ href: null }} />
     </Tabs>
   );
 }

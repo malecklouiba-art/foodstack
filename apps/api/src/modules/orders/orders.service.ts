@@ -5,6 +5,7 @@ import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
 import { EventsGateway } from '../events/events.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { SmsService } from '../notifications/sms.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { CouponsService } from '../coupons/coupons.service';
 
@@ -16,6 +17,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly events: EventsGateway,
     private readonly notifications: NotificationsService,
+    private readonly sms: SmsService,
     private readonly loyaltyService: LoyaltyService,
     private readonly couponsService: CouponsService,
   ) {}
@@ -75,11 +77,13 @@ export class OrdersService {
     this.events.emitNewOrder(order.restaurantId, order as unknown as Record<string, unknown>);
 
     const orderAny = order as any;
+    const restaurantName = orderAny.restaurant?.name ?? 'Unknown Restaurant';
+
     if (orderAny.customer?.email) {
       void this.notifications.sendOrderConfirmation(orderAny.customer.email, {
         orderNumber: order.orderNumber,
         total: order.total,
-        restaurantName: orderAny.restaurant?.name ?? 'Unknown Restaurant',
+        restaurantName,
         items: orderAny.items.map((item: any) => ({
           name: item.name || 'Item',
           qty: item.quantity,
@@ -87,6 +91,17 @@ export class OrdersService {
         })),
       }).catch((err) => {
         this.logger.error(`Order confirmation email failed: ${(err as Error).message}`);
+      });
+    }
+
+    if (orderAny.customer?.phone) {
+      void this.sms.sendOrderConfirmation(
+        orderAny.customer.phone,
+        order.orderNumber,
+        restaurantName,
+        order.total,
+      ).catch((err: Error) => {
+        this.logger.error(`Order confirmation SMS failed: ${err.message}`);
       });
     }
 
@@ -148,6 +163,17 @@ export class OrdersService {
         .catch((err: Error) => {
           this.logger.error(`Failed to award loyalty points for order ${id}: ${err.message}`);
         });
+    }
+
+    const orderWithCustomer = await this.prisma.order.findUnique({
+      where: { id },
+      include: { customer: { select: { phone: true } } },
+    });
+    const phone = (orderWithCustomer as any)?.customer?.phone;
+    if (phone) {
+      void this.sms.sendOrderStatusUpdate(phone, order.orderNumber, dto.status).catch((err: Error) => {
+        this.logger.error(`Order status SMS failed: ${err.message}`);
+      });
     }
 
     return updated;

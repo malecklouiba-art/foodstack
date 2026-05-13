@@ -9,6 +9,8 @@
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test": "jest --passWithNoTests",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "clean": "rm -rf .next out"
   },
   "dependencies": {
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "14.1.0",
+    "@playwright/test": "^1.60.0",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
     "@types/jest": "^29.5.12",

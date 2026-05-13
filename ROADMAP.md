@@ -26,8 +26,9 @@
 | Rate limiting | ✅ | `ThrottlerModule` 100 req/min |
 | Monitoring / logs centralisés | ❌ | Sentry à intégrer |
 | Backup automatique DB | ❌ | |
-| Tests unitaires | ✅ | Jest configuré, 164 tests (orders, payments, analytics, loyalty, coupons, suppliers, delivery, notifications, push, events, export, auth) |
+| Tests unitaires | ✅ | Jest configuré, 208 tests (orders, payments, analytics, loyalty, coupons, suppliers, delivery, notifications, push, sms, events, export, auth) |
 | Tests E2E Supertest | ✅ | orders.controller.spec + suppliers.controller.spec (11 tests) |
+| Tests E2E Playwright | ✅ | auth + menu + checkout (apps/web/e2e) |
 
 ---
 
@@ -73,7 +74,7 @@
 | `SuppliersModule` CRUD | ✅ | GET/POST/PATCH/DELETE |
 | `EventsModule` Socket.io | ✅ | join:order, driver:location, order:status, inventory:alert |
 | Swagger / OpenAPI | ✅ | `/api/docs` |
-| `NotificationsModule` (push/email/SMS) | ✅ | Resend email + VAPID push + service worker |
+| `NotificationsModule` (push/email/SMS) | ✅ | Resend email + VAPID push + Twilio SMS |
 | `SuperAdminModule` | ✅ | KPIs, restaurants table, plans, activity log, suspend modal |
 | `CouponsModule` | ✅ | POST /coupons, applyCoupon, redeemCoupon — intégré OrdersService |
 | Impression thermique | ❌ | |
@@ -215,7 +216,7 @@
 
 | Application | État | Notes |
 |---|---|---|
-| App consommateur (React Native + Expo) | ❌ | |
+| App consommateur (React Native + Expo) | 🔄 | Auth (login/register), accueil, menu, panier, commandes, profil, livreur |
 | App POS tablette | ❌ | |
 | App borne tactile | ❌ | |
 | App livreur GPS | ❌ | |
@@ -231,7 +232,7 @@
 | Email (Resend) | ✅ | Confirmation commande + reset password |
 | Push web (VAPID) | ✅ | Service worker + abonnement push |
 | Push mobile (FCM/Expo) | ❌ | |
-| SMS (Twilio) | ❌ | |
+| SMS (Twilio) | ✅ | SmsService — confirmation commande + statut + livreur assigné |
 
 ---
 
@@ -254,18 +255,18 @@
 
 | Catégorie | ✅ Fait | 🔄 Partiel | ❌ À faire |
 |---|---|---|---|
-| Infrastructure | 13 | 1 | 1 |
+| Infrastructure | 14 | 1 | 0 |
 | Base de données | 14 | 0 | 4 |
-| Backend API | 17 | 2 | 3 |
+| Backend API | 18 | 2 | 2 |
 | Frontend web | 34 | 1 | 6 |
 | Paiements | 5 | 0 | 3 |
 | Livraison | 4 | 1 | 2 |
 | Export | 5 | 0 | 2 |
 | Fidélité | 4 | 0 | 1 |
-| Mobile | 0 | 0 | 4 |
-| Notifications | 4 | 0 | 2 |
+| Mobile | 0 | 1 | 3 |
+| Notifications | 5 | 0 | 1 |
 | Sécurité | 5 | 0 | 3 |
-| **TOTAL** | **107** | **5** | **31** |
+| **TOTAL** | **114** | **6** | **27** |
 
 ---
 
@@ -291,18 +292,20 @@
 | Sprint 16 | Avis clients (/dashboard/reviews), Gestion équipe (/dashboard/staff) amélioré, delivery.service.spec (15 tests), notifications.service.spec (9 tests), 107 tests total | ✅ |
 | Sprint 17 | Programme fidélité dashboard (/dashboard/loyalty), push.service.spec (15 tests), events.gateway.spec (19 tests), 141 tests total | ✅ |
 | Sprint 18 | Réservations (/dashboard/reservations) — plan de salle, timeline, 18 réservations ; export.service.spec (15 tests) ; coupons.controller.spec (8 tests) ; 164 tests total | ✅ |
-| **Sprint 19** | **OAuth Google + 2FA TOTP backend, App mobile Expo (structure + écrans auth), auth.service.spec** | 🔄 En cours |
+| Sprint 19 | OAuth Google + 2FA TOTP backend, App mobile Expo (structure + écrans auth), auth.service.spec | ✅ |
+| **Sprint 20** | **SMS Twilio (SmsService + wiring orders), Mobile menu + cart screens, Playwright E2E (auth/menu/checkout), 208 tests** | 🔄 En cours |
 
 ---
 
-## Prochaines priorités (Sprint 19+)
+## Prochaines priorités (Sprint 20+)
 
-### 🔄 Sprint 19 — En cours
-1. **OAuth Google + 2FA TOTP backend** — login social Google, sécurité renforcée TOTP
-2. **App mobile Expo** — structure + écrans auth (login/register)
-3. **auth.service.spec** — couverture unitaire AuthService (35 tests)
+### 🔄 Sprint 20 — En cours
+1. **SMS Twilio** — SmsService (confirmation + statut + livreur), câblé dans OrdersService
+2. **Mobile menu + panier** — écrans menu (restaurants → items → add to cart) + CartScreen
+3. **Playwright E2E** — auth, menu, checkout (apps/web/e2e)
 
 ### ❌ Backlog
-4. **Tests E2E Playwright** — parcours critiques (checkout, commande, livraison)
-5. **SMS (Twilio)** — notifications SMS commande
-6. **App mobile consommateur** — Expo React Native (écrans home/menu/panier)
+4. **Push mobile (FCM/Expo)** — notifications push sur mobile
+5. **2FA TOTP frontend** — page de setup + vérification dans l'UI web
+6. **Sentry** — monitoring erreurs centralisé
+7. **App mobile finalisation** — intégration API réelle, paiement mobile
