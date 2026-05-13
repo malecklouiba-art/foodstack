@@ -26,7 +26,7 @@
 | Rate limiting | ✅ | `ThrottlerModule` 100 req/min |
 | Monitoring / logs centralisés | ❌ | Sentry à intégrer |
 | Backup automatique DB | ❌ | |
-| Tests unitaires | ✅ | Jest configuré, 141 tests (orders, payments, analytics, loyalty, coupons, suppliers, delivery, notifications, push, events) |
+| Tests unitaires | ✅ | Jest configuré, 164 tests (orders, payments, analytics, loyalty, coupons, suppliers, delivery, notifications, push, events, export, auth) |
 | Tests E2E Supertest | ✅ | orders.controller.spec + suppliers.controller.spec (11 tests) |
 
 ---
@@ -141,7 +141,7 @@
 | QR codes `/dashboard/qr` | ✅ | Génération QR codes menu/table |
 | Zones de livraison | ✅ | Carte polygones dans settings restaurant |
 | **Programme fidélité `/dashboard/loyalty`** | ✅ | Sprint 17 terminé |
-| **Réservations `/dashboard/reservations`** | 🔄 | Sprint 18 en cours |
+| **Réservations `/dashboard/reservations`** | ✅ | Plan de salle, timeline, 18 réservations |
 | Interface livreur (web) | ❌ | |
 
 ### Admin `/admin`
