@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -48,7 +47,6 @@ const EMPTY: Partial<MenuItem> = {
 
 export function ItemModal({ open, onClose, onSave, initial, categories }: ItemModalProps) {
   const [form, setForm] = useState<Partial<MenuItem>>(EMPTY);
-  const [allergenInput, setAllergenInput] = useState('');
   const [priceStr, setPriceStr] = useState('0');
   const [compareStr, setCompareStr] = useState('');
 

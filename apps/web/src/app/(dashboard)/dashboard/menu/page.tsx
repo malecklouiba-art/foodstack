@@ -89,10 +89,6 @@ export default function MenuPage() {
     setDeleteConfirm(null);
   }
 
-  function toggleCatActive(id: string) {
-    setCategories((cs) => cs.map((c) => c.id === id ? { ...c, isActive: !c.isActive } : c));
-  }
-
   // ── item actions ──
   function saveItem(data: Partial<MenuItem>) {
     if (editingItem) {
@@ -371,7 +367,6 @@ function ItemCard({ item, onEdit, onDelete, onToggleActive }: ItemCardProps) {
       {/* Image area */}
       <div className="relative h-32 bg-gradient-to-br from-surface-100 to-surface-200">
         {item.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full items-center justify-center">
