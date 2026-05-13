@@ -1,5 +1,7 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { Marker, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useTrackOrder } from '@/hooks/useTrackOrder';
@@ -7,101 +9,152 @@ import { useTrackOrder } from '@/hooks/useTrackOrder';
 type StepStatus = 'done' | 'active' | 'pending';
 
 const STEPS = [
-  { key: 'confirmed', label: 'Commande confirmée', emoji: '✅' },
-  { key: 'preparing', label: 'En préparation', emoji: '👨‍🍳' },
-  { key: 'ready',     label: 'Prête pour livraison', emoji: '🔔' },
-  { key: 'delivering',label: 'En cours de livraison', emoji: '🛵' },
-  { key: 'delivered', label: 'Livrée !', emoji: '🎉' },
+  { key: 'confirmed',  label: 'Commande confirmée',    emoji: '✅' },
+  { key: 'preparing',  label: 'En préparation',        emoji: '👨‍🍳' },
+  { key: 'ready',      label: 'Prête pour livraison',  emoji: '🔔' },
+  { key: 'delivering', label: 'En cours de livraison', emoji: '🛵' },
+  { key: 'delivered',  label: 'Livrée !',              emoji: '🎉' },
 ];
 
+const STATUS_LABEL: Partial<Record<string, string>> = {
+  confirmed:  'Commande confirmée',
+  preparing:  'En préparation',
+  ready:      'Recherche d\'un livreur…',
+  delivering: 'En route vers vous',
+  delivered:  'Livrée ! Bon appétit 🎉',
+};
+
 function stepStatus(stepKey: string, currentStep: string): StepStatus {
-  const stepIdx = STEPS.findIndex((s) => s.key === stepKey);
+  const stepIdx    = STEPS.findIndex((s) => s.key === stepKey);
   const currentIdx = STEPS.findIndex((s) => s.key === currentStep);
   if (stepIdx < currentIdx) return 'done';
   if (stepIdx === currentIdx) return 'active';
   return 'pending';
 }
 
-const STATUS_ETA: Partial<Record<string, string>> = {
-  confirmed:  'Estimation : ~30 min',
-  preparing:  'En préparation · ~20 min',
-  ready:      'Recherche d\'un livreur…',
-  delivering: 'En route vers vous',
-  delivered:  'Livrée !',
-};
+// Mock destination — in production comes from the order data
+const DEST = { latitude: 48.8738, longitude: 2.3320 };
 
 export default function TrackOrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { status, driverLocation, connected } = useTrackOrder(id ?? null);
+  const mapRef = useRef<MapView>(null);
 
   const currentStep = status ?? 'delivering';
   const currentStepData = STEPS.find((s) => s.key === currentStep) ?? STEPS[3];
 
+  const driverCoord = driverLocation
+    ? { latitude: driverLocation.lat, longitude: driverLocation.lng }
+    : null;
+
+  // Animate map to driver position when it updates
+  const handleMapReady = () => {
+    if (driverCoord) {
+      mapRef.current?.animateCamera({ center: driverCoord, zoom: 15 }, { duration: 600 });
+    }
+  };
+
+  const initialRegion = driverCoord
+    ? { latitude: driverCoord.latitude, longitude: driverCoord.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 }
+    : { latitude: DEST.latitude, longitude: DEST.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={styles.closeBtn}>✕</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Suivi de commande</Text>
         <View style={styles.headerRight}>
-          <View style={[styles.connDot, { backgroundColor: connected ? '#22c55e' : '#94a3b8' }]} />
+          <View style={[styles.connDot, { backgroundColor: connected ? '#22c55e' : Colors.surface[300] }]} />
           <Text style={styles.orderNum}>#{id}</Text>
         </View>
       </View>
 
-      {/* ETA card */}
-      <View style={styles.etaCard}>
-        <Text style={styles.etaEmoji}>{currentStepData.emoji}</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.etaTitle}>{STATUS_ETA[currentStep] ?? 'En cours'}</Text>
-          {driverLocation && (
-            <Text style={styles.etaTime}>
-              📍 {driverLocation.lat.toFixed(4)}, {driverLocation.lng.toFixed(4)}
-            </Text>
-          )}
-        </View>
-      </View>
+      {/* Map */}
+      <MapView
+        ref={mapRef}
+        provider={PROVIDER_DEFAULT}
+        style={styles.map}
+        initialRegion={initialRegion}
+        onMapReady={handleMapReady}
+        showsUserLocation={false}
+        showsMyLocationButton={false}
+      >
+        {/* Destination (customer) */}
+        <Marker coordinate={DEST} title="Votre adresse" pinColor={Colors.brand[500]} />
+        <Circle
+          center={DEST}
+          radius={60}
+          fillColor={Colors.brand[500] + '20'}
+          strokeColor={Colors.brand[500] + '60'}
+          strokeWidth={1}
+        />
 
-      {/* Timeline */}
-      <View style={styles.timeline}>
-        {STEPS.map((step, idx) => {
-          const status = stepStatus(step.key, currentStep);
-          return (
-            <View key={step.key} style={styles.timelineRow}>
-              <View style={styles.timelineLeft}>
-                <View style={[
-                  styles.dot,
-                  status === 'done' && styles.dotDone,
-                  status === 'active' && styles.dotActive,
-                ]}>
-                  {status === 'active' && <View style={styles.dotInner} />}
-                  {status === 'done' && <Text style={styles.checkmark}>✓</Text>}
-                </View>
-                {idx < STEPS.length - 1 && (
-                  <View style={[styles.line, status === 'done' && styles.lineDone]} />
-                )}
-              </View>
-              <View style={[styles.stepContent, idx < STEPS.length - 1 && { marginBottom: 20 }]}>
-                <Text style={styles.stepEmoji}>{step.emoji}</Text>
-                <Text style={[
-                  styles.stepLabel,
-                  status === 'active' && styles.stepLabelActive,
-                  status === 'pending' && styles.stepLabelPending,
-                ]}>
-                  {step.label}
-                </Text>
-              </View>
+        {/* Driver */}
+        {driverCoord && (
+          <Marker
+            coordinate={driverCoord}
+            title="Votre livreur"
+            rotation={driverLocation?.heading ?? 0}
+            anchor={{ x: 0.5, y: 0.5 }}
+          >
+            <View style={styles.driverMarker}>
+              <Text style={styles.driverMarkerText}>🛵</Text>
             </View>
-          );
-        })}
-      </View>
+          </Marker>
+        )}
+      </MapView>
 
-      {/* Contact */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.contactBtn} activeOpacity={0.85}>
-          <Text style={styles.contactBtnText}>📞 Contacter le livreur</Text>
-        </TouchableOpacity>
+      {/* Bottom sheet */}
+      <View style={styles.sheet}>
+        <View style={styles.sheetHandle} />
+
+        {/* Status card */}
+        <View style={styles.statusCard}>
+          <Text style={styles.statusEmoji}>{currentStepData.emoji}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.statusText}>{STATUS_LABEL[currentStep] ?? currentStep}</Text>
+            {currentStep === 'delivering' && driverCoord && (
+              <Text style={styles.statusSub}>
+                📍 {driverLocation!.lat.toFixed(4)}, {driverLocation!.lng.toFixed(4)}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* Timeline */}
+        <ScrollView horizontal={false} showsVerticalScrollIndicator={false} style={styles.timeline}>
+          {STEPS.map((step, idx) => {
+            const s = stepStatus(step.key, currentStep);
+            return (
+              <View key={step.key} style={styles.timelineRow}>
+                <View style={styles.timelineLeft}>
+                  <View style={[styles.dot, s === 'done' && styles.dotDone, s === 'active' && styles.dotActive]}>
+                    {s === 'active' && <View style={styles.dotInner} />}
+                    {s === 'done'   && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  {idx < STEPS.length - 1 && (
+                    <View style={[styles.line, s === 'done' && styles.lineDone]} />
+                  )}
+                </View>
+                <View style={[styles.stepContent, idx < STEPS.length - 1 && { marginBottom: 18 }]}>
+                  <Text style={styles.stepEmoji}>{step.emoji}</Text>
+                  <Text style={[styles.stepLabel, s === 'active' && styles.stepLabelActive, s === 'pending' && styles.stepLabelPending]}>
+                    {step.label}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.contactBtn} activeOpacity={0.85}>
+            <Text style={styles.contactBtnText}>📞 Contacter le livreur</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -110,48 +163,45 @@ export default function TrackOrderScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.surface[50] },
 
-  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 },
+  header:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: Colors.surface[100] },
   closeBtn:    { fontSize: 18, color: Colors.surface[400], fontWeight: '600', padding: 4, marginRight: 8 },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: '800', color: Colors.surface[900] },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: '800', color: Colors.surface[900] },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   connDot:     { width: 8, height: 8, borderRadius: 4 },
-  orderNum:    { fontSize: 14, color: Colors.surface[400], fontWeight: '600' },
+  orderNum:    { fontSize: 13, color: Colors.surface[400], fontWeight: '600' },
 
-  etaCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 16, backgroundColor: Colors.brand[500], borderRadius: 18, padding: 16, marginBottom: 28,
-  },
-  etaEmoji: { fontSize: 28 },
-  etaTitle: { color: '#fff', fontSize: 15, fontWeight: '700', marginBottom: 2 },
-  etaTime:  { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  etaBadge:     { backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6 },
-  etaBadgeText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+  map: { height: 260 },
 
-  timeline: { paddingHorizontal: 24 },
+  driverMarker:     { backgroundColor: '#fff', borderRadius: 20, padding: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+  driverMarkerText: { fontSize: 22 },
+
+  sheet: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, marginTop: -16, shadowColor: '#000', shadowOffset: { width: 0, height: -3 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 8 },
+  sheetHandle: { width: 36, height: 4, backgroundColor: Colors.surface[200], borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 12 },
+
+  statusCard:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, backgroundColor: Colors.brand[500], borderRadius: 14, padding: 14, marginBottom: 16 },
+  statusEmoji: { fontSize: 26 },
+  statusText:  { color: '#fff', fontSize: 15, fontWeight: '700' },
+  statusSub:   { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 3 },
+
+  timeline:     { paddingHorizontal: 20, flex: 1 },
   timelineRow:  { flexDirection: 'row' },
-  timelineLeft: { alignItems: 'center', width: 28, marginRight: 14 },
+  timelineLeft: { alignItems: 'center', width: 28, marginRight: 12 },
 
-  dot: {
-    width: 24, height: 24, borderRadius: 12,
-    borderWidth: 2, borderColor: Colors.surface[200],
-    backgroundColor: '#fff',
-    alignItems: 'center', justifyContent: 'center',
-  },
+  dot:       { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.surface[200], backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   dotDone:   { backgroundColor: Colors.brand[500], borderColor: Colors.brand[500] },
   dotActive: { borderColor: Colors.brand[500], borderWidth: 2.5 },
-  dotInner:  { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.brand[500] },
-  checkmark: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  dotInner:  { width: 9, height: 9, borderRadius: 5, backgroundColor: Colors.brand[500] },
+  checkmark: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  line:      { width: 2, flex: 1, backgroundColor: Colors.surface[100], marginVertical: 2 },
+  lineDone:  { backgroundColor: Colors.brand[300] },
 
-  line:     { width: 2, flex: 1, backgroundColor: Colors.surface[100], marginVertical: 2 },
-  lineDone: { backgroundColor: Colors.brand[300] },
-
-  stepContent: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 4 },
-  stepEmoji:        { fontSize: 18, width: 24, textAlign: 'center' },
-  stepLabel:        { fontSize: 15, fontWeight: '600', color: Colors.surface[900] },
+  stepContent:      { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 4 },
+  stepEmoji:        { fontSize: 16, width: 22, textAlign: 'center' },
+  stepLabel:        { fontSize: 14, fontWeight: '600', color: Colors.surface[900] },
   stepLabelActive:  { color: Colors.brand[600] },
   stepLabelPending: { color: Colors.surface[400], fontWeight: '500' },
 
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: Colors.surface[100] },
-  contactBtn: { backgroundColor: Colors.surface[100], borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  contactBtnText: { fontSize: 15, fontWeight: '700', color: Colors.surface[700] },
+  footer:         { padding: 16, paddingBottom: 28 },
+  contactBtn:     { backgroundColor: Colors.surface[100], borderRadius: 14, paddingVertical: 13, alignItems: 'center' },
+  contactBtnText: { fontSize: 14, fontWeight: '700', color: Colors.surface[700] },
 });
