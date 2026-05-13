@@ -254,10 +254,10 @@
 
 | Catégorie | ✅ Fait | 🔄 Partiel | ❌ À faire |
 |---|---|---|---|
-| Infrastructure | 11 | 1 | 3 |
+| Infrastructure | 13 | 1 | 1 |
 | Base de données | 14 | 0 | 4 |
 | Backend API | 17 | 2 | 3 |
-| Frontend web | 32 | 2 | 6 |
+| Frontend web | 33 | 2 | 6 |
 | Paiements | 5 | 0 | 3 |
 | Livraison | 4 | 1 | 2 |
 | Export | 5 | 0 | 2 |
@@ -265,7 +265,7 @@
 | Mobile | 0 | 0 | 4 |
 | Notifications | 4 | 0 | 2 |
 | Sécurité | 5 | 0 | 3 |
-| **TOTAL** | **101** | **6** | **33** |
+| **TOTAL** | **104** | **6** | **31** |
 
 ---
 
@@ -289,16 +289,17 @@
 | Sprint 14 | CouponsModule wired (POST /coupons, applyCoupon, redeemCoupon), Super Admin dashboard (/superadmin), tests E2E Supertest (11 tests), 70 tests total | ✅ |
 | Sprint 15 | Settings page restaurant, notifications push livreur assigné, tests coupons.service.spec | ✅ |
 | Sprint 16 | Avis clients (/dashboard/reviews), Gestion équipe (/dashboard/staff) amélioré, delivery.service.spec (15 tests), notifications.service.spec (9 tests), 107 tests total | ✅ |
-| **Sprint 17** | **Programme fidélité dashboard (/dashboard/loyalty), push.service.spec, events.gateway.spec** | 🔄 En cours |
+| Sprint 17 | Programme fidélité dashboard (/dashboard/loyalty), push.service.spec (15 tests), events.gateway.spec (19 tests), 141 tests total | ✅ |
+| **Sprint 18** | **Réservations (/dashboard/reservations), export.service.spec, coupons.controller.spec** | 🔄 En cours |
 
 ---
 
-## Prochaines priorités (Sprint 17+)
+## Prochaines priorités (Sprint 18+)
 
-### 🔄 Sprint 17 — En cours
-1. **Programme fidélité `/dashboard/loyalty`** — page dashboard restaurant : KPIs, transactions, tiers, export
-2. **push.service.spec** — couverture unitaire PushService (VAPID)
-3. **events.gateway.spec** — couverture unitaire EventsGateway (Socket.io)
+### 🔄 Sprint 18 — En cours
+1. **Réservations `/dashboard/reservations`** — plan de salle, timeline, liste, modal nouvelle réservation
+2. **export.service.spec** — couverture unitaire ExportService (PDF + Excel)
+3. **coupons.controller.spec** — couverture E2E CouponsController
 
 ### ❌ Backlog
 4. **OAuth Google/Apple** — login social
