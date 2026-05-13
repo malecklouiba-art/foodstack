@@ -1,6 +1,6 @@
 # FoodStack — Roadmap & État d'avancement
 
-> Dernière mise à jour : 12 mai 2026 (Sprint 16 terminé)
+> Dernière mise à jour : 13 mai 2026 (Sprint 17 terminé)
 
 ---
 
@@ -26,7 +26,7 @@
 | Rate limiting | ✅ | `ThrottlerModule` 100 req/min |
 | Monitoring / logs centralisés | ❌ | Sentry à intégrer |
 | Backup automatique DB | ❌ | |
-| Tests unitaires | ✅ | Jest configuré, 107 tests (orders, payments, analytics, loyalty, coupons, suppliers, delivery, notifications) |
+| Tests unitaires | ✅ | Jest configuré, 141 tests (orders, payments, analytics, loyalty, coupons, suppliers, delivery, notifications, push, events) |
 | Tests E2E Supertest | ✅ | orders.controller.spec + suppliers.controller.spec (11 tests) |
 
 ---
@@ -140,7 +140,8 @@
 | Caisse POS `/pos` | ✅ | |
 | QR codes `/dashboard/qr` | ✅ | Génération QR codes menu/table |
 | Zones de livraison | ✅ | Carte polygones dans settings restaurant |
-| **Programme fidélité `/dashboard/loyalty`** | 🔄 | Sprint 17 en cours |
+| **Programme fidélité `/dashboard/loyalty`** | ✅ | Sprint 17 terminé |
+| **Réservations `/dashboard/reservations`** | 🔄 | Sprint 18 en cours |
 | Interface livreur (web) | ❌ | |
 
 ### Admin `/admin`
