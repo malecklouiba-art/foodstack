@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   async createOrder(dto: CreateOrderDto) {
-    return this.prisma.order.create({
+    const order = await this.prisma.order.create({
       data: {
         restaurantId: dto.restaurantId,
         customerId: dto.customerId,
@@ -32,6 +36,18 @@ export class OrdersService {
       } as any,
       include: { items: true },
     });
+
+    this.realtime.emitOrderCreated({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      restaurantId: order.restaurantId,
+      status: order.status,
+      customerId: order.customerId,
+      total: order.total,
+      itemCount: (order.items as unknown[]).length,
+    });
+
+    return order;
   }
 
   async findById(id: string) {
@@ -71,11 +87,24 @@ export class OrdersService {
   }
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
-    await this.findById(id);
-    return this.prisma.order.update({
+    const order = await this.findById(id);
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { status: dto.status as any },
+      include: { items: true },
     });
+
+    this.realtime.emitOrderStatusUpdated({
+      orderId: updated.id,
+      orderNumber: updated.orderNumber,
+      restaurantId: updated.restaurantId,
+      status: updated.status,
+      customerId: updated.customerId ?? undefined,
+      total: updated.total,
+      itemCount: (updated.items as unknown[]).length,
+    });
+
+    return updated;
   }
 
   async cancelOrder(id: string, reason: string) {

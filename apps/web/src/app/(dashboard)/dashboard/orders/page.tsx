@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Search,
   Filter,
@@ -8,6 +8,7 @@ import {
   Eye,
   Clock,
   ChevronDown,
+  Wifi,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/Badge';
@@ -15,6 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
 
 type OrderStatus = 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
 
@@ -56,8 +58,40 @@ export default function OrdersPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>(ORDERS);
+  const [liveCount, setLiveCount] = useState(0);
 
-  const filtered = ORDERS.filter((o) => {
+  const handleOrderCreated = useCallback((event: OrderEvent) => {
+    const newOrder: Order = {
+      id: event.orderNumber,
+      customer: 'Nouveau client',
+      email: '', phone: '',
+      items: [],
+      total: event.total ?? 0,
+      status: 'confirmed',
+      type: 'delivery',
+      createdAt: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    };
+    setOrders((prev) => [newOrder, ...prev]);
+    setLiveCount((c) => c + 1);
+  }, []);
+
+  const handleStatusUpdated = useCallback((event: OrderEvent) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === event.orderNumber ? { ...o, status: event.status as OrderStatus } : o,
+      ),
+    );
+  }, []);
+
+  useRealtimeOrders({
+    restaurantId: 'r1',
+    onOrderCreated: handleOrderCreated,
+    onStatusUpdated: handleStatusUpdated,
+    showToasts: true,
+  });
+
+  const filtered = orders.filter((o) => {
     const matchSearch = !search || o.id.includes(search) || o.customer.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchSearch && matchStatus;
@@ -75,11 +109,23 @@ export default function OrdersPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Commandes</h1>
-          <p className="mt-1 text-sm text-surface-500">{ORDERS.length} commandes aujourd'hui</p>
+          <p className="mt-1 text-sm text-surface-500">{orders.length} commandes aujourd&apos;hui</p>
         </div>
-        <Button variant="ghost" size="sm" icon={<RefreshCw className="h-4 w-4" />}>
-          Actualiser
-        </Button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 rounded-xl bg-green-50 px-3 py-1.5">
+            <Wifi className="h-3.5 w-3.5 text-green-500" />
+            <span className="text-xs font-medium text-green-700">Temps réel</span>
+            {liveCount > 0 && (
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-xs font-bold text-white">
+                {liveCount}
+              </span>
+            )}
+          </div>
+          <Button variant="ghost" size="sm" icon={<RefreshCw className="h-4 w-4" />}
+            onClick={() => { setOrders(ORDERS); setLiveCount(0); }}>
+            Actualiser
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

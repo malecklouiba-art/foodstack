@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   async findAll(restaurantId: string) {
     return this.prisma.inventoryItem.findMany({
@@ -38,10 +42,26 @@ export class InventoryService {
   async adjustStock(id: string, quantity: number, _reason?: string) {
     const item = await this.findById(id);
     const newStock = Math.max(0, item.currentStock + quantity);
-    return this.prisma.inventoryItem.update({
+    const updated = await this.prisma.inventoryItem.update({
       where: { id },
       data: { currentStock: newStock },
     });
+
+    const payload = {
+      itemId: updated.id,
+      name: updated.name,
+      restaurantId: updated.restaurantId,
+      currentStock: newStock,
+      minStock: updated.minStock,
+    };
+
+    this.realtime.emitInventoryUpdated(payload);
+
+    if (newStock <= updated.minStock) {
+      this.realtime.emitInventoryLowStock(payload);
+    }
+
+    return updated;
   }
 
   async getLowStockAlerts(restaurantId: string) {
