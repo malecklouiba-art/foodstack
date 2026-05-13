@@ -4,7 +4,8 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/events`, {
+    const base = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1').replace('/api/v1', '');
+    socket = io(`${base}/events`, {
       autoConnect: false,
       reconnection: true,
       reconnectionDelay: 1000,
