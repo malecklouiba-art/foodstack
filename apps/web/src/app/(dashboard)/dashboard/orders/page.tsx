@@ -2,13 +2,14 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Wifi, WifiOff, LayoutGrid, Table2, ChefHat, Volume2, VolumeX, Eye } from 'lucide-react';
+import { Wifi, WifiOff, LayoutGrid, Table2, ChefHat, Volume2, VolumeX, Eye, Download, FileSpreadsheet } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { OrderCard, type KanbanOrder, type OrderStatus } from '@/components/dashboard/orders/OrderCard';
 import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
 import { getSocket } from '@/lib/socket';
+import type {} from 'jspdf-autotable';
 
 // ── Sound alert (Web Audio API — no extra dep) ──────────────────────────────
 
@@ -140,6 +141,97 @@ export default function OrdersPage() {
 
   const kitchen = view === 'kitchen';
 
+  // ── Export helpers ──────────────────────────────────────────────────────────
+
+  const STATUS_COLORS: Record<OrderStatus, [number, number, number]> = {
+    confirmed:  [59, 130, 246],
+    preparing:  [245, 158, 11],
+    ready:      [34, 197, 94],
+    delivering: [168, 85, 247],
+    delivered:  [22, 163, 74],
+    cancelled:  [239, 68, 68],
+  };
+
+  function formatItems(order: KanbanOrder): string {
+    return order.items.map((i) => `${i.quantity}× ${i.name}`).join(', ');
+  }
+
+  function formatDate(d: Date): string {
+    return d.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  const handleExportPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF();
+
+    // Header
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('FoodStack — Commandes', 14, 20);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text(`Restaurant FoodStack · Exporté le ${new Date().toLocaleDateString('fr-FR')}`, 14, 28);
+    doc.setTextColor(0);
+
+    autoTable(doc, {
+      startY: 36,
+      head: [['N° commande', 'Client', 'Articles', 'Total', 'Statut', 'Date']],
+      body: orders.map((o) => [
+        o.id,
+        o.customer,
+        formatItems(o),
+        `${o.total.toFixed(2)}€`,
+        STATUS_CONFIG[o.status].label,
+        formatDate(o.createdAt),
+      ]),
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      columnStyles: { 2: { cellWidth: 60 } },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 4) {
+          const statusLabel = data.cell.raw as string;
+          const entry = Object.values(STATUS_CONFIG).find((s) => s.label === statusLabel);
+          if (entry) {
+            const orderStatus = (Object.keys(STATUS_CONFIG) as OrderStatus[]).find(
+              (k) => STATUS_CONFIG[k].label === statusLabel
+            );
+            if (orderStatus) {
+              const [r, g, b] = STATUS_COLORS[orderStatus];
+              data.cell.styles.textColor = [r, g, b];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
+      },
+    });
+
+    doc.save('commandes-foodstack.pdf');
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['N° commande', 'Client', 'Articles', 'Total (€)', 'Statut', 'Date'];
+    const rows = orders.map((o) => [
+      o.id,
+      o.customer,
+      formatItems(o),
+      o.total.toFixed(2),
+      STATUS_CONFIG[o.status].label,
+      formatDate(o.createdAt),
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'commandes-foodstack.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className={`flex h-full flex-col ${kitchen ? 'bg-surface-900 text-white' : ''}`}>
       {/* Header */}
@@ -172,6 +264,24 @@ export default function OrdersPage() {
 
         {/* Controls */}
         <div className="flex items-center gap-2">
+          {/* Export buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportPDF}
+              title="Exporter en PDF"
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors ${kitchen ? 'border-surface-700 text-surface-300 hover:bg-surface-700' : 'border-surface-200 bg-white text-surface-600 hover:bg-surface-50'}`}
+            >
+              <Download className="h-3.5 w-3.5" /> PDF
+            </button>
+            <button
+              onClick={handleExportCSV}
+              title="Exporter en CSV"
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium transition-colors ${kitchen ? 'border-surface-700 text-surface-300 hover:bg-surface-700' : 'border-surface-200 bg-white text-surface-600 hover:bg-surface-50'}`}
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
+            </button>
+          </div>
+
           <button
             onClick={() => setSound((s) => !s)}
             title={sound ? 'Couper le son' : 'Activer le son'}
