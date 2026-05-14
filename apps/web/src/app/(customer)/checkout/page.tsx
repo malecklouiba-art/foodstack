@@ -8,6 +8,8 @@ import {
   Clock,
   CheckCircle2,
   Lock,
+  Tag,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { loadStripe } from '@stripe/stripe-js';
@@ -41,6 +43,46 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState('');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; type: 'percent' | 'fixed' } | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const DEMO_COUPONS: Record<string, { discount: number; type: 'percent' | 'fixed' }> = {
+    'BIENVENUE10': { discount: 10, type: 'percent' },
+    'ETE5':        { discount: 5,  type: 'fixed' },
+    'FIDELE20':    { discount: 20, type: 'percent' },
+    'FLASH15':     { discount: 15, type: 'percent' },
+  };
+
+  function applyCoupon() {
+    if (!couponCode.trim()) return;
+    setCouponLoading(true);
+    setTimeout(() => {
+      const found = DEMO_COUPONS[couponCode.toUpperCase()];
+      if (found) {
+        setAppliedCoupon({ code: couponCode.toUpperCase(), ...found });
+        toast.success(`Code "${couponCode.toUpperCase()}" appliqué !`);
+      } else {
+        toast.error('Code promo invalide ou expiré');
+      }
+      setCouponLoading(false);
+    }, 600);
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  }
+
+  function couponDiscount(): number {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.type === 'percent') return subtotal() * appliedCoupon.discount / 100;
+    return Math.min(appliedCoupon.discount, subtotal());
+  }
+
+  function finalTotal(): number {
+    return Math.max(0, total() - couponDiscount());
+  }
 
   const handlePlaceOrder = async () => {
     if (!address) {
@@ -231,6 +273,42 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
+                {/* Coupon code */}
+                <div className="mt-4 border-t border-surface-100 pt-4">
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between rounded-xl bg-green-50 px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-semibold text-green-700">{appliedCoupon.code}</span>
+                        <span className="text-xs text-green-600">
+                          −{appliedCoupon.type === 'percent' ? `${appliedCoupon.discount}%` : `${appliedCoupon.discount}€`}
+                        </span>
+                      </div>
+                      <button onClick={removeCoupon} className="text-green-500 hover:text-green-700">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
+                        placeholder="Code promo"
+                        className="flex-1 rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm uppercase tracking-wider placeholder:normal-case placeholder:tracking-normal focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                      />
+                      <button
+                        onClick={applyCoupon}
+                        disabled={couponLoading || !couponCode}
+                        className="flex items-center gap-1.5 rounded-xl bg-surface-900 px-4 py-2 text-sm font-medium text-white hover:bg-surface-800 disabled:opacity-50"
+                      >
+                        <Tag className="h-3.5 w-3.5" />
+                        {couponLoading ? '...' : 'Appliquer'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="mt-4 space-y-2 border-t border-surface-100 pt-4">
                   <div className="flex justify-between text-sm text-surface-600">
                     <span>Sous-total</span>
@@ -250,9 +328,15 @@ export default function CheckoutPage() {
                     <span>TVA</span>
                     <span>{tax().toFixed(2)}€</span>
                   </div>
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-sm font-medium text-green-600">
+                      <span>Réduction ({appliedCoupon.code})</span>
+                      <span>−{couponDiscount().toFixed(2)}€</span>
+                    </div>
+                  )}
                   <div className="flex justify-between border-t border-surface-100 pt-2 font-bold text-surface-900">
                     <span>Total à payer</span>
-                    <span className="text-lg">{total().toFixed(2)}€</span>
+                    <span className="text-lg">{finalTotal().toFixed(2)}€</span>
                   </div>
                 </div>
 
@@ -273,7 +357,7 @@ export default function CheckoutPage() {
                 >
                   {paymentMethod === 'card'
                     ? 'Préparer le paiement'
-                    : `Payer ${total().toFixed(2)}€`}
+                    : `Payer ${finalTotal().toFixed(2)}€`}
                 </Button>
               )}
 
