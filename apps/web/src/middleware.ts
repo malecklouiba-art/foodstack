@@ -8,15 +8,23 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const path = req.nextUrl.pathname;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) return res;
-
   const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p));
   const isAuthPage = path === '/login' || path === '/register';
 
   if (!isProtected && !isAuthPage) return res;
+
+  // Demo session cookie — bypass Supabase entirely
+  const demoCookie = req.cookies.get('fs_demo')?.value;
+  if (demoCookie) {
+    if (isAuthPage) return NextResponse.redirect(new URL('/dashboard', req.url));
+    return res;
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // No Supabase configured — allow through (dev/demo mode)
+  if (!supabaseUrl || !supabaseKey) return res;
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
