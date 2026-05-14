@@ -17,6 +17,7 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  Bike,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed, section: 'Gestion' },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Package, section: 'Gestion' },
   { href: '/dashboard/delivery', label: 'Livraisons', icon: Truck, badge: 2, section: 'Gestion' },
+  { href: '/dashboard/drivers', label: 'Livreurs', icon: Bike, section: 'Gestion' },
   { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration' },
   { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration' },
   { href: '/dashboard/loyalty', label: 'Fidélité', icon: Star, section: 'Administration' },
