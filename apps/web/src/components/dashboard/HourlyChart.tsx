@@ -58,7 +58,7 @@ export function HourlyChart({ liveOrderCount = 0 }: Props) {
               {data.map((entry, index) => (
                 <Cell
                   key={index}
-                  fill={entry.isNow ? '#00FF73' : entry.orders >= peak * 0.8 ? '#33ffa0' : '#b3ffe0'}
+                  fill={entry.isNow ? '#1EFF6A' : entry.orders >= peak * 0.8 ? '#42ff7b' : '#abffbe'}
                 />
               ))}
             </Bar>

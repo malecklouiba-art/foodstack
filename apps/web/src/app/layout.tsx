@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#00FF73',
+  themeColor: '#1EFF6A',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               padding: '12px 16px',
               fontSize: '14px',
             },
-            success: { iconTheme: { primary: '#00FF73', secondary: '#fff' } },
+            success: { iconTheme: { primary: '#1EFF6A', secondary: '#fff' } },
             error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
           }}
         />

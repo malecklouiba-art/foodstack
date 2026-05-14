@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { clsx } from 'clsx';
 import {
   Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone,
   Users, RotateCcw, Percent, Receipt, ChevronLeft, Check,
@@ -485,21 +486,58 @@ export default function POSPage() {
 
                 {payMethod === 'cash' && (
                   <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <p className="mb-3 text-sm font-medium text-white/70">Montant remis</p>
-                    <div className="flex gap-2 mb-3">
-                      {[Math.ceil(total / 5) * 5, Math.ceil(total / 10) * 10, 50, 100].filter((v, i, a) => a.indexOf(v) === i).slice(0, 4).map((amount) => (
-                        <button key={amount} onClick={() => setCashGiven(amount.toString())} className="flex-1 rounded-lg bg-white/10 py-2 text-sm font-medium hover:bg-white/20">
-                          {amount}€
+                    {/* Display */}
+                    <div className="mb-3 rounded-xl bg-white/10 px-4 py-3 text-center">
+                      <p className="text-xs text-white/40 mb-1">Montant remis</p>
+                      <p className="text-3xl font-black text-white tracking-wide">
+                        {cashGiven ? `${parseFloat(cashGiven).toFixed(2)} €` : '0.00 €'}
+                      </p>
+                      {cashGiven && parseFloat(cashGiven) > 0 && (
+                        <p className={`mt-1 text-sm font-bold ${cashChange >= 0 ? 'text-brand-400' : 'text-red-400'}`}>
+                          {cashChange >= 0 ? `Rendu : ${cashChange.toFixed(2)} €` : 'Montant insuffisant'}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Quick amounts */}
+                    <div className="grid grid-cols-4 gap-1.5 mb-3">
+                      {[Math.ceil(total / 5) * 5, Math.ceil(total / 10) * 10, 50, 100]
+                        .filter((v, i, a) => a.indexOf(v) === i).slice(0, 4)
+                        .map((amount) => (
+                          <button key={amount} onClick={() => setCashGiven(amount.toString())}
+                            className="rounded-lg bg-brand-500/20 border border-brand-500/30 py-1.5 text-sm font-bold text-brand-300 hover:bg-brand-500/30 transition-colors">
+                            {amount}€
+                          </button>
+                        ))}
+                    </div>
+
+                    {/* Numpad */}
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {['7','8','9','4','5','6','1','2','3','00','0','⌫'].map((key) => (
+                        <button
+                          key={key}
+                          onClick={() => {
+                            if (key === '⌫') {
+                              setCashGiven(p => p.slice(0, -1));
+                            } else {
+                              setCashGiven(p => {
+                                const next = (p === '0' ? '' : p) + key;
+                                const num = parseFloat(next);
+                                return isNaN(num) ? p : next;
+                              });
+                            }
+                          }}
+                          className={clsx(
+                            'rounded-xl py-3.5 text-lg font-bold transition-all active:scale-95',
+                            key === '⌫'
+                              ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                              : 'bg-white/10 text-white hover:bg-white/20'
+                          )}
+                        >
+                          {key}
                         </button>
                       ))}
                     </div>
-                    <input type="number" value={cashGiven} onChange={(e) => setCashGiven(e.target.value)} placeholder="Montant exact"
-                      className="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-2.5 text-lg font-bold text-white focus:border-brand-500 focus:outline-none" />
-                    {cashGiven && (
-                      <div className={`mt-3 text-center ${cashChange >= 0 ? 'text-brand-400' : 'text-red-400'}`}>
-                        <p className="text-sm">Rendu : <span className="text-xl font-bold">{cashChange.toFixed(2)}€</span></p>
-                      </div>
-                    )}
                   </div>
                 )}
 

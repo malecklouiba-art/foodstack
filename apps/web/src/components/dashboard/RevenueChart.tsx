@@ -120,8 +120,8 @@ export function RevenueChart({ extraRevenue = 0 }: Props) {
           <AreaChart data={conf.data} margin={{ top: 10, right: 0, left: -10, bottom: 0 }}>
             <defs>
               <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#00FF73" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#00FF73" stopOpacity={0} />
+                <stop offset="5%"  stopColor="#1EFF6A" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#1EFF6A" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="ordGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#60a5fa" stopOpacity={0.15} />
@@ -135,10 +135,10 @@ export function RevenueChart({ extraRevenue = 0 }: Props) {
               tickFormatter={(v) => `${Math.round(v)}€`}
             />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={avg} stroke="#00FF73" strokeDasharray="4 4" strokeOpacity={0.35} />
+            <ReferenceLine y={avg} stroke="#1EFF6A" strokeDasharray="4 4" strokeOpacity={0.35} />
             <Area type="monotone" dataKey="revenue" name="revenue"
-              stroke="#00FF73" strokeWidth={2.5} fill="url(#revGrad)"
-              dot={false} activeDot={{ r: 4, fill: '#00FF73' }} />
+              stroke="#1EFF6A" strokeWidth={2.5} fill="url(#revGrad)"
+              dot={false} activeDot={{ r: 4, fill: '#1EFF6A' }} />
             <Area type="monotone" dataKey="orders" name="orders"
               stroke="#60a5fa" strokeWidth={1.5} fill="url(#ordGrad)"
               dot={false} activeDot={{ r: 3, fill: '#60a5fa' }} />

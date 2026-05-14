@@ -39,6 +39,23 @@
     font-family: var(--font-geist-sans);
   }
 
+  .dark body, .dark {
+    @apply bg-[#0A0A0A] text-surface-100;
+  }
+
+  .dark .text-surface-900 { @apply text-surface-50; }
+  .dark .text-surface-800 { @apply text-surface-100; }
+  .dark .text-surface-700 { @apply text-surface-200; }
+  .dark .text-surface-600 { @apply text-surface-300; }
+  .dark .text-surface-500 { @apply text-surface-400; }
+  .dark .bg-surface-50    { @apply bg-surface-900; }
+  .dark .bg-surface-100   { @apply bg-surface-800; }
+  .dark .bg-surface-200   { @apply bg-surface-700; }
+  .dark .border-surface-100 { @apply border-surface-700; }
+  .dark .border-surface-200 { @apply border-surface-700; }
+  .dark .hover\:bg-surface-50:hover  { @apply bg-surface-800; }
+  .dark .hover\:bg-surface-100:hover { @apply bg-surface-700; }
+
   ::selection {
     @apply bg-brand-200 text-brand-900;
   }
