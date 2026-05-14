@@ -27,7 +27,6 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface NavItem {
   href: string;
@@ -115,22 +114,22 @@ export function Sidebar() {
   return (
     <aside
       className={clsx(
-        'relative flex h-full flex-col bg-brand-500 transition-all duration-300',
+        'relative flex h-full flex-col bg-zinc-900 transition-all duration-300',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Logo */}
-      <div className={clsx('flex h-16 items-center border-b border-black/10 px-4', collapsed && 'justify-center')}>
+      <div className={clsx('flex h-16 items-center border-b border-white/10 px-4', collapsed && 'justify-center')}>
         {collapsed ? (
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-black/20">
-            <span className="text-sm font-bold text-black">F</span>
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
+            <span className="text-sm font-bold text-white">F</span>
           </div>
         ) : (
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-black/20">
-              <span className="text-sm font-bold text-black">F</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
+              <span className="text-sm font-bold text-white">F</span>
             </div>
-            <span className="text-lg font-bold text-black">FoodStack</span>
+            <span className="text-lg font-bold text-white">FoodStack</span>
           </Link>
         )}
       </div>
@@ -140,7 +139,7 @@ export function Sidebar() {
         {sections.map((section) => (
           <div key={section} className="mb-4">
             {!collapsed && (
-              <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-black/50">
+              <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-white/50">
                 {section}
               </p>
             )}
@@ -154,8 +153,8 @@ export function Sidebar() {
                     className={clsx(
                       'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive(item.href)
-                        ? 'bg-black/15 text-black font-semibold'
-                        : 'text-black/70 hover:bg-black/10 hover:text-black',
+                        ? 'bg-brand-500/20 text-brand-400 font-semibold'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white',
                       collapsed && 'justify-center px-2'
                     )}
                     title={collapsed ? item.label : undefined}
@@ -168,7 +167,7 @@ export function Sidebar() {
                       <>
                         <span className="flex-1">{item.label}</span>
                         {item.badge !== undefined && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-black/20 px-1.5 text-xs font-bold text-black">
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-bold text-white">
                             {item.badge}
                           </span>
                         )}
@@ -182,19 +181,19 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-black/10 p-3 space-y-1">
+      <div className="border-t border-white/10 p-3 space-y-1">
         {/* Account switcher dropdown */}
         {showSwitcher && !collapsed && (
-          <div className="mb-2 rounded-xl border border-black/10 bg-black/10 p-1.5 space-y-0.5">
+          <div className="mb-2 rounded-xl border border-white/10 bg-white/10 p-1.5 space-y-0.5">
             {DEMO_ACCOUNTS.filter(a => a.role !== currentRole).map((account) => (
               <button
                 key={account.role}
                 onClick={() => handleSwitch(account)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-black/80 hover:bg-black/10 transition-all"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-white/80 hover:bg-white/10 transition-all"
               >
                 <span className="text-base">{account.emoji}</span>
                 <span className="font-medium">{account.label}</span>
-                <RefreshCw className="ml-auto h-3 w-3 text-black/40" />
+                <RefreshCw className="ml-auto h-3 w-3 text-white/40" />
               </button>
             ))}
           </div>
@@ -205,51 +204,47 @@ export function Sidebar() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSwitcher(s => !s)}
-              className="flex flex-1 items-center gap-2.5 rounded-xl p-2 hover:bg-black/10 transition-colors min-w-0"
+              className="flex flex-1 items-center gap-2.5 rounded-xl p-2 hover:bg-white/10 transition-colors min-w-0"
             >
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-black/20 text-xs font-bold text-black">
+              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold text-white">
                 {(ROLE_NAMES[currentRole ?? '']?.label ?? 'U')[0]}
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="truncate text-sm font-medium text-black">
+                <p className="truncate text-sm font-medium text-white">
                   {ROLE_NAMES[currentRole ?? '']?.emoji} {ROLE_NAMES[currentRole ?? '']?.label ?? 'Démo'}
                 </p>
-                <p className="truncate text-xs text-black/50">{currentRole ?? 'demo'}</p>
+                <p className="truncate text-xs text-white/50">{currentRole ?? 'demo'}</p>
               </div>
-              <ChevronUp className={clsx('h-3.5 w-3.5 flex-shrink-0 text-black/40 transition-transform', !showSwitcher && 'rotate-180')} />
+              <ChevronUp className={clsx('h-3.5 w-3.5 flex-shrink-0 text-white/40 transition-transform', !showSwitcher && 'rotate-180')} />
             </button>
-            <ThemeToggle className="text-black/50 hover:bg-black/20 hover:text-black" />
             <button
               onClick={handleLogout}
               title="Se déconnecter"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-black/50 hover:bg-black/20 hover:text-black transition-colors"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-white/50 hover:bg-white/20 hover:text-white transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-1">
-            <ThemeToggle className="w-full justify-center py-2 text-black/50 hover:bg-black/20 hover:text-black" />
-            <button
-              onClick={handleLogout}
-              title="Se déconnecter"
-              className="flex w-full items-center justify-center rounded-xl py-2 text-black/50 hover:bg-black/20 hover:text-black transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
+          <button
+            onClick={handleLogout}
+            title="Se déconnecter"
+            className="flex w-full items-center justify-center rounded-xl py-2 text-white/50 hover:bg-white/20 hover:text-white transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         )}
       </div>
 
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-black/20 bg-brand-500 shadow-sm hover:bg-brand-400"
+        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-zinc-900 shadow-sm hover:bg-zinc-800"
       >
         {collapsed ? (
-          <ChevronRight className="h-3 w-3 text-black/60" />
+          <ChevronRight className="h-3 w-3 text-white/60" />
         ) : (
-          <ChevronLeft className="h-3 w-3 text-black/60" />
+          <ChevronLeft className="h-3 w-3 text-white/60" />
         )}
       </button>
     </aside>
