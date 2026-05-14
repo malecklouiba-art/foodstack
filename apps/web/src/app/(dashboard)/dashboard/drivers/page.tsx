@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bike, Star, Package, Phone, MapPin, Clock,
@@ -11,6 +12,9 @@ import {
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useRealtimeDrivers } from '@/hooks/useRealtimeDrivers';
+import type { DriverPosition } from './_DriversMap';
+
+const DriversMap = dynamic(() => import('./_DriversMap'), { ssr: false });
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +83,17 @@ const SEED: Driver[] = [
     avatar: 'IL',
   },
 ];
+
+// ── Initial GPS positions (Paris area) ───────────────────────────────────────
+
+const INITIAL_POSITIONS: Record<string, { lat: number; lng: number }> = {
+  d1: { lat: 48.8566, lng: 2.3522 },
+  d2: { lat: 48.8606, lng: 2.3622 },
+  d3: { lat: 48.8486, lng: 2.3422 },
+  d4: { lat: 48.8626, lng: 2.3722 },
+  d5: { lat: 48.8546, lng: 2.3302 },
+  d6: { lat: 48.8696, lng: 2.3462 },
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -409,6 +424,20 @@ export default function DriversPage() {
     return active.reduce((s, d) => s + d.rating, 0) / active.length;
   }, [drivers]);
 
+  const mapDrivers = useMemo<DriverPosition[]>(
+    () =>
+      drivers.map((d) => ({
+        id: d.id,
+        name: d.name,
+        phone: d.phone,
+        status: d.status,
+        activeOrder: d.activeOrder,
+        lat: INITIAL_POSITIONS[d.id]?.lat ?? 48.8566,
+        lng: INITIAL_POSITIONS[d.id]?.lng ?? 2.3522,
+      })),
+    [drivers]
+  );
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
@@ -506,40 +535,59 @@ export default function DriversPage() {
         </div>
       </div>
 
-      {/* Content: grid + panel */}
-      <div className="flex gap-6">
-        {/* Driver grid */}
-        <div className="flex-1 min-w-0">
-          {filtered.length === 0 ? (
-            <div className="flex h-40 items-center justify-center rounded-2xl border-2 border-dashed border-surface-200 text-sm text-surface-400">
-              Aucun livreur trouvé
+      {/* Content: map + list (side by side on xl) */}
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* Live map panel */}
+        <div className="xl:w-1/2 order-first xl:order-last">
+          <div className="rounded-2xl overflow-hidden border border-surface-200 bg-white shadow-sm h-[500px]">
+            <div className="flex items-center gap-2 border-b border-surface-100 px-4 py-3">
+              <MapPin className="h-4 w-4 text-brand-500" />
+              <span className="text-sm font-semibold text-surface-700">Carte des livreurs</span>
+              <span className="ml-auto flex items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                Live
+              </span>
             </div>
-          ) : (
-            <div className={`grid gap-4 ${selected ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'}`}>
-              <AnimatePresence mode="popLayout">
-                {filtered.map((driver) => (
-                  <DriverCard
-                    key={driver.id}
-                    driver={driver}
-                    selected={selected?.id === driver.id}
-                    onClick={() => setSelected(selected?.id === driver.id ? null : driver)}
-                  />
-                ))}
-              </AnimatePresence>
+            <div className="h-[calc(100%-45px)]">
+              <DriversMap drivers={mapDrivers} />
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Detail panel */}
-        <AnimatePresence>
-          {selected && (
-            <DriverPanel
-              key={selected.id}
-              driver={selected}
-              onClose={() => setSelected(null)}
-            />
-          )}
-        </AnimatePresence>
+        {/* Driver grid + detail panel */}
+        <div className="xl:w-1/2 flex gap-6 min-w-0">
+          <div className="flex-1 min-w-0">
+            {filtered.length === 0 ? (
+              <div className="flex h-40 items-center justify-center rounded-2xl border-2 border-dashed border-surface-200 text-sm text-surface-400">
+                Aucun livreur trouvé
+              </div>
+            ) : (
+              <div className={`grid gap-4 ${selected ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+                <AnimatePresence mode="popLayout">
+                  {filtered.map((driver) => (
+                    <DriverCard
+                      key={driver.id}
+                      driver={driver}
+                      selected={selected?.id === driver.id}
+                      onClick={() => setSelected(selected?.id === driver.id ? null : driver)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
+
+          {/* Detail panel */}
+          <AnimatePresence>
+            {selected && (
+              <DriverPanel
+                key={selected.id}
+                driver={selected}
+                onClose={() => setSelected(null)}
+              />
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Performance table */}

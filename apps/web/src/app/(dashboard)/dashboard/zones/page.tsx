@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Plus,
   MapPin,
@@ -13,6 +14,7 @@ import {
   Pencil,
   X,
 } from 'lucide-react';
+
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
@@ -20,6 +22,8 @@ import { StatCard } from '@/components/ui/StatCard';
 import { Modal } from '@/components/ui/Modal';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
+
+const ZonesMap = dynamic(() => import('./_ZonesMap'), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -318,15 +322,17 @@ export default function ZonesPage() {
 
       {/* ── Map + Zone Cards ── */}
       <div className="grid gap-6 xl:grid-cols-5">
-        {/* SVG Map */}
-        <div className="xl:col-span-2 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 p-6 shadow-sm flex flex-col items-center justify-center gap-4">
-          <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-300 self-start">
-            Carte des zones
-          </h2>
-          <ZonesDiagram zones={sortedZones} />
-          <p className="text-xs text-surface-400 text-center">
-            Représentation proportionnelle des rayons de livraison
-          </p>
+        {/* Leaflet Map */}
+        <div className="xl:col-span-2 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-sm flex flex-col overflow-hidden">
+          <div className="px-5 py-4 border-b border-surface-100 dark:border-surface-700 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-brand-500" />
+            <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-300">
+              Carte des zones
+            </h2>
+          </div>
+          <div className="h-[400px] rounded-b-2xl overflow-hidden">
+            <ZonesMap />
+          </div>
         </div>
 
         {/* Zone Cards */}
