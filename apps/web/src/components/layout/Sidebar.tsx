@@ -25,6 +25,7 @@ import {
   LogOut,
   RefreshCw,
   ChevronUp,
+  QrCode,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -52,6 +53,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/payments', label: 'Paiements', icon: CreditCard, section: 'Administration' },
   { href: '/pos', label: 'Caisse POS', icon: ShoppingCart, section: 'Gestion' },
   { href: '/dashboard/kiosk', label: 'Borne de commande', icon: Monitor, section: 'Gestion' },
+  { href: '/dashboard/qrcodes', label: 'QR Codes', icon: QrCode, section: 'Gestion' },
   { href: '/dashboard/analytics', label: 'Analytiques', icon: BarChart3, section: 'Rapports' },
   { href: '/dashboard/settings', label: 'Paramètres', icon: Settings, section: 'Rapports' },
 ];

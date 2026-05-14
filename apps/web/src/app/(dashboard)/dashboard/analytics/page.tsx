@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Users, ShoppingBag, Euro, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, ShoppingBag, Euro, Download, FileSpreadsheet } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import {
@@ -10,6 +10,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
+import type {} from 'jspdf-autotable';
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,149 @@ function AreaTooltip({ active, payload, label }: { active?: boolean; payload?: A
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState(0);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleExportPDF = async () => {
+    setShowExportMenu(false);
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF();
+    const periodLabel = PERIODS[period];
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+
+    // Cover section
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Rapport Analytics FoodStack', 14, 22);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text(`Période : ${periodLabel}`, 14, 32);
+    doc.text(`Généré le ${dateStr}`, 14, 39);
+    doc.setTextColor(0);
+
+    // KPI summary table
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Indicateurs clés', 14, 52);
+
+    autoTable(doc, {
+      startY: 57,
+      head: [['Indicateur', 'Valeur', 'Évolution']],
+      body: KPI_CARDS.map((k) => [k.title, k.value, k.change]),
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 2) {
+          const val = data.cell.raw as string;
+          data.cell.styles.textColor = val.startsWith('+') ? [22, 163, 74] : [239, 68, 68];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    const afterKpi = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+    // Revenue by day table
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Chiffre d\'affaires par jour', 14, afterKpi);
+
+    autoTable(doc, {
+      startY: afterKpi + 5,
+      head: [['Jour', 'CA (€)', 'Objectif (€)', 'Atteint']],
+      body: REVENUE_DATA.map((d) => [
+        d.day,
+        d.revenue.toLocaleString('fr-FR'),
+        d.objectif.toLocaleString('fr-FR'),
+        d.revenue >= d.objectif ? 'Oui' : 'Non',
+      ]),
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 3) {
+          data.cell.styles.textColor = data.cell.raw === 'Oui' ? [22, 163, 74] : [239, 68, 68];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    const afterRevenue = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+
+    // Top items table
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Top 5 articles', 14, afterRevenue);
+
+    autoTable(doc, {
+      startY: afterRevenue + 5,
+      head: [['#', 'Article', 'Vendus', 'CA (€)', 'Évolution']],
+      body: TOP_ITEMS.map((item) => [
+        item.rank,
+        item.name,
+        item.sold,
+        item.revenue.toLocaleString('fr-FR'),
+        `${item.up ? '+' : ''}${item.change}%`,
+      ]),
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 4) {
+          const val = data.cell.raw as string;
+          data.cell.styles.textColor = val.startsWith('+') ? [22, 163, 74] : [239, 68, 68];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
+    });
+
+    doc.save(`rapport-analytics-foodstack-${periodLabel}.pdf`);
+  };
+
+  const handleExportCSV = () => {
+    setShowExportMenu(false);
+    const periodLabel = PERIODS[period];
+
+    // KPI section
+    const kpiHeaders = ['Indicateur', 'Valeur', 'Évolution'];
+    const kpiRows = KPI_CARDS.map((k) => [k.title, k.value, k.change]);
+
+    // Revenue section
+    const revenueHeaders = ['Jour', 'CA (€)', 'Objectif (€)'];
+    const revenueRows = REVENUE_DATA.map((d) => [d.day, String(d.revenue), String(d.objectif)]);
+
+    const formatSection = (title: string, headers: string[], rows: string[][]) => {
+      const headerRow = headers.map((h) => `"${h}"`).join(',');
+      const dataRows = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','));
+      return [`"${title}"`, headerRow, ...dataRows].join('\n');
+    };
+
+    const csv = [
+      formatSection(`Analytics FoodStack — Période : ${periodLabel}`, kpiHeaders, kpiRows),
+      '',
+      formatSection('CA par jour', revenueHeaders, revenueRows),
+    ].join('\n');
+
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `analytics-foodstack-${periodLabel}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div ref={pageRef} className="space-y-6 p-6">
@@ -111,10 +254,33 @@ export default function AnalyticsPage() {
               </button>
             ))}
           </div>
-          <button className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-700 shadow-sm transition-colors hover:bg-surface-50">
-            <Download className="h-4 w-4" />
-            Exporter
-          </button>
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu((v) => !v)}
+              className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-700 shadow-sm transition-colors hover:bg-surface-50"
+            >
+              <Download className="h-4 w-4" />
+              Exporter
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl border border-surface-200 bg-white shadow-lg">
+                <button
+                  onClick={handleExportPDF}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50"
+                >
+                  <Download className="h-4 w-4 text-surface-400" />
+                  Exporter PDF
+                </button>
+                <button
+                  onClick={handleExportCSV}
+                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50"
+                >
+                  <FileSpreadsheet className="h-4 w-4 text-surface-400" />
+                  Exporter CSV
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

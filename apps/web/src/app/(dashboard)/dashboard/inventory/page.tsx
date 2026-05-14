@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Plus, Search, AlertTriangle, Package, TrendingDown, TrendingUp, Pencil, Trash2, SlidersHorizontal, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, AlertTriangle, Package, TrendingDown, TrendingUp, Pencil, Trash2, SlidersHorizontal, X, Image as ImageIcon, Download, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
+import type {} from 'jspdf-autotable';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -268,6 +269,120 @@ export default function InventoryPage() {
     setDeleteId(null);
   }
 
+  // ── Export ──
+
+  const handleExportPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF('landscape');
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Rapport Inventaire — ${dateStr}`, 14, 18);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100);
+    doc.text(`FoodStack · ${items.length} références`, 14, 25);
+    doc.setTextColor(0);
+
+    // Summary table
+    autoTable(doc, {
+      startY: 32,
+      head: [['Valeur totale stock', 'Articles stock bas', 'Articles critiques', 'Références totales']],
+      body: [[
+        `${totalValue.toFixed(2)} €`,
+        String(lowItems),
+        String(criticalItems),
+        String(items.length),
+      ]],
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+    });
+
+    const afterSummary = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8;
+
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Détail des articles', 14, afterSummary);
+
+    autoTable(doc, {
+      startY: afterSummary + 5,
+      head: [['Nom', 'Catégorie', 'Stock actuel', 'Unité', 'Stock min', 'Coût/u (€)', 'Prix vente (€)', 'Marge %', 'Fournisseur', 'Statut']],
+      body: items.map((item) => {
+        const status = getStockStatus(item);
+        const margin = computeMargin(item.sellPrice, item.costPerUnit);
+        return [
+          item.name,
+          item.category,
+          String(item.currentStock),
+          item.unit,
+          String(item.minStock),
+          item.costPerUnit.toFixed(2),
+          item.sellPrice.toFixed(2),
+          margin !== null ? `${margin.toFixed(1)}%` : '—',
+          item.supplier,
+          status === 'critical' ? 'Critique' : status === 'low' ? 'Stock bas' : 'OK',
+        ];
+      }),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          const rowIndex = data.row.index;
+          const status = getStockStatus(items[rowIndex]);
+          if (status === 'critical') {
+            data.cell.styles.fillColor = [254, 226, 226]; // red-100
+            if (data.column.index === 9) {
+              data.cell.styles.textColor = [220, 38, 38];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          } else if (status === 'low') {
+            data.cell.styles.fillColor = [254, 249, 195]; // yellow-100
+            if (data.column.index === 9) {
+              data.cell.styles.textColor = [161, 98, 7];
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        }
+      },
+    });
+
+    doc.save(`inventaire-foodstack-${dateStr.replace(/\//g, '-')}.pdf`);
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Nom', 'Catégorie', 'Stock actuel', 'Unité', 'Stock min', 'Coût/unité (€)', 'Prix vente (€)', 'Marge %', 'Fournisseur', 'Statut', 'Dernière MàJ'];
+    const rows = items.map((item) => {
+      const status = getStockStatus(item);
+      const margin = computeMargin(item.sellPrice, item.costPerUnit);
+      return [
+        item.name,
+        item.category,
+        String(item.currentStock),
+        item.unit,
+        String(item.minStock),
+        item.costPerUnit.toFixed(2),
+        item.sellPrice.toFixed(2),
+        margin !== null ? margin.toFixed(1) : '',
+        item.supplier,
+        status === 'critical' ? 'Critique' : status === 'low' ? 'Stock bas' : 'OK',
+        item.lastUpdated,
+      ];
+    });
+    const csv = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `inventaire-foodstack-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -278,7 +393,25 @@ export default function InventoryPage() {
           <h1 className="text-2xl font-bold text-surface-900">Inventaire</h1>
           <p className="mt-1 text-sm text-surface-500">{items.length} références · mis à jour aujourd&apos;hui</p>
         </div>
-        <Button icon={<Plus className="h-4 w-4" />} onClick={openAddModal}>Ajouter un article</Button>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-2">
+            <button
+              onClick={handleExportPDF}
+              title="Exporter en PDF"
+              className="flex items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-sm font-medium text-surface-600 transition-colors hover:bg-surface-50"
+            >
+              <Download className="h-3.5 w-3.5" /> PDF
+            </button>
+            <button
+              onClick={handleExportCSV}
+              title="Exporter en CSV"
+              className="flex items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-sm font-medium text-surface-600 transition-colors hover:bg-surface-50"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
+            </button>
+          </div>
+          <Button icon={<Plus className="h-4 w-4" />} onClick={openAddModal}>Ajouter un article</Button>
+        </div>
       </div>
 
       {/* Stats */}
