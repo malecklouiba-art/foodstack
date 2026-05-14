@@ -5,8 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Settings, Clock, Bell, Truck, CreditCard, Users,
   Upload, Save, Check, X, ChevronRight, MapPin,
+  AlertCircle, CheckCircle, Plus, Trash2, Edit2,
+  Building2, RefreshCw, Shield, Eye, EyeOff,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -332,17 +335,421 @@ function LivraisonTab() {
   );
 }
 
-function ComingSoonTab({ label }: { label: string }) {
+// ── Paiements tab ─────────────────────────────────────────────────────────────
+
+type PayMethod = 'card' | 'apple_pay' | 'google_pay' | 'cash';
+
+const PAY_METHODS: { id: PayMethod; label: string; icon: string; desc: string }[] = [
+  { id: 'card',       label: 'Carte bancaire',  icon: '💳', desc: 'Visa, Mastercard, AMEX' },
+  { id: 'apple_pay',  label: 'Apple Pay',        icon: '', desc: 'Paiement mobile iOS' },
+  { id: 'google_pay', label: 'Google Pay',       icon: '🪙', desc: 'Paiement mobile Android' },
+  { id: 'cash',       label: 'Espèces',          icon: '💵', desc: 'Paiement à la livraison' },
+];
+
+function PaiementsTab() {
+  const [stripeConnected] = useState(true);
+  const [showKey, setShowKey] = useState(false);
+  const [payoutSchedule, setPayoutSchedule] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
+  const [commission, setCommission] = useState('8');
+  const [acceptedMethods, setAcceptedMethods] = useState<Set<PayMethod>>(
+    new Set(['card', 'apple_pay', 'google_pay', 'cash'])
+  );
+  const [saved, setSaved] = useState(false);
+
+  const toggleMethod = (id: PayMethod) =>
+    setAcceptedMethods((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+
+  const mockKey = 'pk_live_51J3m...xK9a';
+
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="mb-4 rounded-2xl bg-surface-100 p-5">
-        <Settings className="h-10 w-10 text-surface-400" />
+    <div className="space-y-6">
+      {/* Stripe connection status */}
+      <div className={`flex items-start gap-4 rounded-2xl border p-5 ${
+        stripeConnected ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'
+      }`}>
+        <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+          stripeConnected ? 'bg-green-100' : 'bg-yellow-100'
+        }`}>
+          {stripeConnected
+            ? <CheckCircle className="h-5 w-5 text-green-600" />
+            : <AlertCircle className="h-5 w-5 text-yellow-600" />}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`font-semibold ${stripeConnected ? 'text-green-800' : 'text-yellow-800'}`}>
+            {stripeConnected ? 'Stripe connecté' : 'Stripe non configuré'}
+          </p>
+          <p className={`mt-0.5 text-sm ${stripeConnected ? 'text-green-700' : 'text-yellow-700'}`}>
+            {stripeConnected
+              ? 'Compte · FoodStack Bastille · IBAN ****4521 · Vérifié'
+              : 'Connectez votre compte Stripe pour accepter les paiements en ligne.'}
+          </p>
+        </div>
+        <button className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+          stripeConnected
+            ? 'border border-green-300 text-green-700 hover:bg-green-100'
+            : 'bg-yellow-500 text-white hover:bg-yellow-600'
+        }`}>
+          {stripeConnected ? 'Gérer' : 'Connecter Stripe'}
+        </button>
       </div>
-      <h3 className="text-lg font-semibold text-surface-700">{label}</h3>
-      <p className="mt-2 text-sm text-surface-400">Cette section sera bientôt disponible.</p>
-      <span className="mt-4 inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700">
-        Bientôt disponible
-      </span>
+
+      {/* Stripe API key */}
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-surface-700">Clé publique Stripe</label>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              readOnly
+              type={showKey ? 'text' : 'password'}
+              value={mockKey}
+              className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3.5 py-2.5 pr-10 text-sm font-mono text-surface-600 outline-none"
+            />
+            <button
+              onClick={() => setShowKey(!showKey)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
+            >
+              {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <button className="flex items-center gap-1.5 rounded-xl border border-surface-200 px-4 py-2.5 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Régénérer
+          </button>
+        </div>
+        <p className="mt-1.5 text-xs text-surface-400">Webhook URL : <span className="font-mono">https://foodstack.app/api/payments/webhook</span></p>
+      </div>
+
+      {/* Payment methods */}
+      <div>
+        <label className="mb-3 block text-sm font-medium text-surface-700">Méthodes de paiement acceptées</label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {PAY_METHODS.map((method) => {
+            const active = acceptedMethods.has(method.id);
+            return (
+              <button
+                key={method.id}
+                onClick={() => toggleMethod(method.id)}
+                className={`flex items-center gap-4 rounded-2xl border p-4 text-left transition-all ${
+                  active
+                    ? 'border-brand-300 bg-brand-50 ring-1 ring-brand-200'
+                    : 'border-surface-200 bg-white hover:border-surface-300'
+                }`}
+              >
+                <span className="text-2xl">{method.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold ${active ? 'text-brand-800' : 'text-surface-900'}`}>{method.label}</p>
+                  <p className="text-xs text-surface-400">{method.desc}</p>
+                </div>
+                <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                  active ? 'border-brand-500 bg-brand-500' : 'border-surface-300'
+                }`}>
+                  {active && <Check className="h-3 w-3 text-white" />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Commission + payout */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700">Commission plateforme (%)</label>
+          <input
+            type="number"
+            min="0"
+            max="30"
+            step="0.5"
+            value={commission}
+            onChange={(e) => setCommission(e.target.value)}
+            className="w-full rounded-xl border border-surface-200 bg-white px-3.5 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          />
+          <p className="mt-1 text-xs text-surface-400">Prélevée sur chaque transaction</p>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700">Fréquence des virements</label>
+          <div className="flex rounded-xl border border-surface-200 bg-surface-50 p-0.5">
+            {(['daily', 'weekly', 'monthly'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setPayoutSchedule(s)}
+                className={`flex-1 rounded-lg py-2 text-xs font-semibold transition-colors ${
+                  payoutSchedule === s ? 'bg-white text-surface-900 shadow-sm' : 'text-surface-500 hover:text-surface-700'
+                }`}
+              >
+                {s === 'daily' ? 'Quotidien' : s === 'weekly' ? 'Hebdo' : 'Mensuel'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Payout summary */}
+      <div className="rounded-2xl border border-surface-200 bg-white p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Building2 className="h-4 w-4 text-surface-400" />
+          <p className="text-sm font-semibold text-surface-900">Prochain virement</p>
+        </div>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-xl font-bold text-surface-900">3 420€</p>
+            <p className="text-xs text-surface-400 mt-0.5">Montant</p>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-surface-900">15 mai</p>
+            <p className="text-xs text-surface-400 mt-0.5">Date</p>
+          </div>
+          <div>
+            <p className="text-xl font-bold text-surface-900">****4521</p>
+            <p className="text-xs text-surface-400 mt-0.5">IBAN</p>
+          </div>
+        </div>
+        <button className="mt-4 w-full rounded-xl border border-brand-200 bg-brand-50 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition-colors">
+          Demander un virement anticipé
+        </button>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2500); }}
+          className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors"
+        >
+          {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          {saved ? 'Enregistré !' : 'Enregistrer'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Équipe tab ─────────────────────────────────────────────────────────────────
+
+type MemberRole = 'owner' | 'manager' | 'staff' | 'driver';
+
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: MemberRole;
+  active: boolean;
+  lastLogin: string;
+  avatar: string;
+}
+
+const ROLE_CONFIG: Record<MemberRole, { label: string; variant: 'brand' | 'success' | 'info' | 'warning'; perms: string[] }> = {
+  owner:   { label: 'Propriétaire', variant: 'brand',   perms: ['Tout accès', 'Facturation', 'Équipe', 'Paramètres'] },
+  manager: { label: 'Manager',      variant: 'success',  perms: ['Dashboard', 'Commandes', 'Menu', 'Inventaire', 'Livreurs'] },
+  staff:   { label: 'Staff',        variant: 'info',     perms: ['Commandes', 'POS', 'Menu (lecture)'] },
+  driver:  { label: 'Livreur',      variant: 'warning',  perms: ['Interface livreur', 'GPS tracking'] },
+};
+
+const INIT_TEAM: TeamMember[] = [
+  { id: 't1', name: 'Jean Dupont',    email: 'jean@foodstack.fr',   role: 'owner',   active: true,  lastLogin: 'Aujourd\'hui 09:14', avatar: 'JD' },
+  { id: 't2', name: 'Claire Morin',   email: 'claire@foodstack.fr', role: 'manager', active: true,  lastLogin: 'Aujourd\'hui 08:52', avatar: 'CM' },
+  { id: 't3', name: 'Lucas Bernard',  email: 'lucas@foodstack.fr',  role: 'staff',   active: true,  lastLogin: 'Hier 22:30',         avatar: 'LB' },
+  { id: 't4', name: 'Yasmine Kader',  email: 'yasmine@foodstack.fr',role: 'staff',   active: false, lastLogin: 'il y a 5 jours',     avatar: 'YK' },
+  { id: 't5', name: 'Karim Benali',   email: 'karim@foodstack.fr',  role: 'driver',  active: true,  lastLogin: 'Aujourd\'hui 11:05', avatar: 'KB' },
+];
+
+function EquipeTab() {
+  const [members, setMembers] = useState<TeamMember[]>(INIT_TEAM);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'staff' as MemberRole });
+  const [editId, setEditId] = useState<string | null>(null);
+
+  const toggleActive = (id: string) =>
+    setMembers((prev) => prev.map((m) => m.id === id ? { ...m, active: !m.active } : m));
+
+  const remove = (id: string) =>
+    setMembers((prev) => prev.filter((m) => m.id !== id));
+
+  const handleInvite = () => {
+    if (!inviteForm.name || !inviteForm.email) return;
+    const newMember: TeamMember = {
+      id: `t${Date.now()}`,
+      name: inviteForm.name,
+      email: inviteForm.email,
+      role: inviteForm.role,
+      active: true,
+      lastLogin: 'Jamais connecté',
+      avatar: inviteForm.name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
+    };
+    setMembers((prev) => [...prev, newMember]);
+    setInviteForm({ name: '', email: '', role: 'staff' });
+    setShowInvite(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-surface-700">{members.length} membres · {members.filter((m) => m.active).length} actifs</p>
+        </div>
+        <button
+          onClick={() => setShowInvite(!showInvite)}
+          className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Inviter un membre
+        </button>
+      </div>
+
+      {/* Invite form */}
+      <AnimatePresence>
+        {showInvite && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-2xl border border-brand-200 bg-brand-50 p-5">
+              <h3 className="mb-4 text-sm font-bold text-brand-900">Inviter un nouveau membre</h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-surface-600">Nom complet</label>
+                  <input
+                    placeholder="Marie Dupont"
+                    value={inviteForm.name}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full rounded-xl border border-surface-200 bg-white px-3 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-surface-600">Email</label>
+                  <input
+                    type="email"
+                    placeholder="marie@restaurant.fr"
+                    value={inviteForm.email}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full rounded-xl border border-surface-200 bg-white px-3 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-surface-600">Rôle</label>
+                  <select
+                    value={inviteForm.role}
+                    onChange={(e) => setInviteForm((f) => ({ ...f, role: e.target.value as MemberRole }))}
+                    className="w-full rounded-xl border border-surface-200 bg-white px-3 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400"
+                  >
+                    {(Object.keys(ROLE_CONFIG) as MemberRole[]).map((r) => (
+                      <option key={r} value={r}>{ROLE_CONFIG[r].label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {inviteForm.role && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <Shield className="h-3.5 w-3.5 text-surface-400 mt-0.5" />
+                  {ROLE_CONFIG[inviteForm.role].perms.map((p) => (
+                    <span key={p} className="rounded-full bg-white border border-surface-200 px-2.5 py-0.5 text-xs text-surface-600">{p}</span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-4 flex gap-2">
+                <button onClick={handleInvite} className="rounded-xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-600 transition-colors">
+                  Envoyer l&apos;invitation
+                </button>
+                <button onClick={() => setShowInvite(false)} className="rounded-xl border border-surface-200 px-5 py-2 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Members list */}
+      <div className="overflow-hidden rounded-2xl border border-surface-200 bg-white">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-surface-100 bg-surface-50">
+              {['Membre', 'Rôle', 'Statut', 'Dernière connexion', 'Actions'].map((h) => (
+                <th key={h} className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-surface-50">
+            {members.map((member) => {
+              const roleCfg = ROLE_CONFIG[member.role];
+              return (
+                <motion.tr key={member.id} layout className="hover:bg-surface-50 transition-colors">
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${
+                        member.active ? 'bg-gradient-to-br from-brand-400 to-brand-600' : 'bg-surface-300'
+                      }`}>
+                        {member.avatar}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-surface-900">{member.name}</p>
+                        <p className="truncate text-xs text-surface-400">{member.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <Badge variant={roleCfg.variant}>{roleCfg.label}</Badge>
+                  </td>
+                  <td className="px-5 py-4">
+                    <button
+                      onClick={() => toggleActive(member.id)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${member.active ? 'bg-brand-500' : 'bg-surface-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${member.active ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </td>
+                  <td className="px-5 py-4">
+                    <p className="text-sm text-surface-500">{member.lastLogin}</p>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <button className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700 transition-colors">
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      {member.role !== 'owner' && (
+                        <button
+                          onClick={() => remove(member.id)}
+                          className="rounded-lg p-1.5 text-surface-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Role permissions */}
+      <div>
+        <p className="mb-3 text-sm font-semibold text-surface-700">Permissions par rôle</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(Object.entries(ROLE_CONFIG) as [MemberRole, typeof ROLE_CONFIG[MemberRole]][]).map(([role, cfg]) => (
+            <div key={role} className="rounded-2xl border border-surface-200 bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-surface-400" />
+                <Badge variant={cfg.variant}>{cfg.label}</Badge>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {cfg.perms.map((p) => (
+                  <span key={p} className="flex items-center gap-1 rounded-full bg-surface-100 px-2.5 py-1 text-xs text-surface-600">
+                    <Check className="h-3 w-3 text-green-500" />
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -358,8 +765,8 @@ export default function SettingsPage() {
       case 'horaires':      return <HorairesTab />;
       case 'notifications': return <NotificationsTab />;
       case 'livraison':     return <LivraisonTab />;
-      case 'paiements':     return <ComingSoonTab label="Paiements" />;
-      case 'equipe':        return <ComingSoonTab label="Équipe" />;
+      case 'paiements':     return <PaiementsTab />;
+      case 'equipe':        return <EquipeTab />;
     }
   }
 
