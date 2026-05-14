@@ -9,6 +9,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
+import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
@@ -84,9 +85,10 @@ function AreaTooltip({ active, payload, label }: { active?: boolean; payload?: A
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState(0);
+  const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
 
   return (
-    <div className="space-y-6 p-6">
+    <div ref={pageRef} className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -126,6 +128,7 @@ export default function AnalyticsPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07 }}
+              className="gsap-card"
             >
               <Card padding="lg" className="hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between">
@@ -150,7 +153,7 @@ export default function AnalyticsPage() {
       {/* Charts row */}
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Area chart */}
-        <Card padding="lg">
+        <Card padding="lg" className="gsap-card">
           <CardHeader>
             <CardTitle>Chiffre d&apos;affaires — 7 derniers jours</CardTitle>
           </CardHeader>
@@ -199,7 +202,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Pie chart */}
-        <Card padding="lg">
+        <Card padding="lg" className="gsap-card">
           <CardHeader>
             <CardTitle>Répartition des commandes</CardTitle>
           </CardHeader>
@@ -234,7 +237,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Heatmap */}
-      <Card padding="lg">
+      <Card padding="lg" className="gsap-card">
         <CardHeader>
           <CardTitle>Commandes par jour / heure</CardTitle>
         </CardHeader>
@@ -288,7 +291,7 @@ export default function AnalyticsPage() {
       {/* Bottom row */}
       <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
         {/* Top performers */}
-        <Card padding="none">
+        <Card padding="none" className="gsap-card">
           <CardHeader className="border-b border-surface-100 px-6 py-5">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-brand-500" />
@@ -328,7 +331,7 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Customer retention */}
-        <Card padding="lg">
+        <Card padding="lg" className="gsap-card">
           <CardHeader>
             <CardTitle>Fidélisation clients</CardTitle>
           </CardHeader>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { motion } from 'framer-motion';
 import {
   ShoppingBag, Users, Euro, Truck, Star,
@@ -96,6 +97,8 @@ export default function DashboardPage() {
     }, [pushEvent]),
   });
 
+  const pageRef = useGSAPReveal('.gsap-card');
+
   const stats = [
     {
       title: "Chiffre d'affaires", value: `${revenue.toLocaleString('fr-FR')}€`,
@@ -123,7 +126,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6 p-6">
+    <div ref={pageRef} className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -140,15 +143,10 @@ export default function DashboardPage() {
 
       {/* Main KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat, i) => {
+        {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <motion.div
-              key={stat.title}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.07 }}
-            >
+            <div key={stat.title} className="gsap-card">
               <Card padding="lg" className="hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between">
                   <div>
@@ -168,7 +166,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </Card>
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -178,7 +176,7 @@ export default function DashboardPage() {
         {kpis.map((kpi) => {
           const Icon = kpi.icon;
           return (
-            <Card key={kpi.label} padding="md" className="flex items-center gap-3">
+            <Card key={kpi.label} padding="md" className="gsap-card flex items-center gap-3">
               <div className="rounded-lg bg-surface-100 p-2">
                 <Icon className={`h-4 w-4 ${kpi.color}`} />
               </div>

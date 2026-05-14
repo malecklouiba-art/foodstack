@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -235,6 +236,7 @@ function CustomerPanel({ customer, onClose }: { customer: Customer; onClose: () 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CustomersPage() {
+  const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
   const [selected, setSelected] = useState<Customer | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterOption>('Tous');
@@ -262,7 +264,7 @@ export default function CustomersPage() {
   ];
 
   return (
-    <div className="space-y-6 p-6">
+    <div ref={pageRef} className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -319,7 +321,7 @@ export default function CustomersPage() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {KPI.map(({ label, value, icon: Icon, color, bg }, i) => (
-          <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+          <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className="gsap-card">
             <Card padding="md" className="flex items-center gap-3">
               <div className={`rounded-xl p-2.5 ${bg} shrink-0`}>
                 <Icon className={`h-5 w-5 ${color}`} />
@@ -336,7 +338,7 @@ export default function CustomersPage() {
       {/* Content: table + detail panel */}
       <div className="flex gap-6 items-start">
         {/* Table */}
-        <Card padding="none" className="flex-1 min-w-0 overflow-hidden">
+        <Card padding="none" className="gsap-card flex-1 min-w-0 overflow-hidden">
           <CardHeader className="border-b border-surface-100 px-6 py-5">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-brand-500" />
