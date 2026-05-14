@@ -24,7 +24,7 @@ export interface KanbanOrder {
 const TYPE_CONFIG = {
   delivery: { label: '🛵 Livraison', color: 'bg-blue-50 text-blue-700' },
   pickup:   { label: '🏪 À emporter', color: 'bg-purple-50 text-purple-700' },
-  dine_in:  { label: '🪑 Sur place', color: 'bg-orange-50 text-orange-700' },
+  dine_in:  { label: '🪑 Sur place', color: 'bg-brand-50 text-brand-700' },
 };
 
 const NEXT_STATUS: Partial<Record<OrderStatus, { label: string; status: OrderStatus }>> = {

@@ -122,7 +122,7 @@ export default function ProfilePage() {
 
         {/* ── Avatar + name card ────────────────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-          <div className="relative rounded-3xl bg-gradient-to-br from-orange-400 to-orange-600 p-6 text-white overflow-hidden">
+          <div className="relative rounded-3xl bg-gradient-to-br from-brand-400 to-brand-600 p-6 text-white overflow-hidden">
             <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/10" />
             <div className="absolute -right-2 bottom-0 h-20 w-20 rounded-full bg-white/5" />
             <div className="relative flex items-center gap-4">
@@ -131,13 +131,13 @@ export default function ProfilePage() {
                   {user.name.charAt(0)}
                 </div>
                 <button className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-lg">
-                  <Camera className="h-3.5 w-3.5 text-orange-500" />
+                  <Camera className="h-3.5 w-3.5 text-brand-500" />
                 </button>
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-bold">{user.name}</h2>
-                <p className="text-sm text-orange-100">{user.email}</p>
-                <p className="mt-1 text-xs text-orange-200">Membre depuis {user.memberSince}</p>
+                <p className="text-sm text-brand-100">{user.email}</p>
+                <p className="mt-1 text-xs text-brand-200">Membre depuis {user.memberSince}</p>
               </div>
               <div className={`rounded-xl px-3 py-1.5 text-center ${tier.bg}`}>
                 <p className={`text-sm font-bold ${tier.color}`}>{tier.label}</p>
@@ -148,7 +148,7 @@ export default function ProfilePage() {
             {/* Loyalty progress */}
             {tier.next && (
               <div className="relative mt-4">
-                <div className="flex justify-between text-xs text-orange-100 mb-1">
+                <div className="flex justify-between text-xs text-brand-100 mb-1">
                   <span>{user.loyaltyPoints} pts</span>
                   <span>{nextPoints} pts pour {tier.next}</span>
                 </div>
@@ -167,7 +167,7 @@ export default function ProfilePage() {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="grid grid-cols-3 gap-3">
           {[
-            { icon: Star, label: 'Commandes', value: user.orderCount.toString(), color: 'text-orange-500' },
+            { icon: Star, label: 'Commandes', value: user.orderCount.toString(), color: 'text-brand-500' },
             { icon: ShieldCheck, label: 'Points fidélité', value: `${user.loyaltyPoints}`, color: 'text-yellow-500' },
             { icon: Bell, label: 'Notifications', value: Object.values(notifs).filter(Boolean).length.toString(), color: 'text-blue-500' },
           ].map((s) => (
@@ -239,8 +239,8 @@ export default function ProfilePage() {
           <div className="divide-y divide-gray-100">
             {addresses.map((addr) => (
               <div key={addr.id} className="flex items-center gap-3 px-5 py-3.5">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-orange-50">
-                  <MapPin className="h-4 w-4 text-orange-500" />
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-brand-50">
+                  <MapPin className="h-4 w-4 text-brand-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -252,7 +252,7 @@ export default function ProfilePage() {
                 <div className="flex gap-1">
                   {!addr.isDefault && (
                     <button onClick={() => setDefault(addr.id)}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-orange-50 hover:text-orange-500 transition-colors text-xs">
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-500 transition-colors text-xs">
                       <Check className="h-3.5 w-3.5" />
                     </button>
                   )}
@@ -288,7 +288,7 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={() => setNotifs((n) => ({ ...n, [key]: !n[key] }))}
-                  className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${notifs[key] ? 'bg-orange-500' : 'bg-gray-200'}`}
+                  className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${notifs[key] ? 'bg-brand-500' : 'bg-gray-200'}`}
                 >
                   <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${notifs[key] ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -357,7 +357,7 @@ export default function ProfilePage() {
           <label className="flex cursor-pointer items-center gap-3 pt-1">
             <div
               onClick={() => setAddrForm((f) => ({ ...f, isDefault: !f.isDefault }))}
-              className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${addrForm.isDefault ? 'bg-orange-500' : 'bg-gray-200'}`}
+              className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${addrForm.isDefault ? 'bg-brand-500' : 'bg-gray-200'}`}
             >
               <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${addrForm.isDefault ? 'translate-x-6' : 'translate-x-1'}`} />
             </div>

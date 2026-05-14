@@ -145,9 +145,9 @@ export default function OrdersPage() {
               { label: 'Total dépensé', value: `${total.toFixed(0)}€` },
               { label: 'Points gagnés', value: `${points} pts` },
             ].map((s) => (
-              <div key={s.label} className="rounded-2xl bg-orange-50 px-4 py-3 text-center">
-                <p className="text-lg font-bold text-orange-600">{s.value}</p>
-                <p className="text-xs text-orange-500">{s.label}</p>
+              <div key={s.label} className="rounded-2xl bg-brand-50 px-4 py-3 text-center">
+                <p className="text-lg font-bold text-brand-600">{s.value}</p>
+                <p className="text-xs text-brand-500">{s.label}</p>
               </div>
             ))}
           </div>
@@ -233,7 +233,7 @@ export default function OrdersPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           {order.loyaltyPointsEarned > 0 && (
-                            <span className="text-xs font-medium text-orange-500">+{order.loyaltyPointsEarned} pts</span>
+                            <span className="text-xs font-medium text-brand-500">+{order.loyaltyPointsEarned} pts</span>
                           )}
                           <span className="font-bold text-gray-900">{order.total.toFixed(2)}€</span>
                           <ChevronRight className="h-4 w-4 text-gray-300" />
@@ -323,7 +323,7 @@ export default function OrdersPage() {
                 </div>
               )}
               {selected.loyaltyPointsUsed > 0 && (
-                <div className="flex justify-between text-orange-500">
+                <div className="flex justify-between text-brand-500">
                   <span>Points utilisés</span><span>-{(selected.loyaltyPointsUsed / 100).toFixed(2)}€</span>
                 </div>
               )}
@@ -335,7 +335,7 @@ export default function OrdersPage() {
             {/* Delivery address */}
             {selected.deliveryAddress && (
               <div className="flex items-start gap-3 rounded-2xl border border-gray-100 p-4">
-                <MapPin className="h-5 w-5 flex-shrink-0 text-orange-500 mt-0.5" />
+                <MapPin className="h-5 w-5 flex-shrink-0 text-brand-500 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">Adresse de livraison</p>
                   <p className="text-sm text-gray-500 mt-0.5">

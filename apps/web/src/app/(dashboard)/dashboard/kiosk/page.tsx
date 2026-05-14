@@ -31,8 +31,8 @@ interface Kiosk {
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 const INIT_KIOSKS: Kiosk[] = [
-  { id: 'k1', name: 'Borne #1 — Entrée', location: 'Hall principal', active: true,  mode: 'both',      ordersToday: 34, lastPing: 'il y a 10s',  color: '#f97316', waitTime: 12 },
-  { id: 'k2', name: 'Borne #2 — Salle',  location: 'Salle principale', active: true,  mode: 'sur_place', ordersToday: 22, lastPing: 'il y a 25s',  color: '#f97316', waitTime: 15 },
+  { id: 'k1', name: 'Borne #1 — Entrée', location: 'Hall principal', active: true,  mode: 'both',      ordersToday: 34, lastPing: 'il y a 10s',  color: '#00FF73', waitTime: 12 },
+  { id: 'k2', name: 'Borne #2 — Salle',  location: 'Salle principale', active: true,  mode: 'sur_place', ordersToday: 22, lastPing: 'il y a 25s',  color: '#00FF73', waitTime: 15 },
   { id: 'k3', name: 'Borne #3 — Terrasse', location: 'Terrasse',      active: false, mode: 'both',      ordersToday: 0,  lastPing: 'il y a 4h',   color: '#6366f1', waitTime: 10 },
 ];
 
@@ -53,7 +53,7 @@ const MENU_CATEGORIES = [
 // ── Add Kiosk Modal ───────────────────────────────────────────────────────────
 
 function AddKioskModal({ onClose, onAdd }: { onClose: () => void; onAdd: (k: Kiosk) => void }) {
-  const [form, setForm] = useState({ name: '', location: '', mode: 'both' as KioskMode, color: '#f97316' });
+  const [form, setForm] = useState({ name: '', location: '', mode: 'both' as KioskMode, color: '#00FF73' });
 
   const handleAdd = () => {
     if (!form.name) return;

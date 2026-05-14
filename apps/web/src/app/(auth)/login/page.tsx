@@ -91,12 +91,12 @@ export default function LoginPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
             <span className="text-base font-bold text-white">F</span>
           </div>
           <span className="text-lg font-bold text-gray-900">FoodStack</span>
         </Link>
-        <Link href="/register" className="text-sm font-medium text-orange-500">
+        <Link href="/register" className="text-sm font-medium text-brand-500">
           S&apos;inscrire
         </Link>
       </div>
@@ -104,7 +104,7 @@ export default function LoginPage() {
       <div className="flex flex-1 items-center justify-center px-4 py-8">
         <div className="w-full max-w-sm">
           <div className="mb-6 flex justify-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-orange-100 text-4xl">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-100 text-4xl">
               👋
             </div>
           </div>
@@ -113,21 +113,21 @@ export default function LoginPage() {
           <p className="mt-1 text-center text-sm text-gray-500">Connectez-vous à votre compte</p>
 
           {/* Demo accounts accordion */}
-          <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50">
+          <div className="mt-6 rounded-2xl border border-brand-200 bg-brand-50">
             <button
               onClick={() => setShowDemo(!showDemo)}
-              className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-orange-700"
+              className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-brand-700"
             >
               <span>🎭 Comptes de démonstration</span>
               {showDemo ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
             {showDemo && (
-              <div className="border-t border-orange-200 px-4 pb-4 pt-3 space-y-2">
+              <div className="border-t border-brand-200 px-4 pb-4 pt-3 space-y-2">
                 {DEMO_ACCOUNTS.map((account) => (
                   <button
                     key={account.email}
                     onClick={() => loginAs(account)}
-                    className="w-full rounded-xl bg-white px-3 py-2.5 text-left transition-colors hover:bg-orange-50 border border-orange-100"
+                    className="w-full rounded-xl bg-white px-3 py-2.5 text-left transition-colors hover:bg-brand-50 border border-brand-100"
                   >
                     <p className="text-sm font-semibold text-gray-900">{account.label}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{account.email}</p>
@@ -153,7 +153,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="vous@exemple.fr"
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                 />
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function LoginPage() {
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <label className="text-sm font-semibold text-gray-700">Mot de passe</label>
-                <Link href="/forgot-password" className="text-xs font-medium text-orange-500">
+                <Link href="/forgot-password" className="text-xs font-medium text-brand-500">
                   Oublié ?
                 </Link>
               </div>
@@ -172,7 +172,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-11 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-11 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                 />
                 <button
                   type="button"
@@ -187,7 +187,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 text-sm font-bold text-white shadow-md shadow-orange-200 transition-opacity active:opacity-80 disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-sm font-bold text-white shadow-md shadow-brand transition-opacity active:opacity-80 disabled:opacity-60"
             >
               {loading ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -221,7 +221,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Pas encore de compte ?{' '}
-            <Link href="/register" className="font-semibold text-orange-500">
+            <Link href="/register" className="font-semibold text-brand-500">
               S&apos;inscrire gratuitement
             </Link>
           </p>

@@ -51,7 +51,7 @@ const RESTAURANTS: Restaurant[] = [
     openTime: '11:00',
     closeTime: '23:00',
     image: 'FB',
-    color: 'from-orange-400 to-red-500',
+    color: 'from-brand-400 to-brand-600',
   },
   {
     id: 'r2',

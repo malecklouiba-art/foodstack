@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
             <span className="text-base font-bold text-white">F</span>
           </div>
           <span className="text-lg font-bold text-gray-900">FoodStack</span>
@@ -56,8 +56,8 @@ export default function ForgotPasswordPage() {
                 className="rounded-3xl bg-white p-8 shadow-sm border border-gray-100"
               >
                 {/* Icon */}
-                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50">
-                  <Mail className="h-7 w-7 text-orange-500" />
+                <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50">
+                  <Mail className="h-7 w-7 text-brand-500" />
                 </div>
 
                 <h1 className="text-2xl font-bold text-gray-900">Mot de passe oublié</h1>
@@ -78,7 +78,7 @@ export default function ForgotPasswordPage() {
                         placeholder="vous@exemple.fr"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500/20 transition-all"
+                        className="h-11 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
                       />
                     </div>
                   </div>
@@ -86,7 +86,7 @@ export default function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={loading || !email}
-                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-sm font-semibold text-white shadow-sm transition-all hover:bg-orange-600 active:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-500 text-sm font-semibold text-white shadow-sm transition-all hover:bg-brand-600 active:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -101,7 +101,7 @@ export default function ForgotPasswordPage() {
 
                 <p className="mt-5 text-center text-sm text-gray-500">
                   Vous vous souvenez ?{' '}
-                  <Link href="/login" className="font-medium text-orange-500 hover:text-orange-600">
+                  <Link href="/login" className="font-medium text-brand-500 hover:text-brand-600">
                     Se connecter
                   </Link>
                 </p>
@@ -130,7 +130,7 @@ export default function ForgotPasswordPage() {
                     Utiliser un autre email
                   </button>
                   <Link href="/login"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
                   >
                     <ArrowLeft className="h-4 w-4" />
                     Retour à la connexion

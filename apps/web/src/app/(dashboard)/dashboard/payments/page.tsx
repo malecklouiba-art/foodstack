@@ -157,8 +157,8 @@ export default function PaymentsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}€`} />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f97316', fillOpacity: 0.06 }} />
-              <Bar dataKey="revenue" fill="#f97316" radius={[6, 6, 0, 0]} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: '#00FF73', fillOpacity: 0.06 }} />
+              <Bar dataKey="revenue" fill="#00FF73" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -246,7 +246,7 @@ export default function PaymentsPage() {
       </Card>
 
       {/* Payout section */}
-      <Card padding="lg" className="border-brand-200 bg-gradient-to-br from-brand-50 to-orange-50">
+      <Card padding="lg" className="border-brand-200 bg-gradient-to-br from-brand-50 to-brand-50">
         <div className="flex flex-wrap items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="rounded-2xl bg-white p-3 shadow-sm">

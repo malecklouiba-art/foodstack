@@ -29,7 +29,7 @@ const menuItems = [
 ];
 
 const EMOJI_BG: Record<string, string> = {
-  burgers: 'bg-orange-100',
+  burgers: 'bg-brand-100',
   pizza: 'bg-red-100',
   salads: 'bg-green-100',
   sides: 'bg-yellow-100',
@@ -86,14 +86,14 @@ export default function MenuPage() {
 
       <div className="mx-auto max-w-2xl px-4 pb-32">
         {/* Promo banner */}
-        <div className="mt-4 overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 to-orange-400 p-5 text-white">
+        <div className="mt-4 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-500 to-brand-400 p-5 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-orange-100">Offre du jour</p>
+              <p className="text-xs font-medium text-brand-100">Offre du jour</p>
               <h2 className="mt-1 text-xl font-bold leading-tight">
                 Jusqu&apos;à 20% de<br />remise sur votre<br />restaurant favori
               </h2>
-              <button className="mt-3 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-orange-500">
+              <button className="mt-3 rounded-full bg-white px-4 py-1.5 text-sm font-semibold text-brand-500">
                 Commander
               </button>
             </div>
@@ -118,7 +118,7 @@ export default function MenuPage() {
               >
                 <div className={`relative flex h-14 w-14 items-center justify-center rounded-2xl text-2xl transition-all ${
                   cat === c.id
-                    ? 'bg-brand-500 shadow-md shadow-orange-200'
+                    ? 'bg-brand-500 shadow-md shadow-brand'
                     : EMOJI_BG[c.id]
                 }`}>
                   {cat === c.id && (
@@ -138,7 +138,7 @@ export default function MenuPage() {
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-orange-500" />
+              <Flame className="h-4 w-4 text-brand-500" />
               <h3 className="text-base font-bold text-gray-900">
                 {cat === 'all' ? 'Populaires' : categories.find(c => c.id === cat)?.label}
               </h3>
@@ -167,7 +167,7 @@ export default function MenuPage() {
                   <div className="flex flex-1 flex-col justify-between py-0.5">
                     <div>
                       {item.tags[0] && (
-                        <span className="inline-block rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-600">
+                        <span className="inline-block rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-600">
                           {item.tags[0]}
                         </span>
                       )}
@@ -191,7 +191,7 @@ export default function MenuPage() {
                         <span className="text-sm font-bold text-gray-900">{item.price.toFixed(2)}€</span>
                         <button
                           onClick={() => handleAdd(item)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm shadow-orange-200 active:scale-95 transition-transform"
+                          className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm shadow-brand active:scale-95 transition-transform"
                         >
                           <Plus className="h-4 w-4" />
                         </button>

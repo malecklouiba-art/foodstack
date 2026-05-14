@@ -38,7 +38,7 @@ const PIE_DATA = [
   { name: 'Boissons',         value: 17 },
 ];
 
-const PIE_COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa'];
+const PIE_COLORS = ['#00FF73', '#33ffa0', '#75ffc2', '#b3ffe0'];
 
 const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const HOURS = ['8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h'];
@@ -158,8 +158,8 @@ export default function AnalyticsPage() {
             <AreaChart data={REVENUE_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f97316" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#00FF73" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#00FF73" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -169,10 +169,10 @@ export default function AnalyticsPage() {
               <Area
                 type="monotone"
                 dataKey="revenue"
-                stroke="#f97316"
+                stroke="#00FF73"
                 strokeWidth={2}
                 fill="url(#colorRevenue)"
-                dot={{ fill: '#f97316', r: 4, strokeWidth: 0 }}
+                dot={{ fill: '#00FF73', r: 4, strokeWidth: 0 }}
                 activeDot={{ r: 6 }}
               />
               <Area

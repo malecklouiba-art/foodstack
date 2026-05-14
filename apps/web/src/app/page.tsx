@@ -26,8 +26,8 @@ const features = [
     icon: UtensilsCrossed,
     title: 'Système POS Complet',
     description: 'Gérez vos commandes, paiements et tickets depuis n\'importe quel appareil — tablette, kiosque ou mobile.',
-    color: 'text-orange-500',
-    bg: 'bg-orange-50',
+    color: 'text-brand-500',
+    bg: 'bg-brand-50',
   },
   {
     icon: Package,
@@ -175,7 +175,7 @@ const blogPosts = [
     category: 'Efficacité',
     date: '10 mai 2026',
     read: '5 min',
-    color: 'bg-orange-50 text-orange-600',
+    color: 'bg-brand-50 text-brand-600',
   },
   {
     title: 'Programme fidélité : guide complet pour fidéliser vos clients',
@@ -241,15 +241,15 @@ export default function LandingPage() {
       {/* Hero */}
       <section id="accueil" className="relative overflow-hidden bg-white px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-orange-50" />
-          <div className="absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-orange-50/60" />
+          <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-brand-50" />
+          <div className="absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-brand-50/60" />
         </div>
 
         <div className="relative mx-auto max-w-7xl">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-orange-100 px-4 py-1.5 text-sm font-medium text-orange-600">
-                <Star className="h-3.5 w-3.5 fill-orange-500 text-orange-500" />
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-1.5 text-sm font-medium text-brand-600">
+                <Star className="h-3.5 w-3.5 fill-brand-500 text-brand-500" />
                 Noté 4.9/5 par 10 000+ restaurants
               </div>
 
@@ -265,7 +265,7 @@ export default function LandingPage() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link href="/register">
-                  <Button size="xl" className="rounded-2xl gap-2 shadow-lg shadow-orange-200">
+                  <Button size="xl" className="rounded-2xl gap-2 shadow-lg shadow-brand">
                     Démarrer gratuitement
                     <ArrowRight className="h-5 w-5" />
                   </Button>
@@ -294,7 +294,7 @@ export default function LandingPage() {
             </div>
 
             <div className="relative hidden lg:flex items-center justify-center">
-              <div className="relative rounded-3xl bg-gradient-to-br from-orange-500 to-orange-400 p-8 shadow-2xl shadow-orange-200">
+              <div className="relative rounded-3xl bg-gradient-to-br from-brand-500 to-brand-400 p-8 shadow-2xl shadow-brand">
                 <div className="grid grid-cols-2 gap-3">
                   {['🍔 Burgers', '🍕 Pizzas', '🥗 Salades', '🍟 Frites', '🥤 Boissons', '🍮 Desserts'].map((cat) => (
                     <div key={cat} className="flex items-center gap-2 rounded-2xl bg-white/20 px-3 py-2.5 text-sm font-medium text-white backdrop-blur-sm">
@@ -304,7 +304,7 @@ export default function LandingPage() {
                 </div>
                 <div className="mt-4 rounded-2xl bg-white p-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-2xl">🍔</div>
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 text-2xl">🍔</div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-gray-900">Classic Smash Burger</p>
                       <p className="text-xs text-gray-400">Le Comptoir Moderne · 12 min</p>
@@ -451,7 +451,7 @@ export default function LandingPage() {
                 key={plan.name}
                 className={`relative rounded-2xl border p-8 ${
                   plan.highlighted
-                    ? 'border-brand-500 bg-gradient-to-br from-brand-500 to-orange-600 text-white shadow-brand-lg'
+                    ? 'border-brand-500 bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-brand-lg'
                     : 'border-surface-200 bg-white shadow-sm'
                 }`}
               >
@@ -535,7 +535,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="mt-16 rounded-3xl bg-gradient-to-br from-orange-50 to-orange-100 p-10 text-center">
+          <div className="mt-16 rounded-3xl bg-gradient-to-br from-brand-50 to-brand-100 p-10 text-center">
             <h3 className="text-2xl font-bold text-surface-900">Notre mission</h3>
             <p className="mt-4 text-lg text-surface-600 max-w-3xl mx-auto">
               Démocratiser les outils de gestion restaurant. Chaque restaurateur, qu&apos;il gère un food truck ou une chaîne de 50 établissements, mérite une plateforme puissante, intuitive et abordable.

@@ -53,12 +53,12 @@ export default function RegisterPage() {
       {/* Top bar */}
       <div className="flex items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-500">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
             <span className="text-base font-bold text-white">F</span>
           </div>
           <span className="text-lg font-bold text-gray-900">FoodStack</span>
         </Link>
-        <Link href="/login" className="text-sm font-medium text-orange-500">
+        <Link href="/login" className="text-sm font-medium text-brand-500">
           Se connecter
         </Link>
       </div>
@@ -67,7 +67,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-sm">
           {/* Emoji banner */}
           <div className="mb-6 flex justify-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-orange-100 text-4xl">
+            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-100 text-4xl">
               🎉
             </div>
           </div>
@@ -86,7 +86,7 @@ export default function RegisterPage() {
                 onClick={() => setRole(r.value)}
                 className={`flex items-center justify-center gap-2 rounded-2xl border py-3 text-sm font-semibold transition-colors ${
                   role === r.value
-                    ? 'border-orange-400 bg-orange-50 text-orange-600'
+                    ? 'border-brand-400 bg-brand-50 text-brand-600'
                     : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -107,7 +107,7 @@ export default function RegisterPage() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Jean Dupont"
                   required
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                 />
               </div>
             </div>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="vous@exemple.fr"
                   required
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-4 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                 />
               </div>
             </div>
@@ -137,7 +137,7 @@ export default function RegisterPage() {
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   placeholder="••••••••"
                   required
-                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-11 text-sm text-gray-900 placeholder:text-gray-400 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-200"
+                  className="h-12 w-full rounded-2xl border border-gray-200 bg-white pl-10 pr-11 text-sm text-gray-900 placeholder:text-gray-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                 />
                 <button
                   type="button"
@@ -181,7 +181,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 text-sm font-bold text-white shadow-md shadow-orange-200 transition-opacity active:opacity-80 disabled:opacity-60"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand-500 text-sm font-bold text-white shadow-md shadow-brand transition-opacity active:opacity-80 disabled:opacity-60"
             >
               {loading ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -193,13 +193,13 @@ export default function RegisterPage() {
 
           <p className="mt-4 text-center text-xs text-gray-400">
             En vous inscrivant, vous acceptez nos{' '}
-            <a href="#" className="text-orange-500 hover:underline">CGU</a> et{' '}
-            <a href="#" className="text-orange-500 hover:underline">Politique de confidentialité</a>
+            <a href="#" className="text-brand-500 hover:underline">CGU</a> et{' '}
+            <a href="#" className="text-brand-500 hover:underline">Politique de confidentialité</a>
           </p>
 
           <p className="mt-4 text-center text-sm text-gray-500">
             Déjà un compte ?{' '}
-            <Link href="/login" className="font-semibold text-orange-500">
+            <Link href="/login" className="font-semibold text-brand-500">
               Se connecter
             </Link>
           </p>
