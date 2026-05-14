@@ -27,6 +27,8 @@ import {
   ChevronUp,
   QrCode,
   Globe,
+  Tag,
+  TableIcon,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -48,6 +50,8 @@ const navItems: NavItem[] = [
   { href: '/dashboard/suppliers', label: 'Fournisseurs', icon: Package, section: 'Gestion' },
   { href: '/dashboard/zones', label: 'Zones livraison', icon: MapPin, section: 'Gestion' },
   { href: '/dashboard/staff', label: 'Employés', icon: UserCog, section: 'Gestion' },
+  { href: '/dashboard/coupons', label: 'Codes Promo', icon: Tag, section: 'Gestion' },
+  { href: '/dashboard/tables', label: 'Tables', icon: TableIcon, section: 'Gestion' },
   { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration' },
   { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration' },
   { href: '/dashboard/loyalty', label: 'Fidélité', icon: Star, section: 'Administration' },
