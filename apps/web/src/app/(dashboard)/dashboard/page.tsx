@@ -102,19 +102,19 @@ export default function DashboardPage() {
   const stats = [
     {
       title: "Chiffre d'affaires", value: `${revenue.toLocaleString('fr-FR')}€`,
-      change: 12.5, icon: Euro,     iconColor: 'text-green-600',  iconBg: 'bg-green-50',
+      change: 12.5, icon: Euro,     iconColor: 'text-green-600 dark:text-green-400',  iconBg: 'bg-green-50 dark:bg-green-900/20',
     },
     {
       title: "Commandes aujourd'hui", value: String(ordersCount),
-      change: 8.2,  icon: ShoppingBag, iconColor: 'text-brand-600', iconBg: 'bg-brand-50',
+      change: 8.2,  icon: ShoppingBag, iconColor: 'text-brand-600 dark:text-brand-400', iconBg: 'bg-brand-50 dark:bg-brand-900/20',
     },
     {
       title: 'Livraisons actives', value: String(deliveriesCount),
-      icon: Truck, iconColor: 'text-purple-600', iconBg: 'bg-purple-50',
+      icon: Truck, iconColor: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-50 dark:bg-purple-900/20',
     },
     {
       title: 'Panier moyen', value: `${BASE_STATS.avgOrder.toFixed(2)}€`,
-      change: 3.1, icon: TrendingUp, iconColor: 'text-blue-600', iconBg: 'bg-blue-50',
+      change: 3.1, icon: TrendingUp, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-900/20',
     },
   ];
 
@@ -135,9 +135,9 @@ export default function DashboardPage() {
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2">
+        <div className="flex items-center gap-2 rounded-xl bg-green-50 dark:bg-green-900/20 px-4 py-2">
           <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-          <span className="text-sm font-medium text-green-700">Restaurant ouvert</span>
+          <span className="text-sm font-medium text-green-700 dark:text-green-400">Restaurant ouvert</span>
         </div>
       </div>
 

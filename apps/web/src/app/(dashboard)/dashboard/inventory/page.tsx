@@ -69,10 +69,10 @@ export default function InventoryPage() {
 
       {/* Stats */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Valeur totale du stock" value={`${totalValue.toFixed(0)}€`} icon={Package} iconColor="text-blue-600" iconBg="bg-blue-50" />
-        <StatCard title="Articles en stock bas" value={lowItems} icon={TrendingDown} iconColor="text-yellow-600" iconBg="bg-yellow-50" />
-        <StatCard title="Articles critiques" value={criticalItems} icon={AlertTriangle} iconColor="text-red-600" iconBg="bg-red-50" />
-        <StatCard title="Références totales" value={STOCK_ITEMS.length} icon={TrendingUp} iconColor="text-green-600" iconBg="bg-green-50" />
+        <StatCard title="Valeur totale du stock" value={`${totalValue.toFixed(0)}€`} icon={Package} iconColor="text-blue-600 dark:text-blue-400" iconBg="bg-blue-50 dark:bg-blue-900/20" />
+        <StatCard title="Articles en stock bas" value={lowItems} icon={TrendingDown} iconColor="text-yellow-600 dark:text-yellow-400" iconBg="bg-yellow-50 dark:bg-yellow-900/20" />
+        <StatCard title="Articles critiques" value={criticalItems} icon={AlertTriangle} iconColor="text-red-600 dark:text-red-400" iconBg="bg-red-50 dark:bg-red-900/20" />
+        <StatCard title="Références totales" value={STOCK_ITEMS.length} icon={TrendingUp} iconColor="text-green-600 dark:text-green-400" iconBg="bg-green-50 dark:bg-green-900/20" />
       </div>
 
       {/* Filters */}

@@ -64,10 +64,10 @@ const STATUS_CONFIG: Record<TxStatus, { label: string; variant: 'success' | 'war
 const PERIODS = ['Aujourd\'hui', '7j', '30j', 'Mois'];
 
 const KPI_CARDS = [
-  { title: "Chiffre d'affaires", value: '12 450€', change: '+12.5%', positive: true,  icon: Euro,            iconBg: 'bg-green-50',   iconColor: 'text-green-600' },
+  { title: "Chiffre d'affaires", value: '12 450€', change: '+12.5%', positive: true,  icon: Euro,            iconBg: 'bg-green-50 dark:bg-green-900/20',   iconColor: 'text-green-600 dark:text-green-400' },
   { title: 'Commissions plateforme', value: '1 245€', change: null,     positive: null, icon: TrendingUp,      iconBg: 'bg-brand-50',   iconColor: 'text-brand-600' },
-  { title: 'Net à percevoir',     value: '11 205€', change: null,     positive: null, icon: CheckCircle2,    iconBg: 'bg-blue-50',    iconColor: 'text-blue-600' },
-  { title: 'En attente virement', value: '3 420€',  change: null,     positive: null, icon: Clock,           iconBg: 'bg-yellow-50',  iconColor: 'text-yellow-600' },
+  { title: 'Net à percevoir',     value: '11 205€', change: null,     positive: null, icon: CheckCircle2,    iconBg: 'bg-blue-50 dark:bg-blue-900/20',    iconColor: 'text-blue-600 dark:text-blue-400' },
+  { title: 'En attente virement', value: '3 420€',  change: null,     positive: null, icon: Clock,           iconBg: 'bg-yellow-50 dark:bg-yellow-900/20',  iconColor: 'text-yellow-600 dark:text-yellow-400' },
 ];
 
 // ── Custom tooltip ─────────────────────────────────────────────────────────────

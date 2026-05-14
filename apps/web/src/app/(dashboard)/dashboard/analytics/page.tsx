@@ -26,10 +26,10 @@ const REVENUE_DATA = [
 ];
 
 const KPI_CARDS = [
-  { title: 'CA total',        value: '18 450€', change: '+14.2%', positive: true,  icon: Euro,        iconBg: 'bg-green-50',  iconColor: 'text-green-600' },
+  { title: 'CA total',        value: '18 450€', change: '+14.2%', positive: true,  icon: Euro,        iconBg: 'bg-green-50 dark:bg-green-900/20',  iconColor: 'text-green-600 dark:text-green-400' },
   { title: 'Nb commandes',    value: '312',      change: '+8.7%',  positive: true,  icon: ShoppingBag, iconBg: 'bg-brand-50',  iconColor: 'text-brand-600' },
-  { title: 'Panier moyen',    value: '59.13€',   change: '+5.1%',  positive: true,  icon: TrendingUp,  iconBg: 'bg-blue-50',   iconColor: 'text-blue-600' },
-  { title: 'Nouveaux clients',value: '47',       change: '-3.2%',  positive: false, icon: Users,       iconBg: 'bg-purple-50', iconColor: 'text-purple-600' },
+  { title: 'Panier moyen',    value: '59.13€',   change: '+5.1%',  positive: true,  icon: TrendingUp,  iconBg: 'bg-blue-50 dark:bg-blue-900/20',   iconColor: 'text-blue-600 dark:text-blue-400' },
+  { title: 'Nouveaux clients',value: '47',       change: '-3.2%',  positive: false, icon: Users,       iconBg: 'bg-purple-50 dark:bg-purple-900/20', iconColor: 'text-purple-600 dark:text-purple-400' },
 ];
 
 const PIE_DATA = [

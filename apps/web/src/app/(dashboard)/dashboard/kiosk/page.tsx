@@ -293,10 +293,10 @@ export default function KioskPage() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: 'Bornes actives',    value: activeCount,    icon: Monitor,    color: 'text-green-600',  bg: 'bg-green-50' },
+          { label: 'Bornes actives',    value: activeCount,    icon: Monitor,    color: 'text-green-600 dark:text-green-400',  bg: 'bg-green-50 dark:bg-green-900/20' },
           { label: 'Commandes (jour)',   value: totalOrders,    icon: Package,    color: 'text-brand-600',  bg: 'bg-brand-50' },
-          { label: 'En maintenance',     value: kiosks.filter((k) => !k.active).length, icon: AlertCircle, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-          { label: 'Bornes totales',     value: kiosks.length,  icon: CheckCircle,color: 'text-blue-600',   bg: 'bg-blue-50' },
+          { label: 'En maintenance',     value: kiosks.filter((k) => !k.active).length, icon: AlertCircle, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+          { label: 'Bornes totales',     value: kiosks.length,  icon: CheckCircle,color: 'text-blue-600 dark:text-blue-400',   bg: 'bg-blue-50 dark:bg-blue-900/20' },
         ].map(({ label, value, icon: Icon, color, bg }, i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
             <Card padding="md" className="flex items-center gap-3">
@@ -372,8 +372,8 @@ export default function KioskPage() {
                         onClick={(e) => { e.stopPropagation(); toggle(kiosk.id); }}
                         className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-semibold transition-colors ${
                           kiosk.active
-                            ? 'bg-red-50 text-red-600 hover:bg-red-100'
-                            : 'bg-green-50 text-green-700 hover:bg-green-100'
+                            ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100'
+                            : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100'
                         }`}
                       >
                         {kiosk.active ? <PowerOff className="h-3.5 w-3.5" /> : <Power className="h-3.5 w-3.5" />}

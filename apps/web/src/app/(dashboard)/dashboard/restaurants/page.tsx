@@ -322,9 +322,9 @@ export default function RestaurantsPage() {
 
   const KPI_STATS = [
     { label: 'Total', value: String(restaurants.length), icon: Store, iconColor: 'text-brand-600', iconBg: 'bg-brand-50' },
-    { label: 'Ouverts maintenant', value: String(openCount), icon: TrendingUp, iconColor: 'text-green-600', iconBg: 'bg-green-50' },
-    { label: 'En pause', value: String(pausedCount), icon: Pause, iconColor: 'text-yellow-600', iconBg: 'bg-yellow-50' },
-    { label: 'Note moy.', value: String(avgRating), icon: Star, iconColor: 'text-yellow-500', iconBg: 'bg-yellow-50' },
+    { label: 'Ouverts maintenant', value: String(openCount), icon: TrendingUp, iconColor: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50 dark:bg-green-900/20' },
+    { label: 'En pause', value: String(pausedCount), icon: Pause, iconColor: 'text-yellow-600 dark:text-yellow-400', iconBg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+    { label: 'Note moy.', value: String(avgRating), icon: Star, iconColor: 'text-yellow-500', iconBg: 'bg-yellow-50 dark:bg-yellow-900/20' },
   ];
 
   return (

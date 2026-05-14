@@ -46,10 +46,10 @@ const INITIAL_ORDERS: KanbanOrder[] = [
 // ── Column config ─────────────────────────────────────────────────────────
 
 const COLUMNS: { status: OrderStatus; label: string; emoji: string; color: string; bg: string }[] = [
-  { status: 'confirmed',  label: 'Confirmées',    emoji: '🔔', color: 'text-blue-700',   bg: 'bg-blue-50' },
-  { status: 'preparing',  label: 'En préparation',emoji: '👨‍🍳', color: 'text-amber-700',  bg: 'bg-amber-50' },
-  { status: 'ready',      label: 'Prêtes',        emoji: '✅', color: 'text-green-700',  bg: 'bg-green-50' },
-  { status: 'delivering', label: 'En livraison',  emoji: '🛵', color: 'text-purple-700', bg: 'bg-purple-50' },
+  { status: 'confirmed',  label: 'Confirmées',    emoji: '🔔', color: 'text-blue-700 dark:text-blue-400',   bg: 'bg-blue-50 dark:bg-blue-900/20' },
+  { status: 'preparing',  label: 'En préparation',emoji: '👨‍🍳', color: 'text-amber-700 dark:text-amber-400',  bg: 'bg-amber-50 dark:bg-amber-900/20' },
+  { status: 'ready',      label: 'Prêtes',        emoji: '✅', color: 'text-green-700 dark:text-green-400',  bg: 'bg-green-50 dark:bg-green-900/20' },
+  { status: 'delivering', label: 'En livraison',  emoji: '🛵', color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
 ];
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; variant: 'info' | 'warning' | 'brand' | 'success' | 'danger' | 'default' }> = {
@@ -155,11 +155,11 @@ export default function OrdersPage() {
           </div>
 
           {/* Live indicator */}
-          <div className={`flex items-center gap-2 rounded-xl px-3 py-1.5 ${connected ? 'bg-green-50' : 'bg-red-50'}`}>
+          <div className={`flex items-center gap-2 rounded-xl px-3 py-1.5 ${connected ? 'bg-green-50 dark:bg-green-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
             {connected
               ? <Wifi className="h-3.5 w-3.5 text-green-500" />
               : <WifiOff className="h-3.5 w-3.5 text-red-500" />}
-            <span className={`text-xs font-semibold ${connected ? 'text-green-700' : 'text-red-700'}`}>
+            <span className={`text-xs font-semibold ${connected ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
               {connected ? 'Connecté' : 'Déconnecté'}
             </span>
             {liveCount > 0 && (

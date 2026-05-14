@@ -39,22 +39,9 @@
     font-family: var(--font-geist-sans);
   }
 
-  .dark body, .dark {
+  .dark body {
     @apply bg-[#0A0A0A] text-surface-100;
   }
-
-  .dark .text-surface-900 { @apply text-surface-50; }
-  .dark .text-surface-800 { @apply text-surface-100; }
-  .dark .text-surface-700 { @apply text-surface-200; }
-  .dark .text-surface-600 { @apply text-surface-300; }
-  .dark .text-surface-500 { @apply text-surface-400; }
-  .dark .bg-surface-50    { @apply bg-surface-900; }
-  .dark .bg-surface-100   { @apply bg-surface-800; }
-  .dark .bg-surface-200   { @apply bg-surface-700; }
-  .dark .border-surface-100 { @apply border-surface-700; }
-  .dark .border-surface-200 { @apply border-surface-700; }
-  .dark .hover\:bg-surface-50:hover  { @apply bg-surface-800; }
-  .dark .hover\:bg-surface-100:hover { @apply bg-surface-700; }
 
   ::selection {
     @apply bg-brand-200 text-brand-900;
@@ -140,6 +127,23 @@
 }
 
 @layer utilities {
+  /* Dark mode surface color remaps — in utilities layer to beat component styles */
+  .dark .text-surface-900 { color: #fafafa; }
+  .dark .text-surface-800 { color: #f4f4f5; }
+  .dark .text-surface-700 { color: #e4e4e7; }
+  .dark .text-surface-600 { color: #d4d4d8; }
+  .dark .text-surface-500 { color: #a1a1aa; }
+  .dark .text-surface-400 { color: #71717a; }
+  .dark .bg-white         { background-color: #27272a; }
+  .dark .bg-surface-50    { background-color: #18181b; }
+  .dark .bg-surface-100   { background-color: #27272a; }
+  .dark .bg-surface-200   { background-color: #3f3f46; }
+  .dark .border-surface-100 { border-color: #3f3f46; }
+  .dark .border-surface-200 { border-color: #3f3f46; }
+  .dark .hover\:bg-surface-50:hover  { background-color: #27272a; }
+  .dark .hover\:bg-surface-100:hover { background-color: #3f3f46; }
+  .dark .divide-surface-100 > * + * { border-color: #3f3f46; }
+
   .text-balance {
     text-wrap: balance;
   }

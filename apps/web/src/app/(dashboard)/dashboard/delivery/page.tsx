@@ -66,9 +66,9 @@ const FAILURE_REASONS: FailureReason[] = [
 
 const KPI_DATA = [
   { label: 'En cours', value: '3', icon: Truck, iconColor: 'text-brand-600', iconBg: 'bg-brand-50' },
-  { label: 'Livrées aujourd\'hui', value: '47', icon: CheckCircle2, iconColor: 'text-green-600', iconBg: 'bg-green-50' },
-  { label: 'Temps moyen', value: '22 min', icon: Clock, iconColor: 'text-blue-600', iconBg: 'bg-blue-50' },
-  { label: 'Taux succès', value: '96%', icon: Navigation, iconColor: 'text-purple-600', iconBg: 'bg-purple-50' },
+  { label: 'Livrées aujourd\'hui', value: '47', icon: CheckCircle2, iconColor: 'text-green-600 dark:text-green-400', iconBg: 'bg-green-50 dark:bg-green-900/20' },
+  { label: 'Temps moyen', value: '22 min', icon: Clock, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-900/20' },
+  { label: 'Taux succès', value: '96%', icon: Navigation, iconColor: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-50 dark:bg-purple-900/20' },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -155,7 +155,7 @@ function DeliveryRow({ delivery, onRetry }: { delivery: Delivery; onRetry: (id: 
         {delivery.status === 'failed' && (
           <button
             onClick={() => onRetry(delivery.id)}
-            className="flex items-center gap-1 rounded-lg bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
+            className="flex items-center gap-1 rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 transition-colors hover:bg-red-100"
           >
             <RotateCcw className="h-3 w-3" />
             Relancer
@@ -192,9 +192,9 @@ export default function DeliveryPage() {
             {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2">
+        <div className="flex items-center gap-2 rounded-xl bg-green-50 dark:bg-green-900/20 px-4 py-2">
           <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-          <span className="text-sm font-medium text-green-700">Connecté</span>
+          <span className="text-sm font-medium text-green-700 dark:text-green-400">Connecté</span>
         </div>
       </div>
 
@@ -280,7 +280,7 @@ export default function DeliveryPage() {
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
-                    className="rounded-xl border border-red-100 bg-red-50 p-4"
+                    className="rounded-xl border border-red-100 bg-red-50 dark:bg-red-900/20 p-4"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -316,7 +316,7 @@ export default function DeliveryPage() {
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="rounded-xl border border-red-100 bg-red-50 p-4"
+              className="rounded-xl border border-red-100 bg-red-50 dark:bg-red-900/20 p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>

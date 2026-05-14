@@ -80,10 +80,10 @@ const LOYALTY_POINTS: Record<Tier, number> = {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const TIER_CONFIG: Record<Tier, { color: string; bg: string; dot: string; variant: 'warning' | 'default' | 'brand' | 'info' }> = {
-  Bronze:   { color: 'text-amber-700',  bg: 'bg-amber-50',  dot: 'bg-amber-500',  variant: 'warning' },
+  Bronze:   { color: 'text-amber-700 dark:text-amber-400',  bg: 'bg-amber-50 dark:bg-amber-900/20',  dot: 'bg-amber-500',  variant: 'warning' },
   Silver:   { color: 'text-slate-600',  bg: 'bg-slate-100', dot: 'bg-slate-400',  variant: 'default' },
-  Gold:     { color: 'text-yellow-700', bg: 'bg-yellow-50', dot: 'bg-yellow-500', variant: 'warning' },
-  Platinum: { color: 'text-purple-700', bg: 'bg-purple-50', dot: 'bg-purple-500', variant: 'info' },
+  Gold:     { color: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20', dot: 'bg-yellow-500', variant: 'warning' },
+  Platinum: { color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20', dot: 'bg-purple-500', variant: 'info' },
 };
 
 function getInitials(name: string) {
@@ -258,9 +258,9 @@ export default function CustomersPage() {
 
   const KPI = [
     { label: 'Total clients', value: '1 247', icon: Users, color: 'text-brand-600', bg: 'bg-brand-50' },
-    { label: 'Nouveaux ce mois', value: '89', icon: UserCheck, color: 'text-green-600', bg: 'bg-green-50' },
-    { label: 'Clients actifs', value: '743', icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Valeur moy. commande', value: '34,50€', icon: CreditCard, color: 'text-purple-600', bg: 'bg-purple-50' },
+    { label: 'Nouveaux ce mois', value: '89', icon: UserCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
+    { label: 'Clients actifs', value: '743', icon: TrendingUp, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { label: 'Valeur moy. commande', value: '34,50€', icon: CreditCard, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
   ];
 
   return (

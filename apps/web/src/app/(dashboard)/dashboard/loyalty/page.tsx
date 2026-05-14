@@ -51,8 +51,8 @@ const TIERS: TierConfig[] = [
     members: 234,
     color: 'border-amber-200',
     dot: 'bg-amber-500',
-    bg: 'bg-amber-50',
-    textColor: 'text-amber-700',
+    bg: 'bg-amber-50 dark:bg-amber-900/20',
+    textColor: 'text-amber-700 dark:text-amber-400',
     benefits: [
       '-5% sur commande suivante',
       'Livraison gratuite à partir de 25€',
@@ -78,8 +78,8 @@ const TIERS: TierConfig[] = [
     members: 34,
     color: 'border-yellow-200',
     dot: 'bg-yellow-500',
-    bg: 'bg-yellow-50',
-    textColor: 'text-yellow-700',
+    bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+    textColor: 'text-yellow-700 dark:text-yellow-400',
     benefits: [
       '-15% sur commande suivante',
       'Livraison gratuite',
@@ -92,8 +92,8 @@ const TIERS: TierConfig[] = [
     members: 12,
     color: 'border-purple-200',
     dot: 'bg-purple-500',
-    bg: 'bg-purple-50',
-    textColor: 'text-purple-700',
+    bg: 'bg-purple-50 dark:bg-purple-900/20',
+    textColor: 'text-purple-700 dark:text-purple-400',
     benefits: [
       '-20% sur commande suivante',
       'Livraison gratuite',
@@ -205,9 +205,9 @@ export default function LoyaltyPage() {
 
   const STATS = [
     { label: 'Membres actifs', value: '369', icon: Users, color: 'text-brand-600', bg: 'bg-brand-50' },
-    { label: 'Points distribués', value: '184 230', icon: Star, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-    { label: 'Récompenses échangées', value: '47', icon: Gift, color: 'text-purple-600', bg: 'bg-purple-50' },
-    { label: 'Taux de participation', value: '29,6 %', icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
+    { label: 'Points distribués', value: '184 230', icon: Star, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
+    { label: 'Récompenses échangées', value: '47', icon: Gift, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+    { label: 'Taux de participation', value: '29,6 %', icon: TrendingUp, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
   ];
 
   return (
@@ -357,7 +357,7 @@ export default function LoyaltyPage() {
                   <p className="text-xs text-surface-400">{item.when}</p>
                 </div>
               </div>
-              <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 whitespace-nowrap">
+              <span className="rounded-full bg-red-50 dark:bg-red-900/20 px-2.5 py-1 text-xs font-semibold text-red-600 dark:text-red-400 whitespace-nowrap">
                 −{item.points} pts
               </span>
             </motion.li>
