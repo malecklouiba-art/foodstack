@@ -1,7 +1,7 @@
 # FoodStack — Roadmap & État d'avancement
 
 > Basé sur le cahier des charges initial "Loone POS"  
-> Dernière mise à jour : 12 mai 2026
+> Dernière mise à jour : 14 mai 2026
 
 ---
 
@@ -79,8 +79,8 @@
 | `ValidationPipe` global + Zod | ✅ | |
 | RBAC complet (guards par rôle) | 🔄 | `JwtAuthGuard` OK, guards par rôle partiels |
 | OAuth Google / Apple (Passport) | ❌ | Côté web géré par Supabase, côté API non câblé |
-| 2FA (TOTP) | ❌ | |
-| Socket.io temps réel | ❌ | Synchronisation commandes/stocks en live |
+| 2FA (TOTP) | ✅ | |
+| Socket.io temps réel | ✅ | Synchronisation commandes/stocks en live |
 | `NotificationsModule` (push/email/SMS) | ❌ | Resend email, VAPID push, Twilio SMS |
 | `SuperAdminModule` | ❌ | Gestion abonnements SaaS, monitoring |
 | `DriversModule` (GPS livreurs) | ❌ | Positions GPS temps réel |
@@ -114,11 +114,11 @@
 | Page menu (`/menu`) | ✅ | Uber Eats style, filtres, panier flottant |
 | Checkout (`/checkout`) | ✅ | Adresse, créneau, paiement multi-méthodes |
 | Suivi commande (`/orders/[id]/track`) | ✅ | Carte animée, timeline, livreur |
-| Historique commandes | ❌ | `/orders` — liste des commandes passées |
-| Profil client | ❌ | `/profile` — infos, adresses, préférences |
-| Programme fidélité | ❌ | `/loyalty` — points, niveaux, récompenses |
-| Favoris / restaurants sauvegardés | ❌ | |
-| Notifications | ❌ | Centre de notifications `/notifications` |
+| Historique commandes | ✅ | `/orders` — liste des commandes passées |
+| Profil client | ✅ | `/profile` — infos, adresses, préférences |
+| Programme fidélité | ✅ | `/loyalty` — points, niveaux, récompenses |
+| Favoris / restaurants sauvegardés | ✅ | |
+| Notifications | ✅ | Centre de notifications `/notifications` |
 | Commandes programmées | ❌ | Sélection date/heure future |
 
 ### Pages auth
@@ -128,9 +128,9 @@
 | Login (`/login`) | ✅ | Light style, Supabase auth |
 | Register (`/register`) | ✅ | Sélecteur rôle, indicateur mot de passe |
 | Auth callback OAuth (`/auth/callback`) | ✅ | PKCE |
-| Mot de passe oublié | ❌ | `/auth/forgot-password` |
-| Reset mot de passe | ❌ | `/auth/reset-password` |
-| Vérification email | ❌ | Page confirmation |
+| Mot de passe oublié | ✅ | `/auth/forgot-password` |
+| Reset mot de passe | ✅ | `/auth/reset-password` |
+| Vérification email | ✅ | Page confirmation |
 | 2FA setup / vérification | ❌ | |
 
 ### Dashboard restaurant (`/dashboard`)
@@ -141,20 +141,20 @@
 | Gestion commandes (`/dashboard/orders`) | ✅ | Tableau filtrable, statuts, modal détail |
 | Inventaire (`/dashboard/inventory`) | ✅ | Niveaux stock, alertes, stats |
 | Caisse POS (`/pos`) | ✅ | Interface tactile, calcul monnaie, paiement |
-| Gestion menus | ❌ | CRUD catégories + articles + modificateurs |
-| Gestion employés | ❌ | Invitations, rôles, permissions |
+| Gestion menus | ✅ | CRUD catégories + articles + modificateurs |
+| Gestion employés | ✅ | Invitations, rôles, permissions |
 | Statistiques avancées | ❌ | Revenus par heure, best-sellers, clients |
-| Gestion fournisseurs | ❌ | Contacts, commandes fournisseurs |
-| Zones de livraison | ❌ | Carte avec polygones de zone |
+| Gestion fournisseurs | ✅ | Contacts, commandes fournisseurs |
+| Zones de livraison | ✅ | Carte avec polygones de zone |
 | Paramètres restaurant | ❌ | Horaires, logo, infos, intégrations |
 
 ### Super Admin (`/admin`)
 
 | Page | État | Notes |
 |---|---|---|
-| Dashboard super admin | ❌ | Vue globale tous restaurants |
-| Gestion abonnements | ❌ | Plans, facturation, Stripe |
-| Gestion restaurants clients | ❌ | Onboarding, suspension, metrics |
+| Dashboard super admin | ✅ | Vue globale tous restaurants |
+| Gestion abonnements | ✅ | Plans, facturation, Stripe |
+| Gestion restaurants clients | ✅ | Onboarding, suspension, metrics |
 | Monitoring / logs erreurs | ❌ | |
 | Configuration plateforme | ❌ | |
 
@@ -210,7 +210,7 @@
 | Modèle `LoyaltyTransaction` | ✅ | |
 | Tiers Bronze/Silver/Gold/Platinum | ✅ | Constants dans `@foodstack/shared` |
 | Attribution points à la commande | 🔄 | Logique backend partielle |
-| Interface consommateur fidélité | ❌ | Page `/loyalty` |
+| Interface consommateur fidélité | ✅ | Page `/loyalty` |
 | Coupons et codes promo | ❌ | |
 | Cashback | ❌ | |
 | Récompenses échangeables | ❌ | |
@@ -230,7 +230,7 @@
 | ValidationPipe (anti injection) | ✅ | |
 | OWASP headers (Helmet) | 🔄 | NestJS Helmet installé |
 | Anti-CSRF | ❌ | |
-| 2FA (TOTP) | ❌ | |
+| 2FA (TOTP) | ✅ | |
 | Audit logs | ❌ | Modèle `AuditLog` manquant |
 | Encryption données sensibles | ❌ | |
 | Analyse de sécurité automatisée (CI) | 🔄 | `npm audit` en CI |
@@ -253,14 +253,14 @@
 
 | Fonctionnalité | État | Notes |
 |---|---|---|
-| Synchronisation temps réel (Socket.io) | ❌ | Priorité haute |
-| QR Code (menu, tables) | ❌ | |
+| Synchronisation temps réel (Socket.io) | ✅ | Priorité haute |
+| QR Code (menu, tables) | ✅ | |
 | Scan code-barres | ❌ | |
 | Impression thermique tickets | ❌ | |
-| Export PDF rapports | ❌ | |
-| Export Excel données | ❌ | |
+| Export PDF rapports | ✅ | |
+| Export Excel données | 🔄 | PDF done, Excel partial |
 | Dark mode | ❌ | |
-| Multi-langue (i18n, futur-ready) | ❌ | |
+| Multi-langue (i18n, futur-ready) | ✅ | |
 | Analytics avancées | 🔄 | Module scaffold, requêtes à écrire |
 
 ---
@@ -271,16 +271,16 @@
 |---|---|---|---|---|
 | Infrastructure | 9 | 2 | 3 | 14 |
 | Base de données | 17 | 0 | 6 | 23 |
-| Backend API | 9 | 4 | 9 | 22 |
-| Frontend web | 18 | 3 | 28 | 49 |
+| Backend API | 11 | 4 | 7 | 22 |
+| Frontend web | 33 | 3 | 13 | 49 |
 | Applications mobiles | 0 | 0 | 7 | 7 |
 | Paiements | 0 | 1 | 7 | 8 |
 | Livraison | 1 | 0 | 7 | 8 |
-| Fidélité | 2 | 1 | 5 | 8 |
-| Sécurité | 6 | 2 | 4 | 12 |
+| Fidélité | 3 | 1 | 4 | 8 |
+| Sécurité | 7 | 2 | 3 | 12 |
 | Notifications | 1 | 0 | 4 | 5 |
-| Fonctionnalités avancées | 0 | 1 | 8 | 9 |
-| **TOTAL** | **63** | **14** | **88** | **165** |
+| Fonctionnalités avancées | 4 | 2 | 3 | 9 |
+| **TOTAL** | **86** | **15** | **64** | **165** |
 
 ---
 

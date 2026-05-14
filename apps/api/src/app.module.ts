@@ -13,6 +13,8 @@ import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { DatabaseModule } from './database/database.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CouponsModule } from './modules/coupons/coupons.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     PaymentsModule,
     LoyaltyModule,
     AnalyticsModule,
+    NotificationsModule,
+    CouponsModule,
   ],
 })
 export class AppModule {}

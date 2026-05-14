@@ -6,13 +6,15 @@ import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-    private config: ConfigService
+    private config: ConfigService,
+    private notifications: NotificationsService,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -51,6 +53,11 @@ export class AuthService {
     );
 
     const { passwordHash: _, ...result } = user;
+    try {
+      void this.notifications.sendWelcome(dto.email, dto.name);
+    } catch {
+      // fire-and-forget — never block registration on email failure
+    }
     return this.login(result);
   }
 
