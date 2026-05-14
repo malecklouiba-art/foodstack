@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Bike,
+  Monitor,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration' },
   { href: '/dashboard/loyalty', label: 'Fidélité', icon: Star, section: 'Administration' },
   { href: '/dashboard/payments', label: 'Paiements', icon: CreditCard, section: 'Administration' },
+  { href: '/dashboard/kiosk', label: 'Borne de commande', icon: Monitor, section: 'Gestion' },
   { href: '/dashboard/analytics', label: 'Analytiques', icon: BarChart3, section: 'Rapports' },
   { href: '/dashboard/settings', label: 'Paramètres', icon: Settings, section: 'Rapports' },
 ];
