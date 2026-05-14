@@ -5,26 +5,30 @@ import { useRouter } from 'next/navigation';
 import {
   MapPin,
   CreditCard,
-  Smartphone,
   Clock,
-  ChevronRight,
   CheckCircle2,
   Lock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Navbar } from '@/components/layout/Navbar';
 import { useCartStore } from '@/store/cart';
+import { StripeCardForm } from '@/components/checkout/StripeCardForm';
+import api from '@/lib/api';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? 'pk_test_placeholder');
 
 type PaymentMethod = 'card' | 'apple_pay' | 'google_pay' | 'cash';
 
 const deliverySlots = [
   { id: 'asap', label: 'Dès que possible', sublabel: '20–35 min' },
-  { id: '12:30', label: '12h30', sublabel: 'Aujourd\'hui' },
-  { id: '13:00', label: '13h00', sublabel: 'Aujourd\'hui' },
-  { id: '13:30', label: '13h30', sublabel: 'Aujourd\'hui' },
+  { id: '12:30', label: '12h30', sublabel: "Aujourd'hui" },
+  { id: '13:00', label: '13h00', sublabel: "Aujourd'hui" },
+  { id: '13:30', label: '13h30', sublabel: "Aujourd'hui" },
 ];
 
 export default function CheckoutPage() {
@@ -35,19 +39,43 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
 
   const handlePlaceOrder = async () => {
     if (!address) {
       toast.error('Veuillez entrer une adresse de livraison');
       return;
     }
-    setLoading(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    const orderId = `ORD-${Date.now()}`;
-    clearCart();
-    toast.success('Commande passée avec succès !');
-    router.push(`/orders/${orderId}/track`);
-    setLoading(false);
+
+    if (paymentMethod === 'card') {
+      setLoading(true);
+      try {
+        const data = await api.post<unknown, { clientSecret: string; paymentIntentId: string }>(
+          '/payments/intent',
+          {
+            amount: Math.round(total() * 100),
+            currency: 'eur',
+            orderId: 'ORD-' + Date.now(),
+          }
+        );
+        setClientSecret(data.clientSecret);
+        setPaymentIntentId(data.paymentIntentId);
+      } catch {
+        toast.error('Impossible de préparer le paiement. Veuillez réessayer.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Non-card payment methods: mock flow
+      setLoading(true);
+      await new Promise((r) => setTimeout(r, 1000));
+      const orderId = `ORD-${Date.now()}`;
+      clearCart();
+      toast.success('Commande passée avec succès !');
+      router.push(`/orders/${orderId}/track`);
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -108,7 +136,9 @@ export default function CheckoutPage() {
                           : 'border-surface-200 bg-white hover:border-surface-300'
                       }`}
                     >
-                      <p className={`text-sm font-semibold ${selectedSlot === slot.id ? 'text-brand-700' : 'text-surface-900'}`}>
+                      <p
+                        className={`text-sm font-semibold ${selectedSlot === slot.id ? 'text-brand-700' : 'text-surface-900'}`}
+                      >
                         {slot.label}
                       </p>
                       <p className="text-xs text-surface-400">{slot.sublabel}</p>
@@ -135,7 +165,11 @@ export default function CheckoutPage() {
                   ].map((method) => (
                     <button
                       key={method.id}
-                      onClick={() => setPaymentMethod(method.id)}
+                      onClick={() => {
+                        setPaymentMethod(method.id);
+                        setClientSecret(null);
+                        setPaymentIntentId(null);
+                      }}
                       className={`flex items-center justify-center gap-2 rounded-xl border p-3 transition-all ${
                         paymentMethod === method.id
                           ? 'border-brand-500 bg-brand-50 text-brand-700'
@@ -148,15 +182,19 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                {paymentMethod === 'card' && (
-                  <div className="space-y-3">
-                    <Input label="Numéro de carte" placeholder="1234 5678 9012 3456" leftIcon={<CreditCard className="h-4 w-4" />} />
-                    <div className="grid grid-cols-2 gap-3">
-                      <Input label="Date d'expiration" placeholder="MM/AA" />
-                      <Input label="CVV" placeholder="123" />
-                    </div>
-                    <Input label="Nom sur la carte" placeholder="Jean Dupont" />
-                  </div>
+                {paymentMethod === 'card' && clientSecret && (
+                  <Elements stripe={stripePromise} options={{ clientSecret }}>
+                    <StripeCardForm
+                      clientSecret={clientSecret}
+                      onSuccess={() => {
+                        clearCart();
+                        router.push(`/orders/ORD-${Date.now()}/track`);
+                      }}
+                      onError={(msg) => toast.error(msg)}
+                      loading={loading}
+                      setLoading={setLoading}
+                    />
+                  </Elements>
                 )}
               </Card>
 
@@ -200,7 +238,13 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-sm text-surface-600">
                     <span>Livraison</span>
-                    <span>{deliveryFee() === 0 ? <span className="text-green-600">Gratuite</span> : `${deliveryFee().toFixed(2)}€`}</span>
+                    <span>
+                      {deliveryFee() === 0 ? (
+                        <span className="text-green-600">Gratuite</span>
+                      ) : (
+                        `${deliveryFee().toFixed(2)}€`
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm text-surface-600">
                     <span>TVA</span>
@@ -218,15 +262,20 @@ export default function CheckoutPage() {
                 </div>
               </Card>
 
-              <Button
-                fullWidth
-                size="lg"
-                loading={loading}
-                onClick={handlePlaceOrder}
-                icon={<Lock className="h-4 w-4" />}
-              >
-                Payer {total().toFixed(2)}€
-              </Button>
+              {/* Primary CTA: hidden for card when clientSecret present (StripeCardForm has its own button) */}
+              {!(paymentMethod === 'card' && clientSecret) && (
+                <Button
+                  fullWidth
+                  size="lg"
+                  loading={loading}
+                  onClick={handlePlaceOrder}
+                  icon={<Lock className="h-4 w-4" />}
+                >
+                  {paymentMethod === 'card'
+                    ? 'Préparer le paiement'
+                    : `Payer ${total().toFixed(2)}€`}
+                </Button>
+              )}
 
               <p className="text-center text-xs text-surface-400">
                 Paiement 100% sécurisé via Stripe · SSL

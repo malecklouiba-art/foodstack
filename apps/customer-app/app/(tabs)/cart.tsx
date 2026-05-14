@@ -1,14 +1,31 @@
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { useCartStore } from '@/store/cart';
 import { router } from 'expo-router';
+import { useStripePayment } from '@/hooks/useStripePayment';
 
 export default function CartScreen() {
   const { items, increment, decrement, remove, clear, total } = useCartStore();
+  const { pay, loading: payLoading } = useStripePayment();
   const subtotal = total();
   const deliveryFee = items.length > 0 ? 2.90 : 0;
   const grandTotal = subtotal + deliveryFee;
+
+  const handleCheckout = async () => {
+    const amountCents = Math.round(grandTotal * 100);
+    const orderId = `ORD-${Date.now()}`;
+    try {
+      const success = await pay(amountCents, orderId);
+      if (success) {
+        clear();
+        router.push(`/order/${orderId}/track`);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Une erreur est survenue';
+      Alert.alert('Erreur de paiement', message);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -87,11 +104,16 @@ export default function CartScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity
-          style={styles.checkoutBtn}
+          style={[styles.checkoutBtn, payLoading && styles.checkoutBtnDisabled]}
           activeOpacity={0.88}
-          onPress={() => Alert.alert('Commande', 'Fonctionnalité de paiement à venir !')}
+          onPress={handleCheckout}
+          disabled={payLoading}
         >
-          <Text style={styles.checkoutBtnText}>Commander · {grandTotal.toFixed(2)}€</Text>
+          {payLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.checkoutBtnText}>Commander · {grandTotal.toFixed(2)}€</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -166,4 +188,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
   },
   checkoutBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  checkoutBtnDisabled: { opacity: 0.6 },
 });
