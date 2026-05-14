@@ -96,7 +96,7 @@ export default function InventoryPage() {
         <button
           onClick={() => setShowLowOnly(!showLowOnly)}
           className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
-            showLowOnly ? 'border-red-400 bg-red-50 text-red-700' : 'border-surface-200 bg-white text-surface-600'
+            showLowOnly ? 'border-red-400 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400' : 'border-surface-200 bg-white text-surface-600'
           }`}
         >
           <AlertTriangle className="h-4 w-4" />
@@ -128,7 +128,7 @@ export default function InventoryPage() {
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold ${
-                        status === 'critical' ? 'text-red-600' : status === 'low' ? 'text-yellow-600' : 'text-surface-900'
+                        status === 'critical' ? 'text-red-600 dark:text-red-400' : status === 'low' ? 'text-yellow-600 dark:text-yellow-400' : 'text-surface-900'
                       }`}>
                         {item.currentStock} {item.unit}
                       </span>

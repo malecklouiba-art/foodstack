@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="text-sm font-medium text-surface-500">{kpi.title}</p>
                     <p className="mt-2 text-2xl font-bold text-surface-900">{kpi.value}</p>
-                    <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${kpi.positive ? 'text-green-600' : 'text-red-500'}`}>
+                    <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${kpi.positive ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                       {kpi.positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       {kpi.change} vs période préc.
                     </p>
@@ -318,7 +318,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <p className="font-bold text-surface-900">{item.revenue.toLocaleString('fr-FR')}€</p>
-                  <div className={`flex items-center gap-1 text-xs font-medium ${item.up ? 'text-green-600' : 'text-red-500'}`}>
+                  <div className={`flex items-center gap-1 text-xs font-medium ${item.up ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                     {item.up
                       ? <TrendingUp className="h-3.5 w-3.5" />
                       : <TrendingDown className="h-3.5 w-3.5" />}
