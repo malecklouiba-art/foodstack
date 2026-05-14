@@ -27,8 +27,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { Avatar } from '@/components/ui/Avatar';
-import { Badge } from '@/components/ui/Badge';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface NavItem {
   href: string;
@@ -219,6 +218,7 @@ export function Sidebar() {
               </div>
               <ChevronUp className={clsx('h-3.5 w-3.5 flex-shrink-0 text-black/40 transition-transform', !showSwitcher && 'rotate-180')} />
             </button>
+            <ThemeToggle className="text-black/50 hover:bg-black/20 hover:text-black" />
             <button
               onClick={handleLogout}
               title="Se déconnecter"
@@ -228,13 +228,16 @@ export function Sidebar() {
             </button>
           </div>
         ) : (
-          <button
-            onClick={handleLogout}
-            title="Se déconnecter"
-            className="flex w-full items-center justify-center rounded-xl py-2 text-black/50 hover:bg-black/20 hover:text-black transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+          <div className="flex flex-col items-center gap-1">
+            <ThemeToggle className="w-full justify-center py-2 text-black/50 hover:bg-black/20 hover:text-black" />
+            <button
+              onClick={handleLogout}
+              title="Se déconnecter"
+              className="flex w-full items-center justify-center rounded-xl py-2 text-black/50 hover:bg-black/20 hover:text-black transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
         )}
       </div>
 
