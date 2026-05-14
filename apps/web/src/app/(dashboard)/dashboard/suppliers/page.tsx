@@ -644,7 +644,6 @@ export default function SuppliersPage() {
             <div className="flex items-center gap-3">
               {supplierForm.logo ? (
                 <div className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={supplierForm.logo} alt="logo preview" className="h-16 w-16 rounded-xl object-cover border border-surface-200" />
                   <button
                     onClick={() => setSupplierForm((f) => ({ ...f, logo: undefined }))}

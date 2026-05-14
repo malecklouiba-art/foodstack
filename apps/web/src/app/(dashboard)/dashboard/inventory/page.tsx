@@ -489,7 +489,6 @@ export default function InventoryPage() {
             <div className="flex items-center gap-3">
               {itemForm.image ? (
                 <div className="relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={itemForm.image} alt="preview" className="h-16 w-16 rounded-xl object-cover border border-surface-200" />
                   <button
                     onClick={() => setItemForm((f) => ({ ...f, image: undefined }))}
