@@ -26,6 +26,7 @@ import {
   RefreshCw,
   ChevronUp,
   QrCode,
+  Globe,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -91,10 +92,21 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [showSwitcher, setShowSwitcher] = useState(false);
+  const [locale, setLocale] = useState('fr');
 
   useEffect(() => {
     setCurrentRole(readDemoCookie());
+    const match = document.cookie.match(/(?:^|; )fs_locale=([^;]*)/);
+    if (match) setLocale(match[1]);
   }, []);
+
+  function toggleLocale() {
+    const next = locale === 'fr' ? 'en' : 'fr';
+    const expires = new Date(Date.now() + 365 * 86400 * 1000).toUTCString();
+    document.cookie = `fs_locale=${next}; path=/; expires=${expires}; SameSite=Lax`;
+    setLocale(next);
+    router.refresh();
+  }
 
   function handleLogout() {
     clearDemoCookie();
@@ -184,6 +196,15 @@ export function Sidebar() {
 
       {/* User section */}
       <div className="border-t border-white/10 p-3 space-y-1">
+        {/* Locale toggle */}
+        <button
+          onClick={toggleLocale}
+          className="flex w-full items-center gap-2 rounded-xl px-3 py-1.5 text-white/50 hover:bg-white/10 hover:text-white transition-colors text-xs font-medium"
+          title="Switch language"
+        >
+          <Globe className="h-3.5 w-3.5 flex-shrink-0" />
+          {!collapsed && <span>{locale === 'fr' ? '🇫🇷 FR → EN' : '🇬🇧 EN → FR'}</span>}
+        </button>
         {/* Account switcher dropdown */}
         {showSwitcher && !collapsed && (
           <div className="mb-2 rounded-xl border border-white/10 bg-white/10 p-1.5 space-y-0.5">

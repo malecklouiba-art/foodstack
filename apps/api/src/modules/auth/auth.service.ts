@@ -2,6 +2,8 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { authenticator } from 'otplib';
+import * as QRCode from 'qrcode';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 
@@ -63,5 +65,39 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException('Token de rafraîchissement invalide');
     }
+  }
+
+  async generate2FASecret(userId: string) {
+    const user = await this.usersService.findById(userId);
+    const secret = authenticator.generateSecret();
+    const otpAuthUrl = authenticator.keyuri(user.email, 'FoodStack', secret);
+    const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
+    // Store secret temporarily (not yet enabled)
+    await this.usersService.updateUser(userId, { twoFactorSecret: secret });
+    return { secret, qrCodeDataUrl, otpAuthUrl };
+  }
+
+  async enable2FA(userId: string, token: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user.twoFactorSecret) throw new UnauthorizedException('2FA not initialized');
+    const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
+    if (!isValid) throw new UnauthorizedException('Code TOTP invalide');
+    await this.usersService.updateUser(userId, { twoFactorEnabled: true });
+    return { enabled: true };
+  }
+
+  async disable2FA(userId: string) {
+    await this.usersService.updateUser(userId, { twoFactorEnabled: false, twoFactorSecret: null });
+    return { enabled: false };
+  }
+
+  async verify2FA(userId: string, token: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+      throw new UnauthorizedException('2FA non activé');
+    }
+    const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
+    if (!isValid) throw new UnauthorizedException('Code TOTP invalide');
+    return this.login(user);
   }
 }

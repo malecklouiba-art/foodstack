@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
+import { cookies } from 'next/headers';
+import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { getMessages, DEFAULT_LOCALE, type Locale } from '@/lib/locale';
 import './globals.css';
 
 const inter = Inter({
@@ -48,10 +51,15 @@ export const viewport: Viewport = {
   themeColor: '#1EFF6A',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const locale = (cookieStore.get('fs_locale')?.value ?? DEFAULT_LOCALE) as Locale;
+  const messages = await getMessages(locale);
+
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
         <ThemeProvider>
           {children}
           <Toaster
@@ -71,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

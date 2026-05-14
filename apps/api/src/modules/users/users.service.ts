@@ -35,12 +35,19 @@ export class UsersService {
         firstName: true,
         lastName: true,
         phone: true,
+        role: true,
+        twoFactorSecret: true,
+        twoFactorEnabled: true,
         createdAt: true,
         updatedAt: true,
       },
     });
     if (!user) throw new NotFoundException(`User #${id} not found`);
     return user;
+  }
+
+  async updateUser(id: string, data: Partial<{ twoFactorSecret: string | null; twoFactorEnabled: boolean }>) {
+    return this.prisma.user.update({ where: { id }, data });
   }
 
   async create(dto: CreateUserDto, passwordHash: string) {
