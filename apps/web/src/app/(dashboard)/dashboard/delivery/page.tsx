@@ -344,6 +344,28 @@ function DeliveryDetailModal({
             </div>
           )}
         </div>
+
+        {/* Route SVG */}
+        <div className="mt-4 rounded-2xl bg-slate-50 border border-surface-200 p-5">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-400">Itinéraire estimé</p>
+          <svg viewBox="0 0 300 120" className="w-full" aria-label="Itinéraire de livraison">
+            <path d="M 40 80 Q 90 40 150 60 Q 210 80 260 45" fill="none" stroke="#e2e8f0" strokeWidth={8} strokeLinecap="round" />
+            <path d="M 40 80 Q 90 40 150 60 Q 210 80 260 45" fill="none" stroke="#1EFF6A" strokeWidth={3} strokeLinecap="round" strokeDasharray="6 4" opacity={0.7} />
+            <circle cx={40} cy={80} r={10} fill="#1EFF6A" />
+            <text x={40} y={84} textAnchor="middle" fontSize={9} fill="#000">🍽️</text>
+            <text x={40} y={98} textAnchor="middle" fontSize={8} fill="#64748b">Restaurant</text>
+            <circle cx={150} cy={60} r={8} fill="#fff" stroke="#1EFF6A" strokeWidth={2} />
+            <text x={150} y={64} textAnchor="middle" fontSize={8} fill="#1EFF6A">🛵</text>
+            <circle cx={260} cy={45} r={10} fill="#3b82f6" />
+            <text x={260} y={49} textAnchor="middle" fontSize={9} fill="#fff">📍</text>
+            <text x={260} y={62} textAnchor="middle" fontSize={8} fill="#64748b">Client</text>
+          </svg>
+          <div className="mt-2 flex items-center justify-between text-xs text-surface-500">
+            <span>Restaurant FoodStack</span>
+            <span className="font-semibold text-brand-600">{delivery?.distance}</span>
+            <span>{delivery?.address?.split(',')[0]}</span>
+          </div>
+        </div>
       </div>
     </Modal>
   );
@@ -645,16 +667,6 @@ export default function DeliveryPage() {
           </div>
         </Card>
 
-        {/* Map placeholder */}
-        <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl bg-surface-100 shadow-sm">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-surface-200">
-            <MapPin className="h-6 w-6 text-surface-400" />
-          </div>
-          <div className="text-center">
-            <p className="font-semibold text-surface-500">Carte en temps réel</p>
-            <p className="text-sm text-surface-400">Intégration maps à venir</p>
-          </div>
-        </div>
       </div>
 
       {/* Detail modal */}
