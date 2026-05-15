@@ -161,6 +161,98 @@ function formatTicketNo(n: number): string {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
+const TR_ISSUERS = ['Edenred', 'Swile', 'Sodexo', 'Up (Chèque Déjeuner)', 'Bimpli', 'Natixis Intertitres'];
+
+function TRPaymentPanel() {
+  const [mode, setMode] = useState<'scan' | 'manual'>('scan');
+  const [issuer, setIssuer] = useState('Edenred');
+  const [ticketNo, setTicketNo] = useState('');
+  const [amount, setAmount] = useState('');
+  const [expiry, setExpiry] = useState('');
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-2">
+        <button
+          onClick={() => setMode('scan')}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === 'scan' ? 'bg-brand-500 text-black' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          🔍 Scanner
+        </button>
+        <button
+          onClick={() => setMode('manual')}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-brand-500 text-black' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+        >
+          ✏️ Saisie manuelle
+        </button>
+      </div>
+
+      {mode === 'scan' ? (
+        <div className="text-center py-4">
+          <div className="text-4xl mb-2">🎫</div>
+          <p className="text-sm text-gray-600">Scannez le QR code ou code-barres du ticket restaurant</p>
+          <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.5, repeat: Infinity }} className="mt-3 flex items-center justify-center gap-2 text-gray-400">
+            <span className="h-2 w-2 rounded-full bg-gray-400 inline-block" />
+            <span className="text-xs">En attente du scanner...</span>
+          </motion.div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Émetteur</label>
+            <select
+              value={issuer}
+              onChange={(e) => setIssuer(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"
+            >
+              {TR_ISSUERS.map(i => <option key={i}>{i}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">N° du ticket</label>
+            <input
+              value={ticketNo}
+              onChange={(e) => setTicketNo(e.target.value)}
+              placeholder="Ex. 1234567890"
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Montant (€)</label>
+              <input
+                type="number" min="0" step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Date de validité</label>
+              <input
+                type="month"
+                value={expiry}
+                onChange={(e) => setExpiry(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-500 focus:outline-none"
+              />
+            </div>
+          </div>
+          {ticketNo && amount && expiry && (
+            <div className="rounded-lg bg-green-50 border border-green-200 p-3 flex items-center gap-2">
+              <span className="text-green-600 text-lg">✓</span>
+              <div className="text-sm">
+                <p className="font-medium text-green-800">{issuer} — {parseFloat(amount || '0').toFixed(2)}€</p>
+                <p className="text-green-600 text-xs">N° {ticketNo} · Valide {expiry}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function POSPage() {
   // Auth
   const [authenticated, setAuthenticated] = useState(false);
@@ -844,17 +936,23 @@ export default function POSPage() {
                 )}
 
                 {(payMethod === 'card' || payMethod === 'tr' || payMethod === 'mobile') && (
-                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center">
-                    <div className="mb-2 text-4xl">
-                      {payMethod === 'card' ? '💳' : payMethod === 'tr' ? '🎫' : '📱'}
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {payMethod === 'card' ? 'Présentez la carte ou le terminal' : payMethod === 'tr' ? 'Scannez ou tapotez le ticket restaurant' : 'Apple Pay / Google Pay / Lydia'}
-                    </p>
-                    <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.5, repeat: Infinity }} className="mt-4 flex items-center justify-center gap-2 text-gray-500">
-                      <span className="h-2 w-2 rounded-full bg-gray-400 inline-block" />
-                      <span className="text-xs">En attente...</span>
-                    </motion.div>
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+                    {payMethod === 'tr' ? (
+                      <TRPaymentPanel />
+                    ) : (
+                      <>
+                        <div className="mb-2 text-center text-4xl">
+                          {payMethod === 'card' ? '💳' : '📱'}
+                        </div>
+                        <p className="text-center text-sm text-gray-600">
+                          {payMethod === 'card' ? 'Présentez la carte ou le terminal' : 'Apple Pay / Google Pay / Lydia'}
+                        </p>
+                        <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.5, repeat: Infinity }} className="mt-4 flex items-center justify-center gap-2 text-gray-500">
+                          <span className="h-2 w-2 rounded-full bg-gray-400 inline-block" />
+                          <span className="text-xs">En attente...</span>
+                        </motion.div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

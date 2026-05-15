@@ -3,10 +3,11 @@
 import { useState, useCallback, useRef, useEffect, useMemo, DragEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import clsx from 'clsx';
+import Link from 'next/link';
 import {
   Wifi, WifiOff, LayoutGrid, Table2, ChefHat, Volume2, VolumeX,
   Download, FileSpreadsheet, FileText, Bike, ShoppingBag, Utensils,
-  Clock, ChevronRight, Play, CheckCircle2, Truck, PackageCheck, XCircle,
+  Clock, ChevronRight, Play, CheckCircle2, Truck, PackageCheck, XCircle, User,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
@@ -126,6 +127,47 @@ const COLUMNS: { status: OrderStatus }[] = [
   { status: 'delivered' },
 ];
 
+// ── Kitchen note modal ──────────────────────────────────────────────────────
+
+interface KitchenNoteModalProps {
+  orderId: string;
+  note: string;
+  onSave: (note: string) => void;
+  onClose: () => void;
+}
+
+function KitchenNoteModal({ orderId, note, onSave, onClose }: KitchenNoteModalProps) {
+  const [draft, setDraft] = useState(note);
+  return (
+    <Modal open onClose={onClose} title={`Note cuisine — ${orderId}`} description="Instructions visibles par le chef" size="sm">
+      <div className="space-y-4">
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Ex : sans oignon, allergie noix, cuisson bien cuite…"
+          rows={4}
+          className="w-full resize-none rounded-xl border border-surface-200 bg-surface-50 p-3 text-sm text-surface-900 placeholder-surface-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        />
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-600 hover:bg-surface-50"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => { onSave(draft); onClose(); }}
+            className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-bold text-black hover:bg-brand-600"
+          >
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Order card ──────────────────────────────────────────────────────────────
 
 function useOrderAge(createdAt: Date) {
@@ -148,9 +190,11 @@ interface BigOrderCardProps {
   onSelect: (order: KanbanOrder) => void;
   onDragStart: (e: DragEvent<HTMLDivElement>, orderId: string) => void;
   kitchen?: boolean;
+  kitchenNote?: string;
+  onEditKitchenNote?: (orderId: string) => void;
 }
 
-function BigOrderCard({ order, onAdvance, onCancel, onSelect, onDragStart, kitchen }: BigOrderCardProps) {
+function BigOrderCard({ order, onAdvance, onCancel, onSelect, onDragStart, kitchen, kitchenNote, onEditKitchenNote }: BigOrderCardProps) {
   const age = useOrderAge(order.createdAt);
   const next = NEXT_STATUS[order.status];
   const statusConf = STATUS_CONFIG[order.status];
@@ -196,11 +240,35 @@ function BigOrderCard({ order, onAdvance, onCancel, onSelect, onDragStart, kitch
           <p className={clsx('font-bold text-surface-900', kitchen ? 'text-lg' : 'text-base')}>{order.id}</p>
           <p className={clsx('text-surface-500', kitchen ? 'text-base' : 'text-xs')}>{order.customer}</p>
         </div>
-        <span className={clsx('flex items-center gap-1 font-semibold', age.color, kitchen ? 'text-base' : 'text-xs')}>
-          <Clock className={kitchen ? 'h-4 w-4' : 'h-3 w-3'} />
-          {age.label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {onEditKitchenNote && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEditKitchenNote(order.id); }}
+              title="Note cuisine"
+              className={clsx(
+                'rounded-lg p-1.5 text-base leading-none transition-colors',
+                kitchenNote
+                  ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-300 hover:bg-amber-200'
+                  : 'text-surface-400 hover:bg-surface-100 hover:text-surface-700',
+              )}
+            >
+              🍳
+            </button>
+          )}
+          <span className={clsx('flex items-center gap-1 font-semibold', age.color, kitchen ? 'text-base' : 'text-xs')}>
+            <Clock className={kitchen ? 'h-4 w-4' : 'h-3 w-3'} />
+            {age.label}
+          </span>
+        </div>
       </div>
+
+      {/* Kitchen note preview */}
+      {kitchenNote && (
+        <div className="mb-3 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 ring-1 ring-amber-200">
+          <span className="mt-0.5 text-sm leading-none">🍳</span>
+          <p className="flex-1 text-xs font-medium text-amber-800 line-clamp-2">{kitchenNote}</p>
+        </div>
+      )}
 
       {/* Items */}
       <div className="mb-3 space-y-1">
@@ -278,6 +346,8 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<KanbanOrder | null>(null);
   const [liveCount, setLiveCount] = useState(0);
   const [dragOverStatus, setDragOverStatus] = useState<OrderStatus | null>(null);
+  const [kitchenNotes, setKitchenNotes] = useState<Record<string, string>>({});
+  const [editingKitchenNoteId, setEditingKitchenNoteId] = useState<string | null>(null);
   const draggedOrderRef = useRef<string | null>(null);
   const soundRef = useRef(sound);
   soundRef.current = sound;
@@ -763,7 +833,7 @@ export default function OrdersPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-surface-500">{formatDate(o.createdAt)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           {next && (
                             <button
                               onClick={() => advanceOrder(o.id, next.status)}
@@ -775,6 +845,24 @@ export default function OrdersPage() {
                             >
                               {next.label}
                             </button>
+                          )}
+                          {(o.status === 'delivering' || o.status === 'delivered') && (
+                            <Link
+                              href="/dashboard/delivery"
+                              className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-2.5 py-1.5 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-100"
+                            >
+                              <Truck className="h-3 w-3" />
+                              Livraisons
+                            </Link>
+                          )}
+                          {o.type === 'delivery' && (
+                            <Link
+                              href="/dashboard/drivers"
+                              className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                            >
+                              <User className="h-3 w-3" />
+                              Livreur
+                            </Link>
                           )}
                           <button
                             onClick={() => setSelectedOrder(o)}
@@ -848,6 +936,8 @@ export default function OrdersPage() {
                           onSelect={setSelectedOrder}
                           onDragStart={handleDragStart}
                           kitchen={kitchen}
+                          kitchenNote={kitchenNotes[order.id]}
+                          onEditKitchenNote={setEditingKitchenNoteId}
                         />
                       ))}
                       {colOrders.length === 0 && (
@@ -868,6 +958,18 @@ export default function OrdersPage() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Kitchen note modal */}
+      {editingKitchenNoteId && (
+        <KitchenNoteModal
+          orderId={editingKitchenNoteId}
+          note={kitchenNotes[editingKitchenNoteId] ?? ''}
+          onSave={(note) =>
+            setKitchenNotes((prev) => ({ ...prev, [editingKitchenNoteId]: note }))
+          }
+          onClose={() => setEditingKitchenNoteId(null)}
+        />
       )}
 
       {/* Order detail modal */}
