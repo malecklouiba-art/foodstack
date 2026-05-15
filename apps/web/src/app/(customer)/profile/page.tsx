@@ -5,9 +5,9 @@ import Link from 'next/link';
 import {
   User, Mail, Phone, MapPin, Camera, ChevronRight,
   Plus, Pencil, Trash2, ShieldCheck, Bell,
-  Star, LogOut, Check, Lock,
+  Star, LogOut, Check, Lock, Gift, Award,
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -25,14 +25,28 @@ interface Address {
   isDefault: boolean;
 }
 
+type DietPref = 'gluten' | 'vegetarien' | 'vegan' | 'lactose' | 'halal' | 'epice';
+
+const DIET_LABELS: Record<DietPref, string> = {
+  gluten:     'Sans gluten',
+  vegetarien: 'Végétarien',
+  vegan:      'Vegan',
+  lactose:    'Sans lactose',
+  halal:      'Halal',
+  epice:      'Épicé',
+};
+
+// Next reward config
+const NEXT_REWARD = { points: 1000, label: 'Burger offert' } as const;
+
 // ── mock data ──
 const MOCK_USER = {
   name: 'Marie Laurent',
   email: 'marie.laurent@email.fr',
   phone: '06 12 34 56 78',
   avatar: '',
-  loyaltyPoints: 1240,
-  loyaltyTier: 'gold' as LoyaltyTier,
+  loyaltyPoints: 840,
+  loyaltyTier: 'silver' as LoyaltyTier,
   orderCount: 23,
   memberSince: 'Janvier 2025',
 };
