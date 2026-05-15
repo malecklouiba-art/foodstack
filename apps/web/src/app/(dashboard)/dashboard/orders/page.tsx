@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Wifi, WifiOff, LayoutGrid, Table2, ChefHat, Volume2, VolumeX, Eye, Download, FileSpreadsheet } from 'lucide-react';
+import { Wifi, WifiOff, LayoutGrid, Table2, ChefHat, Volume2, VolumeX, Eye, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -232,6 +232,142 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   };
 
+  async function downloadInvoice(order: KanbanOrder) {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // ── Header ──────────────────────────────────────────────────────────────
+    doc.setFontSize(26);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(20, 20, 20);
+    doc.text('FoodStack', 14, 22);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Le Bistrot Parisien', 14, 30);
+    doc.text('42 avenue de l\'Opéra, 75002 Paris', 14, 36);
+    doc.text('support@foodstack.app', 14, 42);
+
+    // Invoice label (right side)
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(20, 20, 20);
+    doc.text('FACTURE', pageW - 14, 22, { align: 'right' });
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`N° FAC-${order.id}`, pageW - 14, 30, { align: 'right' });
+    doc.text(`Date : ${formatDate(order.createdAt)}`, pageW - 14, 36, { align: 'right' });
+
+    // Horizontal rule
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    doc.line(14, 50, pageW - 14, 50);
+
+    // ── Facturé à ───────────────────────────────────────────────────────────
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(120, 120, 120);
+    doc.text('FACTURÉ À', 14, 60);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(20, 20, 20);
+    doc.text(order.customer, 14, 68);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    if (order.address) {
+      doc.text(order.address, 14, 74);
+    }
+    if (order.phone) {
+      doc.text(`Tél : ${order.phone}`, 14, 80);
+    }
+
+    // ── Items table ─────────────────────────────────────────────────────────
+    const subtotalItems = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
+    const tva = subtotalItems * 0.10;
+    const delivery = order.type === 'delivery' ? 2.99 : 0;
+    const totalTTC = subtotalItems + tva + delivery;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    autoTable(doc as any, {
+      startY: 92,
+      head: [['Article', 'Qté', 'Prix unit.', 'Total']],
+      body: order.items.map((item) => [
+        item.name,
+        item.quantity.toString(),
+        `${item.price.toFixed(2)} €`,
+        `${(item.price * item.quantity).toFixed(2)} €`,
+      ]),
+      styles: { fontSize: 10, cellPadding: 5 },
+      headStyles: { fillColor: [30, 30, 30], textColor: [255, 255, 255], fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 20, halign: 'center' },
+        2: { cellWidth: 35, halign: 'right' },
+        3: { cellWidth: 35, halign: 'right' },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    // ── Totals section ──────────────────────────────────────────────────────
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const finalY: number = (doc as any).lastAutoTable?.finalY ?? 130;
+    const totalsX = pageW - 14;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+
+    let ty = finalY + 10;
+    doc.text('Sous-total HT :', totalsX - 60, ty);
+    doc.text(`${subtotalItems.toFixed(2)} €`, totalsX, ty, { align: 'right' });
+
+    ty += 7;
+    doc.text('TVA (10%) :', totalsX - 60, ty);
+    doc.text(`${tva.toFixed(2)} €`, totalsX, ty, { align: 'right' });
+
+    ty += 7;
+    doc.text('Livraison :', totalsX - 60, ty);
+    doc.text(delivery > 0 ? `${delivery.toFixed(2)} €` : 'Offerte', totalsX, ty, { align: 'right' });
+
+    ty += 3;
+    doc.setDrawColor(30, 30, 30);
+    doc.setLineWidth(0.5);
+    doc.line(totalsX - 70, ty, totalsX, ty);
+
+    ty += 7;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(20, 20, 20);
+    doc.text('Total TTC :', totalsX - 60, ty);
+    doc.text(`${totalTTC.toFixed(2)} €`, totalsX, ty, { align: 'right' });
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    const pageH = doc.internal.pageSize.getHeight();
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.4);
+    doc.line(14, pageH - 22, pageW - 14, pageH - 22);
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(140, 140, 140);
+    doc.text(
+      'Merci de votre commande · FoodStack Platform · support@foodstack.app',
+      pageW / 2,
+      pageH - 14,
+      { align: 'center' }
+    );
+
+    doc.save(`facture-${order.id}.pdf`);
+  }
+
   return (
     <div className={`flex h-full flex-col ${kitchen ? 'bg-surface-900 text-white' : ''}`}>
       {/* Header */}
@@ -406,11 +542,20 @@ export default function OrdersPage() {
           size="lg"
         >
           <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-xl bg-surface-50 p-3">
-              <span className="text-sm text-surface-500">Statut</span>
-              <Badge variant={STATUS_CONFIG[selectedOrder.status].variant}>
-                {STATUS_CONFIG[selectedOrder.status].label}
-              </Badge>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 rounded-xl bg-surface-50 p-3 flex-1 mr-2">
+                <span className="text-sm text-surface-500">Statut</span>
+                <Badge variant={STATUS_CONFIG[selectedOrder.status].variant}>
+                  {STATUS_CONFIG[selectedOrder.status].label}
+                </Badge>
+              </div>
+              <button
+                onClick={() => downloadInvoice(selectedOrder)}
+                className="flex items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-2.5 text-sm font-medium text-surface-700 shadow-sm hover:bg-surface-50 transition-colors"
+              >
+                <FileText className="h-4 w-4 text-surface-500" />
+                Facture PDF
+              </button>
             </div>
             <div>
               <h4 className="mb-2 text-sm font-semibold text-surface-700">Articles</h4>

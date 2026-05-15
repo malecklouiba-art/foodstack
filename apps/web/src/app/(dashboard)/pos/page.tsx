@@ -129,6 +129,7 @@ export default function POSPage() {
   const [ticketCounter, setTicketCounter] = useState(8821);
   const [tableNumber, setTableNumber] = useState<number | null>(null);
   const [lastTicket, setLastTicket] = useState<TicketData | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   // Compliance state
   const [showCompliance, setShowCompliance] = useState(false);
@@ -615,7 +616,16 @@ export default function POSPage() {
                 </div>
               </div>
 
-              <p className="mt-4 text-center text-sm text-white/40">Réinitialisation en cours...</p>
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={() => setShowReceiptModal(true)}
+                  className="flex items-center gap-2 rounded-xl border border-brand-500/40 bg-brand-500/10 px-4 py-2.5 text-sm font-medium text-brand-400 hover:bg-brand-500/20 transition-colors"
+                >
+                  <Receipt className="h-4 w-4" />
+                  Imprimer le ticket
+                </button>
+              </div>
+              <p className="mt-3 text-center text-sm text-white/40">Réinitialisation en cours...</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -648,6 +658,120 @@ export default function POSPage() {
               <Button fullWidth onClick={applyDiscount} disabled={!discountReason || !discountPct}>
                 Appliquer la remise
               </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Thermal Receipt Modal ─────────────────────────────────────────── */}
+      <style>{`
+        @media print {
+          body > *:not(#receipt-modal) { display: none; }
+          #receipt-modal { display: flex !important; position: fixed; inset: 0; align-items: center; justify-content: center; background: white; }
+        }
+      `}</style>
+      <AnimatePresence>
+        {showReceiptModal && lastTicket && (
+          <motion.div
+            id="receipt-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="flex max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+              style={{ width: '340px' }}
+            >
+              {/* Receipt body */}
+              <div className="overflow-y-auto flex-1 bg-white px-5 py-5 font-mono text-xs text-gray-900" style={{ maxWidth: '320px', margin: '0 auto', width: '100%' }}>
+                <div className="text-center">
+                  <p className="text-sm font-bold tracking-widest">════════════════</p>
+                  <p className="mt-1 text-base font-bold">FoodStack POS</p>
+                  <p className="font-medium">Le Bistrot Parisien</p>
+                  <p className="text-gray-500 mt-0.5">{lastTicket.date} à {lastTicket.time}</p>
+                  <p className="text-sm font-bold tracking-widest">════════════════</p>
+                  <p className="mt-1 font-bold text-sm tracking-widest">TICKET DE CAISSE</p>
+                </div>
+                <p className="my-1 text-center tracking-widest">────────────────</p>
+
+                {/* Items */}
+                <div className="space-y-0.5">
+                  {lastTicket.lines.map((l, i) => {
+                    const lineTotal = (l.item.price * l.quantity * (1 - l.discount / 100)).toFixed(2) + ' €';
+                    const label = `${l.quantity}x ${l.item.name}${l.offert ? ' (offert)' : l.discount > 0 ? ` -${l.discount}%` : ''}`;
+                    const dots = '.'.repeat(Math.max(2, 32 - label.length - lineTotal.length));
+                    return (
+                      <p key={i} className="whitespace-pre text-xs leading-relaxed">
+                        {label}{dots}{lineTotal}
+                      </p>
+                    );
+                  })}
+                </div>
+
+                <p className="my-1 text-center tracking-widest">────────────────</p>
+
+                {/* Totals */}
+                <div className="space-y-0.5">
+                  {(() => {
+                    const shtLabel = 'Sous-total HT';
+                    const shtVal = lastTicket.subtotalHT.toFixed(2) + ' €';
+                    const shtDots = '.'.repeat(Math.max(2, 32 - shtLabel.length - shtVal.length));
+                    const tvaLabel = 'TVA';
+                    const tvaVal = lastTicket.tva.toFixed(2) + ' €';
+                    const tvaDots = '.'.repeat(Math.max(2, 32 - tvaLabel.length - tvaVal.length));
+                    return (
+                      <>
+                        <p className="whitespace-pre text-xs">{shtLabel}{shtDots}{shtVal}</p>
+                        <p className="whitespace-pre text-xs">{tvaLabel}{tvaDots}{tvaVal}</p>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <div className="my-1 border-t-2 border-b-2 border-gray-900 py-1">
+                  {(() => {
+                    const totLabel = 'TOTAL TTC';
+                    const totVal = lastTicket.total.toFixed(2) + ' €';
+                    const totDots = '.'.repeat(Math.max(2, 32 - totLabel.length - totVal.length));
+                    return (
+                      <p className="whitespace-pre text-sm font-bold">{totLabel}{totDots}{totVal}</p>
+                    );
+                  })()}
+                </div>
+
+                <p className="mt-1 text-xs text-gray-600">Paiement : {lastTicket.payMethod}</p>
+                {lastTicket.tableNumber && <p className="text-xs text-gray-600">Table : {lastTicket.tableNumber}</p>}
+
+                <p className="my-1 text-center tracking-widest text-gray-400">────────────────</p>
+                <div className="text-center text-gray-500">
+                  <p className="font-medium">Merci de votre visite !</p>
+                  <p className="mt-1">[QR: Commandez en ligne]</p>
+                  <p className="mt-0.5 text-xs text-gray-400">foodstack.app</p>
+                </div>
+                <p className="mt-1 text-center text-sm font-bold tracking-widest">════════════════</p>
+                <p className="mt-1 text-center text-xs text-gray-400">Ticket n° {lastTicket.no}</p>
+                <p className="text-center text-xs text-gray-400">Signature : {lastTicket.hash}</p>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="flex gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3">
+                <button
+                  onClick={() => window.print()}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 transition-colors"
+                >
+                  Imprimer
+                </button>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Fermer
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
