@@ -19,6 +19,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import Link from 'next/link';
 
 // ── Demo data ─────────────────────────────────────────────────────────────────
 
@@ -225,9 +226,9 @@ export default function AdminOverviewPage() {
       <Card padding="none">
         <CardHeader className="border-b border-surface-100 dark:border-surface-700 px-6 py-5">
           <CardTitle>Derniers restaurants inscrits</CardTitle>
-          <a href="/admin/restaurants" className="text-sm font-medium text-brand-500 hover:text-brand-400 transition-colors">
+          <Link href="/admin/restaurants" className="text-sm font-medium text-brand-500 hover:text-brand-400 transition-colors">
             Voir tous →
-          </a>
+          </Link>
         </CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
