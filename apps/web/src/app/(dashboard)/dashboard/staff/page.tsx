@@ -4,6 +4,7 @@ import { useState } from 'react';
 import {
   Users, UserPlus, Search, Shield, ChefHat,
   Utensils, Bike, ToggleLeft, ToggleRight, Pencil, Trash2, Mail, X,
+  Lock, KeyRound,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
@@ -26,14 +27,15 @@ interface Employee {
   status: Status;
   email: string;
   joinedLabel: string;
+  posPin?: string; // 4-digit string; empty/undefined = not set
 }
 
 // ── Demo data ──────────────────────────────────────────────────────────────────
 
 const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 'e1', firstName: 'Marie',   lastName: 'Dupont',  role: 'Manager',   status: 'actif',   email: 'marie.dupont@foodstack.fr',   joinedLabel: 'il y a 3 mois' },
+  { id: 'e1', firstName: 'Marie',   lastName: 'Dupont',  role: 'Manager',   status: 'actif',   email: 'marie.dupont@foodstack.fr',   joinedLabel: 'il y a 3 mois', posPin: '1234' },
   { id: 'e2', firstName: 'Pierre',  lastName: 'Martin',  role: 'Cuisinier', status: 'actif',   email: 'pierre.martin@foodstack.fr',  joinedLabel: 'il y a 6 mois' },
-  { id: 'e3', firstName: 'Sophie',  lastName: 'Bernard', role: 'Serveuse',  status: 'actif',   email: 'sophie.bernard@foodstack.fr', joinedLabel: 'il y a 1 mois' },
+  { id: 'e3', firstName: 'Sophie',  lastName: 'Bernard', role: 'Serveuse',  status: 'actif',   email: 'sophie.bernard@foodstack.fr', joinedLabel: 'il y a 1 mois', posPin: '5678' },
   { id: 'e4', firstName: 'Julien',  lastName: 'Moreau',  role: 'Livreur',   status: 'inactif', email: 'julien.moreau@foodstack.fr',  joinedLabel: 'il y a 8 mois' },
   { id: 'e5', firstName: 'Claire',  lastName: 'Lambert', role: 'Manager',   status: 'actif',   email: 'claire.lambert@foodstack.fr', joinedLabel: 'il y a 2 ans' },
   { id: 'e6', firstName: 'Thomas',  lastName: 'Petit',   role: 'Cuisinier', status: 'actif',   email: 'thomas.petit@foodstack.fr',   joinedLabel: 'il y a 1 an' },
@@ -72,15 +74,134 @@ function Avatar({ employee }: { employee: Employee }) {
   );
 }
 
+// ── POS PIN chip ───────────────────────────────────────────────────────────────
+
+function PosPinChip({ posPin }: { posPin?: string }) {
+  const hasPin = !!posPin;
+  return (
+    <span className={clsx(
+      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+      hasPin
+        ? 'bg-surface-100 text-surface-600 dark:bg-surface-700 dark:text-surface-300'
+        : 'bg-orange-50 text-orange-500 dark:bg-orange-900/20',
+    )}>
+      {hasPin
+        ? <><Lock className="h-3 w-3" />{'••••'}</>
+        : 'Non défini'}
+    </span>
+  );
+}
+
+// ── Manage POS PIN modal ───────────────────────────────────────────────────────
+
+interface ManagePinModalProps {
+  employee: Employee;
+  open: boolean;
+  onClose: () => void;
+  onSave: (employeeId: string, pin: string) => void;
+}
+
+function ManagePinModal({ employee, open, onClose, onSave }: ManagePinModalProps) {
+  const [pin, setPin]     = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState('');
+  const hasPin = !!employee.posPin;
+
+  function handleSave() {
+    if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+      setError('Le code doit contenir exactement 4 chiffres.');
+      return;
+    }
+    if (pin !== confirm) {
+      setError('Les codes ne correspondent pas.');
+      return;
+    }
+    onSave(employee.id, pin);
+    setPin('');
+    setConfirm('');
+    setError('');
+    onClose();
+  }
+
+  function handleClose() {
+    setPin('');
+    setConfirm('');
+    setError('');
+    onClose();
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Gérer le code POS"
+      description={`${employee.firstName} ${employee.lastName}`}
+    >
+      <div className="space-y-4">
+        {/* Current status */}
+        <div className="flex items-center justify-between rounded-xl bg-surface-50 dark:bg-surface-800 px-4 py-3">
+          <span className="text-sm text-surface-500">Statut actuel</span>
+          <PosPinChip posPin={employee.posPin} />
+        </div>
+
+        {/* New PIN */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+            {hasPin ? 'Nouveau code POS (4 chiffres)' : 'Code POS (4 chiffres)'}
+          </label>
+          <Input
+            type="password"
+            placeholder="••••"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
+            leftIcon={<KeyRound className="h-4 w-4" />}
+          />
+        </div>
+
+        {/* Confirm PIN */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+            Confirmer le code
+          </label>
+          <Input
+            type="password"
+            placeholder="••••"
+            maxLength={4}
+            value={confirm}
+            onChange={(e) => { setConfirm(e.target.value.replace(/\D/g, '').slice(0, 4)); setError(''); }}
+            leftIcon={<KeyRound className="h-4 w-4" />}
+          />
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-500">{error}</p>
+        )}
+
+        <Button
+          variant="primary"
+          fullWidth
+          icon={<Lock className="h-4 w-4" />}
+          disabled={pin.length !== 4 || confirm.length !== 4}
+          onClick={handleSave}
+        >
+          {hasPin ? 'Modifier le code POS' : 'Définir le code POS'}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Employee card ──────────────────────────────────────────────────────────────
 
 interface EmployeeCardProps {
   employee: Employee;
   onToggleStatus: (id: string) => void;
   onRemove: (id: string) => void;
+  onManagePin: (employee: Employee) => void;
 }
 
-function EmployeeCard({ employee, onToggleStatus, onRemove }: EmployeeCardProps) {
+function EmployeeCard({ employee, onToggleStatus, onRemove, onManagePin }: EmployeeCardProps) {
   const role = roleConfig[employee.role];
   const isActive = employee.status === 'actif';
 
@@ -105,6 +226,8 @@ function EmployeeCard({ employee, onToggleStatus, onRemove }: EmployeeCardProps)
               <Badge variant={isActive ? 'success' : 'default'} dot>
                 {employee.status}
               </Badge>
+              {/* POS PIN chip */}
+              <PosPinChip posPin={employee.posPin} />
             </div>
             <p className="mt-0.5 flex items-center gap-1 text-xs text-surface-400">
               <Mail className="h-3 w-3" />
@@ -130,6 +253,16 @@ function EmployeeCard({ employee, onToggleStatus, onRemove }: EmployeeCardProps)
                 ? <ToggleRight className="h-5 w-5" />
                 : <ToggleLeft  className="h-5 w-5" />}
             </button>
+
+            {/* Manage POS PIN */}
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<KeyRound className="h-3.5 w-3.5" />}
+              onClick={() => onManagePin(employee)}
+            >
+              Code POS
+            </Button>
 
             {/* Modify permissions */}
             <Button variant="ghost" size="sm" icon={<Pencil className="h-3.5 w-3.5" />}>
@@ -163,6 +296,7 @@ interface InviteModalProps {
 function InviteModal({ open, onClose }: InviteModalProps) {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<Role>('Serveur');
+  const [posPin, setPosPin] = useState('');
   const [sent, setSent] = useState(false);
 
   function handleSend() {
@@ -172,6 +306,7 @@ function InviteModal({ open, onClose }: InviteModalProps) {
       setSent(false);
       setEmail('');
       setRole('Serveur');
+      setPosPin('');
       onClose();
     }, 1500);
   }
@@ -213,6 +348,20 @@ function InviteModal({ open, onClose }: InviteModalProps) {
           </select>
         </div>
 
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700">
+            Code POS (4 chiffres) <span className="text-surface-400 font-normal">— optionnel</span>
+          </label>
+          <Input
+            type="password"
+            placeholder="••••"
+            maxLength={4}
+            value={posPin}
+            onChange={(e) => setPosPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            leftIcon={<KeyRound className="h-4 w-4" />}
+          />
+        </div>
+
         <Button
           variant="primary"
           fullWidth
@@ -234,6 +383,7 @@ export default function StaffPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('Tous');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [pinEmployee, setPinEmployee] = useState<Employee | null>(null);
 
   const totalCount  = employees.length;
   const activeCount = employees.filter((e) => e.status === 'actif').length;
@@ -249,6 +399,12 @@ export default function StaffPage() {
 
   function removeEmployee(id: string) {
     setEmployees((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function savePin(employeeId: string, pin: string) {
+    setEmployees((prev) =>
+      prev.map((e) => e.id === employeeId ? { ...e, posPin: pin } : e)
+    );
   }
 
   const filtered = employees.filter((e) => {
@@ -357,6 +513,7 @@ export default function StaffPage() {
                 employee={employee}
                 onToggleStatus={toggleStatus}
                 onRemove={removeEmployee}
+                onManagePin={setPinEmployee}
               />
             ))
           )}
@@ -365,6 +522,16 @@ export default function StaffPage() {
 
       {/* Invite modal */}
       <InviteModal open={showInviteModal} onClose={() => setShowInviteModal(false)} />
+
+      {/* Manage POS PIN modal */}
+      {pinEmployee && (
+        <ManagePinModal
+          employee={pinEmployee}
+          open={!!pinEmployee}
+          onClose={() => setPinEmployee(null)}
+          onSave={savePin}
+        />
+      )}
     </div>
   );
 }

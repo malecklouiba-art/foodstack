@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import Link from 'next/link';
 import {
   MapPin, Clock, Truck, CheckCircle2, XCircle,
   RotateCcw, Navigation, User, Package, Search,
-  Download, FileText, MessageSquare,
+  Download, FileText, MessageSquare, ArrowLeft,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -192,26 +193,32 @@ function DeliveryRow({
       <td className="px-6 py-4 text-sm text-surface-600">{delivery.eta}</td>
       <td className="px-6 py-4 text-sm text-surface-500">{delivery.distance}</td>
       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-        {(delivery.status === 'delivering' || delivery.status === 'ready' || delivery.status === 'preparing') && (
-          <button
-            onClick={() => onOpen(delivery.id)}
-            className="rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100"
+        <div className="flex items-center gap-2 flex-wrap">
+          {(delivery.status === 'delivering' || delivery.status === 'ready' || delivery.status === 'preparing') && (
+            <button
+              onClick={() => onOpen(delivery.id)}
+              className="rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100"
+            >
+              Suivre
+            </button>
+          )}
+          {delivery.status === 'failed' && (
+            <button
+              onClick={() => onRetry(delivery.id)}
+              className="flex items-center gap-1 rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 transition-colors hover:bg-red-100"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Relancer
+            </button>
+          )}
+          <Link
+            href="/dashboard/drivers"
+            className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
           >
-            Suivre
-          </button>
-        )}
-        {delivery.status === 'failed' && (
-          <button
-            onClick={() => onRetry(delivery.id)}
-            className="flex items-center gap-1 rounded-lg bg-red-50 dark:bg-red-900/20 px-3 py-1.5 text-xs font-semibold text-red-700 dark:text-red-400 transition-colors hover:bg-red-100"
-          >
-            <RotateCcw className="h-3 w-3" />
-            Relancer
-          </button>
-        )}
-        {delivery.status === 'delivered' && (
-          <span className="text-xs text-surface-400">—</span>
-        )}
+            <User className="h-3 w-3" />
+            Livreur
+          </Link>
+        </div>
       </td>
     </motion.tr>
   );
@@ -455,6 +462,17 @@ export default function DeliveryPage() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Breadcrumb */}
+      <div>
+        <Link
+          href="/dashboard/orders"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-surface-500 hover:text-surface-900 transition-colors"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Retour commandes
+        </Link>
+      </div>
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
