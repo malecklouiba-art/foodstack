@@ -1,7 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
 // Namespace is passed as part of the URL, not as an option
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 let socket: Socket | null = null;
 

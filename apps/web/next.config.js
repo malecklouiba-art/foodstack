@@ -1,15 +1,17 @@
 /** @type {import('next').NextConfig} */
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+const appHost = appUrl.replace(/^https?:\/\//, '');
+
 const nextConfig = {
   reactStrictMode: true,
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '*.supabase.co' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
-      { protocol: 'https', hostname: 'via.placeholder.com' },
     ],
   },
   experimental: {
-    serverActions: { allowedOrigins: ['localhost:3000'] },
+    serverActions: { allowedOrigins: ['localhost:3000', appHost] },
   },
   async headers() {
     return [
