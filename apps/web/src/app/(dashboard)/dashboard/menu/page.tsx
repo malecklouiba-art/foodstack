@@ -4,7 +4,7 @@ import { useState } from 'react';
 import {
   Plus, Search, Pencil, Trash2, GripVertical,
   ChevronRight, Clock, Flame, Star, Eye, EyeOff,
-  UtensilsCrossed,
+  UtensilsCrossed, Store, X, ShoppingBag, Leaf,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
@@ -57,6 +57,7 @@ export default function MenuPage() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'cat' | 'item'; id: string } | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // ── derived ──
   const selectedCat = categories.find((c) => c.id === selectedCatId);
@@ -128,13 +129,22 @@ export default function MenuPage() {
               {categories.length} catégories · {items.length} articles
             </p>
           </div>
-          <Button
-            variant="primary"
-            icon={<Plus className="h-4 w-4" />}
-            onClick={() => { setEditingItem(null); setItemModalOpen(true); }}
-          >
-            Nouvel article
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              icon={<Store className="h-4 w-4" />}
+              onClick={() => setPreviewOpen(true)}
+            >
+              Aperçu boutique
+            </Button>
+            <Button
+              variant="primary"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={() => { setEditingItem(null); setItemModalOpen(true); }}
+            >
+              Nouvel article
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -301,6 +311,17 @@ export default function MenuPage() {
         categories={categories.filter((c) => c.isActive)}
       />
 
+      {/* Customer-facing store preview */}
+      <AnimatePresence>
+        {previewOpen && (
+          <StorePreview
+            categories={categories.filter((c) => c.isActive)}
+            items={items.filter((i) => i.isActive)}
+            onClose={() => setPreviewOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Delete confirm */}
       <AnimatePresence>
         {deleteConfirm && (
@@ -350,6 +371,203 @@ export default function MenuPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// ── Customer-facing store preview ───────────────────────────────────────────
+interface StorePreviewProps {
+  categories: MenuCategory[];
+  items: MenuItem[];
+  onClose: () => void;
+}
+
+function StorePreview({ categories, items, onClose }: StorePreviewProps) {
+  const [activeCat, setActiveCat] = useState<string>(categories[0]?.id ?? '');
+  const [cart, setCart] = useState<Record<string, number>>({});
+
+  const visibleItems = items.filter((i) => i.categoryId === activeCat);
+  const cartCount = Object.values(cart).reduce((s, n) => s + n, 0);
+  const cartTotal = Object.entries(cart).reduce((sum, [id, qty]) => {
+    const it = items.find((i) => i.id === id);
+    return sum + (it ? it.price * qty : 0);
+  }, 0);
+
+  function addToCart(id: string) {
+    setCart((c) => ({ ...c, [id]: (c[id] ?? 0) + 1 }));
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex flex-col bg-surface-50"
+    >
+      {/* Top bar */}
+      <div className="flex items-center justify-between border-b border-surface-200 bg-white px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
+            <UtensilsCrossed className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-bold text-surface-900">Le Restaurant</p>
+            <p className="text-xs text-surface-500">Aperçu boutique · vue client</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-2 rounded-full bg-surface-100 px-3 py-1.5 text-xs font-medium text-surface-700 sm:flex">
+            <span className="h-2 w-2 rounded-full bg-brand-500" />
+            Ouvert · livraison 20-30 min
+          </div>
+          <button
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-surface-200 bg-white text-surface-500 transition-colors hover:bg-surface-100 hover:text-surface-900"
+            aria-label="Fermer l'aperçu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Mobile-frame style centered */}
+        <div className="flex flex-1 justify-center overflow-y-auto">
+          <div className="w-full max-w-3xl px-6 py-6">
+            {/* Hero */}
+            <div className="relative mb-6 h-44 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-emerald-600">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.25),transparent_60%)]" />
+              <div className="relative flex h-full flex-col justify-end p-6">
+                <h2 className="text-2xl font-bold text-white">Notre carte</h2>
+                <p className="mt-1 text-sm text-white/85">
+                  {items.length} articles · cuisine maison
+                </p>
+              </div>
+            </div>
+
+            {/* Category tabs */}
+            <div className="sticky top-0 -mx-6 mb-5 bg-surface-50/95 px-6 py-2 backdrop-blur">
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCat(cat.id)}
+                    className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
+                      activeCat === cat.id
+                        ? 'bg-surface-900 text-white shadow-sm'
+                        : 'bg-white text-surface-600 hover:bg-surface-100'
+                    }`}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Items */}
+            <div className="space-y-3 pb-24">
+              {visibleItems.length === 0 ? (
+                <div className="flex h-32 items-center justify-center rounded-2xl bg-white text-sm text-surface-500">
+                  Aucun article disponible.
+                </div>
+              ) : (
+                visibleItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex gap-4 overflow-hidden rounded-2xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-semibold text-surface-900">{item.name}</p>
+                        {item.isFeatured && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-yellow-700">
+                            <Star className="h-2.5 w-2.5" /> Top
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-sm text-surface-500">
+                        {item.description}
+                      </p>
+                      <div className="mt-2 flex items-center gap-3 text-xs text-surface-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {item.prepTime} min
+                        </span>
+                        {item.calories && (
+                          <span className="flex items-center gap-1">
+                            <Flame className="h-3 w-3" />
+                            {item.calories} kcal
+                          </span>
+                        )}
+                        {item.dietaryTags.includes('vegetarian') && (
+                          <span className="flex items-center gap-1 text-emerald-600">
+                            <Leaf className="h-3 w-3" /> Végé
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold text-surface-900">
+                            {item.price.toFixed(2)}€
+                          </span>
+                          {item.compareAtPrice && (
+                            <span className="text-xs text-surface-400 line-through">
+                              {item.compareAtPrice.toFixed(2)}€
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => addToCart(item.id)}
+                          className="flex items-center gap-1.5 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-600 active:scale-95"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Ajouter
+                        </button>
+                      </div>
+                    </div>
+                    <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-surface-100 to-surface-200">
+                      {item.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <UtensilsCrossed className="h-7 w-7 text-surface-300" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sticky cart bar */}
+      {cartCount > 0 && (
+        <motion.div
+          initial={{ y: 60, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-4"
+        >
+          <div className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full bg-surface-900 px-5 py-3 text-white shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-brand-500">
+                <ShoppingBag className="h-4 w-4 text-white" />
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-surface-900">
+                  {cartCount}
+                </span>
+              </div>
+              <span className="text-sm font-medium">Voir le panier</span>
+            </div>
+            <span className="font-bold">{cartTotal.toFixed(2)}€</span>
+          </div>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 

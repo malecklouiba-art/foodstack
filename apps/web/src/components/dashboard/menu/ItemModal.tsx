@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Upload, X } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -49,6 +50,8 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
   const [form, setForm] = useState<Partial<MenuItem>>(EMPTY);
   const [priceStr, setPriceStr] = useState('0');
   const [compareStr, setCompareStr] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (initial) {
@@ -68,6 +71,19 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
   function toggleDietary(tag: DietaryTag) {
     const tags = form.dietaryTags ?? [];
     set('dietaryTags', tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag]);
+  }
+
+  function handleFile(file: File | null | undefined) {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      set('image', reader.result as string);
+      setUploading(false);
+    };
+    reader.onerror = () => setUploading(false);
+    reader.readAsDataURL(file);
   }
 
   function toggleAllergen(allergen: string) {
@@ -186,14 +202,65 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
           </div>
         </div>
 
-        {/* Image URL */}
-        <Input
-          label="URL de l'image"
-          type="url"
-          placeholder="https://…"
-          value={form.image ?? ''}
-          onChange={(e) => set('image', e.target.value)}
-        />
+        {/* Image upload */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-surface-700">Image de l'article</label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleFile(e.target.files?.[0])}
+          />
+          {form.image ? (
+            <div className="relative h-40 w-full overflow-hidden rounded-xl border border-surface-200 bg-surface-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.image} alt="Aperçu" className="h-full w-full object-cover" />
+              <div className="absolute right-2 top-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="rounded-lg bg-white/90 px-2.5 py-1 text-xs font-medium text-surface-700 shadow hover:bg-white"
+                >
+                  Remplacer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set('image', undefined)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-red-500 shadow hover:bg-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                handleFile(e.dataTransfer.files?.[0]);
+              }}
+              className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 text-surface-500 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"
+            >
+              {uploading ? (
+                <>
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+                  <span className="text-sm">Chargement…</span>
+                </>
+              ) : (
+                <>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm">
+                    <Upload className="h-5 w-5" />
+                  </div>
+                  <span className="text-sm font-medium">Cliquez ou glissez une image</span>
+                  <span className="text-xs text-surface-400">PNG, JPG, WebP — démo locale</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
         {/* Dietary tags */}
         <div className="flex flex-col gap-2">
