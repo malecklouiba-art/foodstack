@@ -10,6 +10,7 @@ import {
   Lock,
   Tag,
   X,
+  Calendar,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { loadStripe } from '@stripe/stripe-js';
@@ -27,10 +28,11 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
 type PaymentMethod = 'card' | 'apple_pay' | 'google_pay' | 'cash';
 
 const deliverySlots = [
-  { id: 'asap', label: 'Dès que possible', sublabel: '20–35 min' },
-  { id: '12:30', label: '12h30', sublabel: "Aujourd'hui" },
-  { id: '13:00', label: '13h00', sublabel: "Aujourd'hui" },
-  { id: '13:30', label: '13h30', sublabel: "Aujourd'hui" },
+  { id: 'asap',  label: 'Dès que possible', sublabel: '20–35 min' },
+  { id: '12:30', label: '12h30',             sublabel: "Aujourd'hui" },
+  { id: '13:00', label: '13h00',             sublabel: "Aujourd'hui" },
+  { id: '13:30', label: '13h30',             sublabel: "Aujourd'hui" },
+  { id: 'schedule', label: 'Programmer',     sublabel: 'Choisir date/heure' },
 ];
 
 export default function CheckoutPage() {
@@ -43,6 +45,8 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState('');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; type: 'percent' | 'fixed' } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
@@ -167,7 +171,7 @@ export default function CheckoutPage() {
                   </div>
                   <h2 className="font-semibold text-surface-900">Heure de livraison</h2>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                   {deliverySlots.map((slot) => (
                     <button
                       key={slot.id}
@@ -178,15 +182,56 @@ export default function CheckoutPage() {
                           : 'border-surface-200 bg-white hover:border-surface-300'
                       }`}
                     >
-                      <p
-                        className={`text-sm font-semibold ${selectedSlot === slot.id ? 'text-brand-700' : 'text-surface-900'}`}
-                      >
-                        {slot.label}
-                      </p>
+                      <div className="flex items-center gap-1 mb-0.5">
+                        {slot.id === 'schedule' && <Calendar className={`h-3 w-3 ${selectedSlot === slot.id ? 'text-brand-600' : 'text-surface-400'}`} />}
+                        <p className={`text-sm font-semibold ${selectedSlot === slot.id ? 'text-brand-700' : 'text-surface-900'}`}>
+                          {slot.label}
+                        </p>
+                      </div>
                       <p className="text-xs text-surface-400">{slot.sublabel}</p>
                     </button>
                   ))}
                 </div>
+
+                {selectedSlot === 'schedule' && (
+                  <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-brand-200 bg-brand-50 p-4">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-surface-700">Date</label>
+                      <input
+                        type="date"
+                        value={scheduledDate}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        className="w-full rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-surface-700">Heure</label>
+                      <select
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="w-full rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                      >
+                        <option value="">Choisir...</option>
+                        {Array.from({ length: 28 }, (_, i) => {
+                          const totalMins = 11 * 60 + i * 30;
+                          const h = Math.floor(totalMins / 60);
+                          const m = totalMins % 60;
+                          const label = `${String(h).padStart(2, '0')}h${String(m).padStart(2, '0')}`;
+                          return <option key={label} value={label}>{label}</option>;
+                        })}
+                      </select>
+                    </div>
+                    {scheduledDate && scheduledTime && (
+                      <div className="col-span-2 flex items-center gap-2 rounded-lg bg-brand-500/10 px-3 py-2">
+                        <Calendar className="h-4 w-4 text-brand-600" />
+                        <span className="text-sm font-medium text-brand-700">
+                          Livraison programmée : {new Date(scheduledDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {scheduledTime}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </Card>
 
               {/* Payment */}
