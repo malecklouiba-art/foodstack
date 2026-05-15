@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Euro, CreditCard, Clock, ArrowDownToLine, TrendingUp,
   Building2, CheckCircle2, AlertCircle, RotateCcw,
+  Download, FileText, X, Store,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -63,6 +64,22 @@ const STATUS_CONFIG: Record<TxStatus, { label: string; variant: 'success' | 'war
 
 const PERIODS = ['Aujourd\'hui', '7j', '30j', 'Mois'];
 
+// Admin view — FoodStack billing its restaurant clients
+const ADMIN_TRANSACTIONS: Transaction[] = [
+  { id: 'TXN-A001', order: 'ABN-2201', customer: 'Le Bistrot Parisien', amount: 299.00, method: 'Prélèvement', status: 'completed', time: '01/05' },
+  { id: 'TXN-A002', order: 'ABN-2202', customer: 'Sushi Zen',           amount: 199.00, method: 'Prélèvement', status: 'completed', time: '01/05' },
+  { id: 'TXN-A003', order: 'ABN-2203', customer: 'Pizza Roma',          amount: 299.00, method: 'Carte',       status: 'pending',   time: '02/05' },
+  { id: 'TXN-A004', order: 'COM-8801', customer: 'Le Bistrot Parisien', amount: 124.50, method: 'Commission',  status: 'completed', time: '30/04' },
+  { id: 'TXN-A005', order: 'ABN-2204', customer: 'Burger House',        amount: 99.00,  method: 'Prélèvement', status: 'refunded',  time: '28/04' },
+];
+
+const ADMIN_KPI_CARDS = [
+  { title: 'MRR Plateforme',    value: '14 200€', change: '+8.3%',  positive: true,  icon: TrendingUp,   iconBg: 'bg-brand-50',                         iconColor: 'text-brand-600' },
+  { title: 'Commissions mois',  value: '3 840€',  change: '+5.1%',  positive: true,  icon: Euro,         iconBg: 'bg-green-50',                          iconColor: 'text-green-600' },
+  { title: 'Impayés',           value: '398€',    change: null,     positive: null,  icon: AlertCircle,  iconBg: 'bg-red-50',                            iconColor: 'text-red-500'   },
+  { title: 'Prochains prélèv.', value: '8 200€',  change: null,     positive: null,  icon: Clock,        iconBg: 'bg-yellow-50',                         iconColor: 'text-yellow-600'},
+];
+
 const KPI_CARDS = [
   { title: "Chiffre d'affaires", value: '12 450€', change: '+12.5%', positive: true,  icon: Euro,            iconBg: 'bg-green-50 dark:bg-green-900/20',   iconColor: 'text-green-600 dark:text-green-400' },
   { title: 'Commissions plateforme', value: '1 245€', change: null,     positive: null, icon: TrendingUp,      iconBg: 'bg-brand-50',   iconColor: 'text-brand-600' },
@@ -84,18 +101,62 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
+function exportCSV(txs: Transaction[], title: string) {
+  const header = 'ID,Référence,Client/Restaurant,Montant,Méthode,Date,Statut';
+  const rows = txs.map(t => `${t.id},${t.order},"${t.customer}",${t.amount},${t.method},${t.time},${t.status}`);
+  const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `${title}.csv`; a.click(); URL.revokeObjectURL(url);
+}
+
+async function exportPDF(txs: Transaction[], title: string) {
+  const { jsPDF } = await import('jspdf');
+  const doc = new jsPDF();
+  doc.setFontSize(14); doc.text(title, 14, 18);
+  doc.setFontSize(9);
+  const headers = ['ID', 'Client', 'Montant', 'Méthode', 'Date', 'Statut'];
+  const rows = txs.map(t => [t.id, t.customer, `${t.amount.toFixed(2)}€`, t.method, t.time, t.status]);
+  let y = 28;
+  doc.setFont('helvetica', 'bold');
+  headers.forEach((h, i) => doc.text(h, 14 + i * 32, y));
+  doc.setFont('helvetica', 'normal'); y += 6;
+  rows.forEach(r => { r.forEach((cell, i) => doc.text(String(cell), 14 + i * 32, y)); y += 6; });
+  doc.save(`${title}.pdf`);
+}
+
 export default function PaymentsPage() {
   const [period, setPeriod] = useState(0);
+  const [role, setRole] = useState<string>('owner');
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+
+  useEffect(() => {
+    const m = document.cookie.match(/(?:^|; )fs_demo=([^;]*)/);
+    if (m) setRole(decodeURIComponent(m[1]));
+  }, []);
+
+  const isAdmin = role === 'admin';
+  const activeTxs = isAdmin ? ADMIN_TRANSACTIONS : TRANSACTIONS;
+  const activeKPIs = isAdmin ? ADMIN_KPI_CARDS : KPI_CARDS;
+  const pageTitle = isAdmin ? 'Paiements Restaurateurs' : 'Paiements';
+  const pageSubtitle = isAdmin ? 'Abonnements et commissions de vos clients restaurants' : 'Transactions de vos clients consommateurs';
 
   return (
+    <>
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Paiements</h1>
-          <p className="mt-1 text-sm text-surface-500">Gestion des transactions et virements</p>
+          <h1 className="text-2xl font-bold text-surface-900">{pageTitle}</h1>
+          <p className="mt-1 text-sm text-surface-500">{pageSubtitle}</p>
         </div>
-        <div className="flex rounded-xl border border-surface-200 bg-surface-50 p-1">
+        <div className="flex items-center gap-2">
+          <button onClick={() => exportCSV(activeTxs, pageTitle)} className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors">
+            <Download className="h-4 w-4" /> CSV
+          </button>
+          <button onClick={() => exportPDF(activeTxs, pageTitle)} className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors">
+            <FileText className="h-4 w-4" /> PDF
+          </button>
+          <div className="flex rounded-xl border border-surface-200 bg-surface-50 p-1">
           {PERIODS.map((p, i) => (
             <button
               key={p}
@@ -110,11 +171,12 @@ export default function PaymentsPage() {
             </button>
           ))}
         </div>
+        </div>
       </div>
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {KPI_CARDS.map((kpi, i) => {
+        {activeKPIs.map((kpi, i) => {
           const Icon = kpi.icon;
           return (
             <motion.div
@@ -215,7 +277,7 @@ export default function PaymentsPage() {
             </thead>
             <tbody className="divide-y divide-surface-100">
               <AnimatePresence>
-                {TRANSACTIONS.map((tx, i) => {
+                {activeTxs.map((tx, i) => {
                   const cfg = STATUS_CONFIG[tx.status];
                   return (
                     <motion.tr
@@ -223,7 +285,8 @@ export default function PaymentsPage() {
                       initial={{ opacity: 0, x: -4 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className="hover:bg-surface-50"
+                      className="cursor-pointer hover:bg-surface-50"
+                      onClick={() => setSelectedTx(tx)}
                     >
                       <td className="px-4 py-3.5 text-sm font-mono font-medium text-surface-700">{tx.id}</td>
                       <td className="px-4 py-3.5 text-sm text-surface-600">{tx.order}</td>
@@ -270,5 +333,52 @@ export default function PaymentsPage() {
         </div>
       </Card>
     </div>
+
+    {/* Transaction detail modal */}
+    <AnimatePresence>
+      {selectedTx && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setSelectedTx(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-lg font-bold text-surface-900">Détail transaction</h3>
+              <button onClick={() => setSelectedTx(null)} className="rounded-lg p-1.5 hover:bg-surface-100 text-surface-400"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-3">
+              {([
+                ['ID Transaction', selectedTx.id],
+                [isAdmin ? 'Référence' : 'Commande', selectedTx.order],
+                [isAdmin ? 'Restaurant' : 'Client', selectedTx.customer],
+                ['Montant HT', `${(selectedTx.amount * 0.9).toFixed(2)}€`],
+                ['TVA (10%)', `${(selectedTx.amount * 0.1).toFixed(2)}€`],
+                ['Montant TTC', `${selectedTx.amount.toFixed(2)}€`],
+                ['Méthode', selectedTx.method],
+                ['Date / Heure', selectedTx.time],
+                ['Statut', STATUS_CONFIG[selectedTx.status].label],
+              ] as [string, string][]).map(([label, value]) => (
+                <div key={label} className="flex justify-between border-b border-surface-100 pb-2 last:border-0 last:pb-0">
+                  <span className="text-sm text-surface-500">{label}</span>
+                  <span className="text-sm font-semibold text-surface-900">{value}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setSelectedTx(null)}
+              className="mt-5 w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-black hover:bg-brand-600 transition-colors"
+            >
+              Fermer
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </>
   );
 }
