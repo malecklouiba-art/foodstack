@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-export default function TwoFactorVerifyPage() {
+function TwoFactorVerifyInner() {
   const router = useRouter();
   const params = useSearchParams();
   const userId = params.get('userId') ?? '';
@@ -67,7 +67,6 @@ export default function TwoFactorVerifyPage() {
         throw new Error(data.message || 'Code invalide');
       }
       const data = await res.json();
-      // Store tokens the same way as normal login
       if (data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken);
         if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
@@ -89,7 +88,6 @@ export default function TwoFactorVerifyPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-sm">
-        {/* Header */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500/10">
             <Shield className="h-7 w-7 text-brand-600" />
@@ -100,11 +98,7 @@ export default function TwoFactorVerifyPage() {
           </p>
         </div>
 
-        {/* 6-digit input */}
-        <div
-          className="mb-6 flex justify-center gap-2"
-          onPaste={handlePaste}
-        >
+        <div className="mb-6 flex justify-center gap-2" onPaste={handlePaste}>
           {digits.map((digit, i) => (
             <input
               key={i}
@@ -149,5 +143,13 @@ export default function TwoFactorVerifyPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function TwoFactorVerifyPage() {
+  return (
+    <Suspense>
+      <TwoFactorVerifyInner />
+    </Suspense>
   );
 }

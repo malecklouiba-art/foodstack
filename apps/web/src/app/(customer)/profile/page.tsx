@@ -481,6 +481,13 @@ export default function ProfilePage() {
               <span className="flex-1 text-sm font-medium text-gray-900">Mes commandes</span>
               <ChevronRight className="h-4 w-4 text-gray-300" />
             </Link>
+            <Link href="/favorites" className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50">
+                <Gift className="h-4 w-4 text-red-500" />
+              </div>
+              <span className="flex-1 text-sm font-medium text-gray-900">Mes favoris</span>
+              <ChevronRight className="h-4 w-4 text-gray-300" />
+            </Link>
             <button
               onClick={() => toast('Déconnexion…')}
               className="flex w-full items-center gap-3 px-5 py-4 hover:bg-red-50 transition-colors group"
