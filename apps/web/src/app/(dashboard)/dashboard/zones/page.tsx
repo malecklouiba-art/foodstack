@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Plus,
   MapPin,
@@ -22,8 +21,6 @@ import { StatCard } from '@/components/ui/StatCard';
 import { Modal } from '@/components/ui/Modal';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
-
-const ZonesMap = dynamic(() => import('./_ZonesMap'), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -330,8 +327,8 @@ export default function ZonesPage() {
               Carte des zones
             </h2>
           </div>
-          <div className="h-[400px] rounded-b-2xl overflow-hidden">
-            <ZonesMap />
+          <div className="flex-1 flex items-center justify-center p-6">
+            <ZonesDiagram zones={sortedZones} />
           </div>
         </div>
 
