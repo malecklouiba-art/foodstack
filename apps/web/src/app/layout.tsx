@@ -2,9 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'react-hot-toast';
 import { cookies } from 'next/headers';
-import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
-import { getMessages, DEFAULT_LOCALE, type Locale } from '@/lib/locale';
 import './globals.css';
 
 const inter = Inter({
@@ -53,33 +51,30 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
-  const locale = (cookieStore.get('fs_locale')?.value ?? DEFAULT_LOCALE) as Locale;
-  const messages = await getMessages(locale);
+  const locale = cookieStore.get('fs_locale')?.value ?? 'fr';
 
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
-        <NextIntlClientProvider locale={locale} messages={messages}>
         <ThemeProvider>
           {children}
           <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#18181b',
-              color: '#fafafa',
-              border: '1px solid #27272a',
-              borderRadius: '12px',
-              padding: '12px 16px',
-              fontSize: '14px',
-            },
-            success: { iconTheme: { primary: '#1EFF6A', secondary: '#fff' } },
-            error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
-          }}
-        />
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: {
+                background: '#18181b',
+                color: '#fafafa',
+                border: '1px solid #27272a',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                fontSize: '14px',
+              },
+              success: { iconTheme: { primary: '#1EFF6A', secondary: '#fff' } },
+              error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+            }}
+          />
         </ThemeProvider>
-        </NextIntlClientProvider>
       </body>
     </html>
   );
