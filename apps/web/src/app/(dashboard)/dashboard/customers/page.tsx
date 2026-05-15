@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Filter, ChevronDown, X, Mail, Phone,
   ShoppingBag, Star, Clock, Users, TrendingUp,
-  UserCheck, CreditCard, Calendar,
+  UserCheck, CreditCard, Calendar, Upload, Download, FileText,
+  Smartphone, Truck, Monitor, Gift,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
+import { useSearchParams } from 'next/navigation';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,7 +34,7 @@ interface Customer {
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const CUSTOMERS: Customer[] = [
+const INITIAL_CUSTOMERS: Customer[] = [
   { id: 'c1', name: 'Marie Leclerc', email: 'marie.l@email.com', phone: '+33 6 11 22 33 44', orders: 24, spent: 847.50, lastOrder: 'il y a 2j', tier: 'Gold', joinedAt: 'Jan 2024', status: 'active' },
   { id: 'c2', name: 'Pierre Dubois', email: 'pierre.d@email.com', phone: '+33 6 55 44 33 22', orders: 8, spent: 234.80, lastOrder: 'il y a 5j', tier: 'Silver', joinedAt: 'Mar 2024', status: 'active' },
   { id: 'c3', name: 'Sophie Martin', email: 'sophie.m@email.com', phone: '+33 6 77 88 99 11', orders: 51, spent: 1823.40, lastOrder: 'il y a 1j', tier: 'Platinum', joinedAt: 'Oct 2023', status: 'active' },
@@ -86,6 +88,14 @@ const TIER_CONFIG: Record<Tier, { color: string; bg: string; dot: string; varian
   Platinum: { color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20', dot: 'bg-purple-500', variant: 'info' },
 };
 
+// Static feature chips per customer (demo)
+const FEATURE_CHIPS = [
+  { label: 'App mobile', icon: Smartphone, color: 'bg-blue-50 text-blue-700' },
+  { label: 'Livraisons',  icon: Truck,      color: 'bg-orange-50 text-orange-700' },
+  { label: 'Caisse',      icon: Monitor,    color: 'bg-purple-50 text-purple-700' },
+  { label: 'Fidélité',    icon: Gift,       color: 'bg-green-50 text-[#15803d]' },
+];
+
 function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -106,6 +116,21 @@ function TierBadge({ tier }: { tier: Tier }) {
       <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
       {tier}
     </span>
+  );
+}
+
+// ── Feature chips strip ───────────────────────────────────────────────────────
+
+function FeatureChips() {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {FEATURE_CHIPS.map(({ label, icon: Icon, color }) => (
+        <span key={label} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${color}`}>
+          <Icon className="h-2.5 w-2.5" />
+          {label}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -237,13 +262,33 @@ function CustomerPanel({ customer, onClose }: { customer: Customer; onClose: () 
 
 export default function CustomersPage() {
   const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
+  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterOption>('Tous');
   const [showFilter, setShowFilter] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+  const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
+  const searchParams = useSearchParams();
+
+  // Scroll-to + highlight when ?id=X is present
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (!id) return;
+    setHighlightedId(id);
+    const timer = setTimeout(() => {
+      const el = rowRefs.current[id];
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 200);
+    const clearTimer = setTimeout(() => setHighlightedId(null), 2200);
+    return () => { clearTimeout(timer); clearTimeout(clearTimer); };
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
-    return CUSTOMERS.filter((c) => {
+    return customers.filter((c) => {
       const matchSearch =
         c.name.toLowerCase().includes(search.toLowerCase()) ||
         c.email.toLowerCase().includes(search.toLowerCase());
@@ -254,24 +299,124 @@ export default function CustomersPage() {
         (filter === 'VIP' && (c.tier === 'Gold' || c.tier === 'Platinum'));
       return matchSearch && matchFilter;
     });
-  }, [search, filter]);
+  }, [customers, search, filter]);
+
+  // ── CSV Import ──────────────────────────────────────────────────────────────
+  const handleCsvImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 2) return;
+      // First row = headers, rest = data
+      const headers = lines[0].split(',').map((h) => h.replace(/^"|"$/g, '').trim());
+      const parsed: Customer[] = lines.slice(1).map((line, idx) => {
+        const cols = line.split(',').map((c) => c.replace(/^"|"$/g, '').trim());
+        const get = (key: string) => cols[headers.indexOf(key)] ?? '';
+        return {
+          id: `imported-${Date.now()}-${idx}`,
+          name: get('name') || get('nom') || `Client ${idx + 1}`,
+          email: get('email') || '',
+          phone: get('phone') || get('téléphone') || '',
+          orders: parseInt(get('orders') || get('commandes') || '0', 10) || 0,
+          spent: parseFloat(get('spent') || get('dépensé') || '0') || 0,
+          lastOrder: get('lastOrder') || get('dernière commande') || 'N/A',
+          tier: (['Bronze', 'Silver', 'Gold', 'Platinum'].includes(get('tier')) ? get('tier') : 'Bronze') as Tier,
+          joinedAt: get('joinedAt') || get('inscrit') || '',
+          status: get('status') === 'inactive' ? 'inactive' : 'active',
+        };
+      });
+      setCustomers((prev) => [...prev, ...parsed]);
+    };
+    reader.readAsText(file);
+    // Reset so same file can be re-imported if needed
+    e.target.value = '';
+  }, []);
+
+  // ── CSV Export ──────────────────────────────────────────────────────────────
+  const handleExportCSV = useCallback(() => {
+    const headers = ['id', 'name', 'email', 'phone', 'orders', 'spent', 'lastOrder', 'tier', 'joinedAt', 'status'];
+    const rows = customers.map((c) =>
+      headers.map((h) => `"${String(c[h as keyof Customer]).replace(/"/g, '""')}"`).join(',')
+    );
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'clients-foodstack.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [customers]);
+
+  // ── PDF Export ──────────────────────────────────────────────────────────────
+  const handleExportPDF = useCallback(async () => {
+    const { jsPDF } = await import('jspdf');
+    const doc = new jsPDF();
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Liste des clients — FoodStack', 14, 20);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120);
+    doc.text(`Généré le ${dateStr}`, 14, 28);
+    doc.setTextColor(0);
+
+    let y = 38;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    const colX = [14, 60, 105, 130, 155, 180];
+    const colH = ['Nom', 'Email', 'Commandes', 'Dépensé', 'Tier', 'Statut'];
+    colH.forEach((h, i) => doc.text(h, colX[i], y));
+    y += 2;
+    doc.setLineWidth(0.3);
+    doc.line(14, y, 196, y);
+    y += 5;
+
+    doc.setFont('helvetica', 'normal');
+    customers.forEach((c) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.text(c.name.slice(0, 22), colX[0], y);
+      doc.text(c.email.slice(0, 22), colX[1], y);
+      doc.text(String(c.orders), colX[2], y);
+      doc.text(`${c.spent.toFixed(2)}€`, colX[3], y);
+      doc.text(c.tier, colX[4], y);
+      doc.text(c.status === 'active' ? 'Actif' : 'Inactif', colX[5], y);
+      y += 7;
+    });
+
+    doc.save('clients.pdf');
+  }, [customers]);
 
   const KPI = [
-    { label: 'Total clients', value: '1 247', icon: Users, color: 'text-brand-600', bg: 'bg-brand-50' },
+    { label: 'Total clients', value: customers.length.toLocaleString('fr-FR'), icon: Users, color: 'text-brand-600', bg: 'bg-brand-50' },
     { label: 'Nouveaux ce mois', value: '89', icon: UserCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20' },
-    { label: 'Clients actifs', value: '743', icon: TrendingUp, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+    { label: 'Clients actifs', value: String(customers.filter((c) => c.status === 'active').length), icon: TrendingUp, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: 'Valeur moy. commande', value: '34,50€', icon: CreditCard, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20' },
   ];
 
   return (
     <div ref={pageRef} className="space-y-6 p-6">
+      {/* Hidden CSV file input */}
+      <input
+        ref={csvInputRef}
+        type="file"
+        accept=".csv"
+        className="hidden"
+        onChange={handleCsvImport}
+      />
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-surface-900">Clients</h1>
-          <p className="mt-1 text-sm text-surface-500">{CUSTOMERS.length} clients enregistrés</p>
+          <p className="mt-1 text-sm text-surface-500">{customers.length} clients enregistrés</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400" />
@@ -315,6 +460,34 @@ export default function CustomersPage() {
               )}
             </AnimatePresence>
           </div>
+
+          {/* Import CSV */}
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
+          >
+            <Upload className="h-4 w-4 text-surface-400" />
+            Importer CSV
+          </button>
+
+          {/* Export CSV */}
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
+          >
+            <Download className="h-4 w-4 text-surface-400" />
+            Exporter CSV
+          </button>
+
+          {/* Export PDF */}
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+            style={{ backgroundColor: '#1EFF6A', color: '#000' }}
+          >
+            <FileText className="h-4 w-4" />
+            Exporter PDF
+          </button>
         </div>
       </div>
 
@@ -356,81 +529,93 @@ export default function CustomersPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-surface-100 text-left">
-                    {['Client', 'Téléphone', 'Commandes', 'Total dépensé', 'Dernière cmd', 'Tier', 'Statut', ''].map((h) => (
+                    {['Client', 'Téléphone', 'Commandes', 'Total dépensé', 'Dernière cmd', 'Tier', 'Statut', 'Modules', ''].map((h) => (
                       <th key={h} className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-surface-50">
                   <AnimatePresence mode="popLayout">
-                    {filtered.map((customer) => (
-                      <motion.tr
-                        key={customer.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setSelected(selected?.id === customer.id ? null : customer)}
-                        className={`cursor-pointer transition-colors hover:bg-surface-50 ${selected?.id === customer.id ? 'bg-brand-50/50' : ''}`}
-                      >
-                        {/* Avatar + Name/Email */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <CustomerAvatar name={customer.name} tier={customer.tier} />
-                            <div>
-                              <p className="font-medium text-surface-900 whitespace-nowrap">{customer.name}</p>
-                              <p className="text-xs text-surface-400">{customer.email}</p>
+                    {filtered.map((customer) => {
+                      const isHighlighted = highlightedId === customer.id;
+                      return (
+                        <motion.tr
+                          key={customer.id}
+                          ref={(el) => { rowRefs.current[customer.id] = el; }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setSelected(selected?.id === customer.id ? null : customer)}
+                          className={`cursor-pointer transition-all hover:bg-surface-50 ${
+                            selected?.id === customer.id ? 'bg-brand-50/50' : ''
+                          } ${isHighlighted ? 'ring-2 ring-inset ring-[#1EFF6A]' : ''}`}
+                          style={isHighlighted ? { borderColor: '#1EFF6A' } : {}}
+                        >
+                          {/* Avatar + Name/Email */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <CustomerAvatar name={customer.name} tier={customer.tier} />
+                              <div>
+                                <p className="font-medium text-surface-900 whitespace-nowrap">{customer.name}</p>
+                                <p className="text-xs text-surface-400">{customer.email}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
+                          </td>
 
-                        {/* Phone */}
-                        <td className="px-6 py-4 text-sm text-surface-600 whitespace-nowrap">{customer.phone}</td>
+                          {/* Phone */}
+                          <td className="px-6 py-4 text-sm text-surface-600 whitespace-nowrap">{customer.phone}</td>
 
-                        {/* Orders */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <ShoppingBag className="h-3.5 w-3.5 text-surface-400" />
-                            <span className="font-semibold text-surface-900">{customer.orders}</span>
-                          </div>
-                        </td>
+                          {/* Orders */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-1.5">
+                              <ShoppingBag className="h-3.5 w-3.5 text-surface-400" />
+                              <span className="font-semibold text-surface-900">{customer.orders}</span>
+                            </div>
+                          </td>
 
-                        {/* Spent */}
-                        <td className="px-6 py-4">
-                          <span className="font-semibold text-surface-900">{customer.spent.toFixed(2).replace('.', ',')}€</span>
-                        </td>
+                          {/* Spent */}
+                          <td className="px-6 py-4">
+                            <span className="font-semibold text-surface-900">{customer.spent.toFixed(2).replace('.', ',')}€</span>
+                          </td>
 
-                        {/* Last order */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="h-3 w-3 text-surface-400" />
-                            <span className="text-surface-600 whitespace-nowrap">{customer.lastOrder}</span>
-                          </div>
-                        </td>
+                          {/* Last order */}
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-3 w-3 text-surface-400" />
+                              <span className="text-surface-600 whitespace-nowrap">{customer.lastOrder}</span>
+                            </div>
+                          </td>
 
-                        {/* Tier */}
-                        <td className="px-6 py-4">
-                          <TierBadge tier={customer.tier} />
-                        </td>
+                          {/* Tier */}
+                          <td className="px-6 py-4">
+                            <TierBadge tier={customer.tier} />
+                          </td>
 
-                        {/* Status */}
-                        <td className="px-6 py-4">
-                          <Badge variant={customer.status === 'active' ? 'success' : 'default'} dot>
-                            {customer.status === 'active' ? 'Actif' : 'Inactif'}
-                          </Badge>
-                        </td>
+                          {/* Status */}
+                          <td className="px-6 py-4">
+                            <Badge variant={customer.status === 'active' ? 'success' : 'default'} dot>
+                              {customer.status === 'active' ? 'Actif' : 'Inactif'}
+                            </Badge>
+                          </td>
 
-                        {/* Action */}
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); }}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200 text-surface-400 hover:bg-surface-50 hover:text-brand-500 transition-colors"
-                            aria-label={`Envoyer email à ${customer.name}`}
-                          >
-                            <Mail className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </motion.tr>
-                    ))}
+                          {/* Feature chips */}
+                          <td className="px-6 py-4">
+                            <FeatureChips />
+                          </td>
+
+                          {/* Action */}
+                          <td className="px-6 py-4">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); }}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-surface-200 text-surface-400 hover:bg-surface-50 hover:text-brand-500 transition-colors"
+                              aria-label={`Envoyer email à ${customer.name}`}
+                            >
+                              <Mail className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
                   </AnimatePresence>
                 </tbody>
               </table>
