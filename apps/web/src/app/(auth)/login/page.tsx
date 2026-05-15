@@ -9,11 +9,19 @@ import { createClient } from '@/lib/supabase';
 
 // Demo accounts — bypass Supabase when these credentials are used
 const DEMO_ACCOUNTS = [
-  { email: 'admin@foodstack.app',  password: 'Admin1234!',    role: 'admin',    label: '👑 Super Admin',       redirect: '/dashboard' },
-  { email: 'owner@lecomptoir.fr',  password: 'Owner1234!',    role: 'owner',    label: '🍽️ Restaurant Owner',  redirect: '/dashboard' },
+  { email: 'admin@foodstack.app',  password: 'Admin1234!',    role: 'admin',    label: '👑 Super Admin',       redirect: '/admin' },
+  { email: 'owner@lecomptoir.fr',  password: 'Owner1234!',    role: 'owner',    label: '🍽️ Restaurateur',     redirect: '/dashboard' },
   { email: 'staff@lecomptoir.fr',  password: 'Staff1234!',    role: 'staff',    label: '👷 Staff',             redirect: '/dashboard' },
   { email: 'driver@foodstack.app', password: 'Driver1234!',   role: 'driver',   label: '🛵 Livreur',           redirect: '/dashboard' },
   { email: 'client@exemple.fr',    password: 'Customer1234!', role: 'customer', label: '🛒 Client',            redirect: '/menu' },
+] as const;
+
+const DEMO_QUICK = [
+  { role: 'admin',    label: '👑 Super Admin',   redirect: '/admin',     color: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200' },
+  { role: 'owner',    label: '🍽️ Restaurateur',  redirect: '/dashboard', color: 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200' },
+  { role: 'staff',    label: '👷 Staff',          redirect: '/dashboard', color: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200' },
+  { role: 'driver',   label: '🛵 Livreur',        redirect: '/dashboard', color: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200' },
+  { role: 'customer', label: '🛒 Client',         redirect: '/menu',      color: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' },
 ] as const;
 
 function setDemoCookie(role: string) {
@@ -225,6 +233,29 @@ export default function LoginPage() {
               S&apos;inscrire gratuitement
             </Link>
           </p>
+
+          {/* Quick demo section */}
+          <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-4">
+            <p className="mb-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-400">
+              Se connecter en démo
+            </p>
+            <div className="flex flex-col gap-2">
+              {DEMO_QUICK.map((d) => (
+                <button
+                  key={d.role}
+                  onClick={() => {
+                    setDemoCookie(d.role);
+                    toast.success(`Connecté en tant que ${d.label}`);
+                    router.push(d.redirect);
+                    router.refresh();
+                  }}
+                  className={`w-full rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${d.color}`}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
