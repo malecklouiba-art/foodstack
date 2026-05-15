@@ -38,10 +38,91 @@ const EMOJI_BG: Record<string, string> = {
   all: 'bg-gray-100',
 };
 
+type MenuItem = typeof menuItems[0];
+
+function ItemDetailModal({ item, onClose, onAdd }: { item: MenuItem; onClose: () => void; onAdd: (item: MenuItem, qty: number) => void }) {
+  const [qty, setQty] = useState(1);
+  const emoji = categories.find(c => c.id === item.category)?.emoji ?? '🍽️';
+  const bg = EMOJI_BG[item.category];
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="w-full max-w-2xl rounded-t-3xl bg-white pb-safe"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Image area */}
+          <div className={`flex h-48 items-center justify-center rounded-t-3xl text-7xl ${bg}`}>
+            {emoji}
+          </div>
+
+          <div className="p-5">
+            {/* Tags */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {item.tags.map(tag => (
+                <span key={tag} className="rounded-full bg-brand-100 px-2.5 py-1 text-xs font-medium text-brand-600">{tag}</span>
+              ))}
+              {item.allergens.map(a => (
+                <span key={a} className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-600">⚠️ {a}</span>
+              ))}
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-900">{item.name}</h2>
+            <p className="mt-1 text-sm text-gray-500">{item.description}</p>
+
+            {/* Meta */}
+            <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
+              <span className="flex items-center gap-1">
+                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+                <span className="font-semibold text-gray-700">{item.rating}</span>
+                <span>({item.reviewCount} avis)</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                {item.prepTime} min
+              </span>
+              {item.calories && (
+                <span>{item.calories} kcal</span>
+              )}
+            </div>
+
+            {/* Qty + Add */}
+            <div className="mt-5 flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-gray-200 px-4 py-2">
+                <button onClick={() => setQty(q => Math.max(1, q - 1))} className="h-7 w-7 flex items-center justify-center rounded-full bg-gray-100 text-lg font-bold text-gray-700">−</button>
+                <span className="w-5 text-center font-bold text-gray-900">{qty}</span>
+                <button onClick={() => setQty(q => q + 1)} className="h-7 w-7 flex items-center justify-center rounded-full bg-brand-500 text-white font-bold">+</button>
+              </div>
+              <button
+                onClick={() => { onAdd(item, qty); onClose(); }}
+                className="flex-1 rounded-2xl bg-brand-500 py-3 text-sm font-bold text-white shadow-md shadow-brand active:scale-[0.98] transition-transform"
+              >
+                Ajouter · {(item.price * qty).toFixed(2)}€
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export default function MenuPage() {
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState('all');
   const [cartOpen, setCartOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const { items, addItem, total } = useCartStore();
   const cartCount = items.reduce((a, i) => a + i.quantity, 0);
 
@@ -49,8 +130,10 @@ export default function MenuPage() {
     .filter((item) => (cat === 'all' || item.category === cat) &&
       (!search || item.name.toLowerCase().includes(search.toLowerCase())));
 
-  const handleAdd = (item: typeof menuItems[0]) => {
-    addItem({ id: `${item.menuItemId}-${Date.now()}`, menuItemId: item.menuItemId, restaurantId: item.restaurantId, name: item.name, price: item.price });
+  const handleAdd = (item: MenuItem, qty = 1) => {
+    for (let i = 0; i < qty; i++) {
+      addItem({ id: `${item.menuItemId}-${Date.now()}-${i}`, menuItemId: item.menuItemId, restaurantId: item.restaurantId, name: item.name, price: item.price });
+    }
   };
 
   return (
@@ -157,7 +240,8 @@ export default function MenuPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.97 }}
                   transition={{ delay: i * 0.04 }}
-                  className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm"
+                  className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
+                  onClick={() => setSelectedItem(item)}
                 >
                   {/* Food emoji placeholder */}
                   <div className={`flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-xl text-4xl ${EMOJI_BG[item.category]}`}>
@@ -190,7 +274,7 @@ export default function MenuPage() {
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-gray-900">{item.price.toFixed(2)}€</span>
                         <button
-                          onClick={() => handleAdd(item)}
+                          onClick={(e) => { e.stopPropagation(); handleAdd(item); }}
                           className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm shadow-brand active:scale-95 transition-transform"
                         >
                           <Plus className="h-4 w-4" />
@@ -227,6 +311,14 @@ export default function MenuPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {selectedItem && (
+        <ItemDetailModal
+          item={selectedItem}
+          onClose={() => setSelectedItem(null)}
+          onAdd={handleAdd}
+        />
+      )}
 
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
