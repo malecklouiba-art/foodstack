@@ -266,9 +266,6 @@ export default function PaymentsPage() {
                 <p className="text-sm font-semibold text-surface-900">****4521</p>
               </div>
             </div>
-            <button className="rounded-xl bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 active:scale-95">
-              Demander un virement
-            </button>
           </div>
         </div>
       </Card>

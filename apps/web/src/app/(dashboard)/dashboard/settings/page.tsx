@@ -508,9 +508,6 @@ function PaiementsTab() {
             <p className="text-xs text-surface-400 mt-0.5">IBAN</p>
           </div>
         </div>
-        <button className="mt-4 w-full rounded-xl border border-brand-200 bg-brand-50 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-100 transition-colors">
-          Demander un virement anticipé
-        </button>
       </div>
 
       <div className="flex justify-end">

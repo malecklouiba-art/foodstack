@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   UtensilsCrossed,
   ShoppingBag,
-  Package,
   Truck,
   Users,
   UserCog,
@@ -32,35 +31,37 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+type Role = 'admin' | 'owner' | 'staff' | 'driver' | 'customer';
+
 interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
   badge?: number;
   section?: string;
+  roles: Role[];
 }
 
+// Role × page matrix from FoodStack spec
 const navItems: NavItem[] = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard, section: 'Général' },
-  { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingBag, badge: 5, section: 'Général' },
-  { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed, section: 'Gestion' },
-  { href: '/dashboard/inventory', label: 'Inventaire', icon: Package, section: 'Gestion' },
-  { href: '/dashboard/delivery', label: 'Livraisons', icon: Truck, badge: 2, section: 'Gestion' },
-  { href: '/dashboard/drivers', label: 'Livreurs', icon: Bike, section: 'Gestion' },
-  { href: '/dashboard/suppliers', label: 'Fournisseurs', icon: Package, section: 'Gestion' },
-  { href: '/dashboard/zones', label: 'Zones livraison', icon: MapPin, section: 'Gestion' },
-  { href: '/dashboard/staff', label: 'Employés', icon: UserCog, section: 'Gestion' },
-  { href: '/dashboard/coupons', label: 'Codes Promo', icon: Tag, section: 'Gestion' },
-  { href: '/dashboard/tables', label: 'Tables', icon: TableIcon, section: 'Gestion' },
-  { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration' },
-  { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration' },
-  { href: '/dashboard/loyalty', label: 'Fidélité', icon: Star, section: 'Administration' },
-  { href: '/dashboard/payments', label: 'Paiements', icon: CreditCard, section: 'Administration' },
-  { href: '/pos', label: 'Caisse POS', icon: ShoppingCart, section: 'Gestion' },
-  { href: '/dashboard/kiosk', label: 'Borne de commande', icon: Monitor, section: 'Gestion' },
-  { href: '/dashboard/qrcodes', label: 'QR Codes', icon: QrCode, section: 'Gestion' },
-  { href: '/dashboard/analytics', label: 'Analytiques', icon: BarChart3, section: 'Rapports' },
-  { href: '/dashboard/settings', label: 'Paramètres', icon: Settings, section: 'Rapports' },
+  { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard, section: 'Général', roles: ['admin', 'owner', 'staff'] },
+  { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingBag, badge: 5, section: 'Général', roles: ['admin', 'owner', 'staff'] },
+  { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
+  { href: '/dashboard/delivery', label: 'Livraisons', icon: Truck, badge: 2, section: 'Gestion', roles: ['admin', 'owner', 'staff', 'driver'] },
+  { href: '/dashboard/drivers', label: 'Livreurs', icon: Bike, section: 'Gestion', roles: ['admin', 'owner', 'driver'] },
+  { href: '/dashboard/zones', label: 'Zones livraison', icon: MapPin, section: 'Gestion', roles: ['admin', 'owner'] },
+  { href: '/dashboard/staff', label: 'Employés', icon: UserCog, section: 'Gestion', roles: ['admin', 'owner'] },
+  { href: '/dashboard/coupons', label: 'Codes Promo', icon: Tag, section: 'Gestion', roles: ['admin', 'owner'] },
+  { href: '/dashboard/tables', label: 'Tables', icon: TableIcon, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
+  { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration', roles: ['admin', 'owner'] },
+  { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration', roles: ['admin', 'owner'] },
+  { href: '/dashboard/loyalty', label: 'Fidélité', icon: Star, section: 'Administration', roles: ['owner'] },
+  { href: '/dashboard/payments', label: 'Paiements', icon: CreditCard, section: 'Administration', roles: ['admin', 'owner'] },
+  { href: '/pos', label: 'Caisse POS', icon: ShoppingCart, section: 'Gestion', roles: ['owner', 'staff'] },
+  { href: '/dashboard/kiosk', label: 'Borne de commande', icon: Monitor, section: 'Gestion', roles: ['admin', 'owner'] },
+  { href: '/dashboard/qrcodes', label: 'QR Codes', icon: QrCode, section: 'Gestion', roles: ['owner'] },
+  { href: '/dashboard/analytics', label: 'Analytiques', icon: BarChart3, section: 'Rapports', roles: ['admin', 'owner'] },
+  { href: '/dashboard/settings', label: 'Paramètres', icon: Settings, section: 'Rapports', roles: ['admin', 'owner'] },
 ];
 
 const DEMO_ACCOUNTS = [
@@ -127,7 +128,9 @@ export function Sidebar() {
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
-  const sections = [...new Set(navItems.map((i) => i.section))];
+  const role = (currentRole ?? 'owner') as Role;
+  const visibleItems = navItems.filter((i) => i.roles.includes(role));
+  const sections = [...new Set(visibleItems.map((i) => i.section))];
 
   return (
     <aside
@@ -162,7 +165,7 @@ export function Sidebar() {
               </p>
             )}
             <div className="space-y-0.5">
-              {navItems
+              {visibleItems
                 .filter((i) => i.section === section)
                 .map((item) => (
                   <Link
