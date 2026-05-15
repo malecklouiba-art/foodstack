@@ -7,13 +7,14 @@ import {
   Upload, Save, Check, X, ChevronRight, MapPin,
   AlertCircle, CheckCircle, Plus, Trash2, Edit2,
   Building2, RefreshCw, Shield, Eye, EyeOff,
+  Printer, CreditCard as TPEIcon, Bluetooth, Wifi, Usb,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
-type TabId = 'general' | 'horaires' | 'notifications' | 'livraison' | 'paiements' | 'equipe';
+type TabId = 'general' | 'horaires' | 'notifications' | 'livraison' | 'paiements' | 'equipe' | 'peripheriques';
 
 interface DaySchedule {
   open: boolean;
@@ -37,6 +38,7 @@ const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'livraison',     label: 'Livraison',      icon: Truck      },
   { id: 'paiements',     label: 'Paiements',      icon: CreditCard },
   { id: 'equipe',        label: 'Équipe',         icon: Users      },
+  { id: 'peripheriques', label: 'Périphériques',  icon: Printer    },
 ];
 
 // ── Initial state ──────────────────────────────────────────────────────────────
@@ -751,6 +753,136 @@ function EquipeTab() {
   );
 }
 
+// ── Périphériques tab ─────────────────────────────────────────────────────────
+
+type ConnType = 'bluetooth' | 'wifi' | 'usb';
+interface Device { id: string; name: string; model: string; conn: ConnType; status: 'connected' | 'disconnected'; }
+
+const CONN_ICONS: Record<ConnType, React.ElementType> = { bluetooth: Bluetooth, wifi: Wifi, usb: Usb };
+const CONN_LABEL: Record<ConnType, string> = { bluetooth: 'Bluetooth', wifi: 'Wi-Fi', usb: 'USB' };
+
+function PeripheriquesTab() {
+  const [printers, setPrinters] = useState<Device[]>([
+    { id: 'p1', name: 'Caisse principale', model: 'Epson TM-T20III', conn: 'usb', status: 'connected' },
+    { id: 'p2', name: 'Cuisine',           model: 'Star TSP143III',  conn: 'wifi', status: 'connected' },
+    { id: 'p3', name: 'Bar',               model: 'Bixolon SRP-350V',conn: 'bluetooth', status: 'disconnected' },
+  ]);
+  const [tpes, setTpes] = useState<Device[]>([
+    { id: 't1', name: 'Terminal 1', model: 'Ingenico Move 5000', conn: 'bluetooth', status: 'connected' },
+    { id: 't2', name: 'Terminal 2', model: 'Verifone V400m',     conn: 'wifi',      status: 'disconnected' },
+  ]);
+  const [showAddPrinter, setShowAddPrinter] = useState(false);
+  const [showAddTPE, setShowAddTPE] = useState(false);
+  const [addForm, setAddForm] = useState({ name: '', model: '', conn: 'usb' as ConnType });
+
+  function testConnection(id: string, list: Device[], setList: React.Dispatch<React.SetStateAction<Device[]>>) {
+    setList(prev => prev.map(d => d.id === id ? { ...d, status: 'connected' } : d));
+    import('react-hot-toast').then(({ default: toast }) => toast.success('Connexion établie'));
+  }
+
+  function DeviceList({ devices, setDevices, type }: { devices: Device[]; setDevices: React.Dispatch<React.SetStateAction<Device[]>>; type: string }) {
+    return (
+      <div className="space-y-3">
+        {devices.map(d => {
+          const ConnIcon = CONN_ICONS[d.conn];
+          return (
+            <div key={d.id} className="flex items-center gap-4 rounded-xl border border-surface-200 bg-white p-4">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${type === 'printer' ? 'bg-blue-50' : 'bg-purple-50'}`}>
+                {type === 'printer' ? <Printer className="h-5 w-5 text-blue-600" /> : <TPEIcon className="h-5 w-5 text-purple-600" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-surface-900">{d.name}</p>
+                <p className="text-xs text-surface-500">{d.model}</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <ConnIcon className="h-3 w-3 text-surface-400" />
+                  <span className="text-xs text-surface-500">{CONN_LABEL[d.conn]}</span>
+                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${d.status === 'connected' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${d.status === 'connected' ? 'bg-green-500' : 'bg-red-500'}`} />
+                    {d.status === 'connected' ? 'Connecté' : 'Déconnecté'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => testConnection(d.id, devices, setDevices)}
+                  className="rounded-lg border border-surface-200 bg-white px-3 py-1.5 text-xs font-medium text-surface-700 hover:bg-surface-50 transition-colors"
+                >
+                  Test
+                </button>
+                <button
+                  onClick={() => setDevices(prev => prev.filter(x => x.id !== d.id))}
+                  className="rounded-lg p-1.5 text-red-400 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function AddModal({ onAdd, onClose, type }: { onAdd: (d: Device) => void; onClose: () => void; type: string }) {
+    const [form, setForm] = useState({ name: '', model: '', conn: 'usb' as ConnType });
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+        <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl" onClick={e => e.stopPropagation()}>
+          <h3 className="mb-4 text-base font-bold text-surface-900">Ajouter {type === 'printer' ? 'une imprimante' : 'un TPE'}</h3>
+          <div className="space-y-3">
+            <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Nom du périphérique" className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
+            <input value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} placeholder="Modèle" className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none" />
+            <select value={form.conn} onChange={e => setForm(f => ({ ...f, conn: e.target.value as ConnType }))} className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none">
+              <option value="usb">USB</option>
+              <option value="bluetooth">Bluetooth</option>
+              <option value="wifi">Wi-Fi</option>
+            </select>
+          </div>
+          <div className="mt-4 flex justify-end gap-3">
+            <button onClick={onClose} className="rounded-xl border border-surface-200 px-4 py-2 text-sm font-medium text-surface-700 hover:bg-surface-50">Annuler</button>
+            <button onClick={() => { if (form.name) { onAdd({ id: Date.now().toString(), ...form, status: 'disconnected' }); onClose(); } }} className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-black hover:bg-brand-600">Ajouter</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Printers */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-surface-900">Imprimantes</h3>
+            <p className="text-xs text-surface-500 mt-0.5">Gestion des imprimantes tickets et cuisine</p>
+          </div>
+          <button onClick={() => setShowAddPrinter(true)} className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-black hover:bg-brand-600 transition-colors">
+            <Plus className="h-4 w-4" /> Ajouter
+          </button>
+        </div>
+        <DeviceList devices={printers} setDevices={setPrinters} type="printer" />
+      </div>
+
+      {/* TPEs */}
+      <div>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-surface-900">Terminaux de paiement (TPE)</h3>
+            <p className="text-xs text-surface-500 mt-0.5">Connexion Bluetooth / Wi-Fi aux terminaux bancaires</p>
+          </div>
+          <button onClick={() => setShowAddTPE(true)} className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-black hover:bg-brand-600 transition-colors">
+            <Plus className="h-4 w-4" /> Ajouter
+          </button>
+        </div>
+        <DeviceList devices={tpes} setDevices={setTpes} type="tpe" />
+      </div>
+
+      {showAddPrinter && <AddModal type="printer" onAdd={d => setPrinters(p => [...p, d])} onClose={() => setShowAddPrinter(false)} />}
+      {showAddTPE && <AddModal type="tpe" onAdd={d => setTpes(t => [...t, d])} onClose={() => setShowAddTPE(false)} />}
+    </div>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -764,6 +896,7 @@ export default function SettingsPage() {
       case 'livraison':     return <LivraisonTab />;
       case 'paiements':     return <PaiementsTab />;
       case 'equipe':        return <EquipeTab />;
+      case 'peripheriques': return <PeripheriquesTab />;
     }
   }
 
