@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ShoppingBag, ChevronRight, Search, Filter,
   MapPin, Clock, Star, RotateCcw, Eye,
@@ -9,11 +10,13 @@ import {
   CreditCard, Smartphone, Coins,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { useCartStore } from '@/store/cart';
 import type { Order, OrderStatus } from '@foodstack/shared';
 
 // ── Mock data ──────────────────────────────────────────────────────────────
@@ -110,6 +113,8 @@ function formatTime(d: Date) {
 type FilterStatus = OrderStatus | 'all';
 
 export default function OrdersPage() {
+  const router = useRouter();
+  const { addItem, clearCart } = useCartStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [selected, setSelected] = useState<Order | null>(null);
@@ -124,6 +129,17 @@ export default function OrdersPage() {
 
   const total = ORDERS.reduce((sum, o) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
   const points = ORDERS.reduce((sum, o) => sum + o.loyaltyPointsEarned, 0);
+
+  function reorder(order: Order) {
+    clearCart();
+    order.items.forEach((item, idx) => {
+      for (let q = 0; q < item.quantity; q++) {
+        addItem({ id: `reorder-${item.menuItemId}-${idx}-${q}`, menuItemId: item.menuItemId, restaurantId: order.restaurantId, name: item.name, price: item.price });
+      }
+    });
+    toast.success('Panier rempli avec votre commande !');
+    router.push('/checkout');
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -257,7 +273,7 @@ export default function OrdersPage() {
                           </div>
                           {rated[order.id] && <span className="text-xs text-green-600 font-medium">Merci !</span>}
                           <div className="ml-auto">
-                            <Button size="sm" variant="ghost" icon={<RotateCcw className="h-3.5 w-3.5" />}>
+                            <Button size="sm" variant="ghost" icon={<RotateCcw className="h-3.5 w-3.5" />} onClick={() => reorder(order)}>
                               Recommander
                             </Button>
                           </div>
@@ -351,7 +367,7 @@ export default function OrdersPage() {
                 <Button variant="ghost" fullWidth icon={<Star className="h-4 w-4" />}>
                   Laisser un avis
                 </Button>
-                <Button variant="primary" fullWidth icon={<RotateCcw className="h-4 w-4" />}>
+                <Button variant="primary" fullWidth icon={<RotateCcw className="h-4 w-4" />} onClick={() => { reorder(selected); setSelected(null); }}>
                   Recommander
                 </Button>
               </div>
