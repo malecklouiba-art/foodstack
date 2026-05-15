@@ -104,6 +104,8 @@ model User {
   loyaltyTx        LoyaltyTransaction[]
   reviews          Review[]
   addresses        SavedAddress[]
+  driver           Driver?
+  notifications    Notification[]
 
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -173,6 +175,9 @@ model Restaurant {
   promotions  Promotion[]
   reviews     Review[]
   coupons     Coupon[]
+  drivers     Driver[]
+  tables      RestaurantTable[]
+  subscription Subscription?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -499,4 +504,83 @@ model Coupon {
   updatedAt     DateTime   @updatedAt
 
   @@map("coupons")
+}
+
+model Driver {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id])
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  vehicleType  String    @default("bike") // "bike" | "scooter" | "car"
+  vehiclePlate String?
+  latitude     Float?
+  longitude    Float?
+  isAvailable  Boolean   @default(true)
+  isOnline     Boolean   @default(false)
+  totalDeliveries Int    @default(0)
+  rating       Float     @default(5.0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("drivers")
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  type       String   // "order_new" | "order_status" | "low_stock" | "promo" | "system"
+  title      String
+  body       String
+  read       Boolean  @default(false)
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model RestaurantTable {
+  id           String   @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  number       Int
+  capacity     Int      @default(4)
+  section      String   @default("Salle principale")
+  status       String   @default("free") // "free" | "occupied" | "reserved" | "cleaning"
+  qrCode       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([restaurantId, number])
+  @@map("restaurant_tables")
+}
+
+model Subscription {
+  id           String    @id @default(cuid())
+  restaurantId String    @unique
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  plan         String    @default("starter") // "starter" | "pro" | "enterprise"
+  status       String    @default("active") // "active" | "suspended" | "cancelled"
+  stripeSubId  String?
+  currentPeriodEnd DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("subscriptions")
 }

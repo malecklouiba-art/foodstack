@@ -15,6 +15,8 @@ import { DatabaseModule } from './database/database.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { CouponsModule } from './modules/coupons/coupons.module';
+import { DriversModule } from './modules/drivers/drivers.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { CouponsModule } from './modules/coupons/coupons.module';
     AnalyticsModule,
     NotificationsModule,
     CouponsModule,
+    DriversModule,
+    SuperAdminModule,
   ],
 })
 export class AppModule {}
