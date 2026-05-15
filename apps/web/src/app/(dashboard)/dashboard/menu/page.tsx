@@ -404,19 +404,19 @@ function StorePreview({ categories, items, onClose }: StorePreviewProps) {
       className="fixed inset-0 z-50 flex flex-col bg-surface-50"
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-surface-200 bg-white px-6 py-4">
+      <div className="flex items-center justify-between border-b border-surface-200 bg-white px-6 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 shadow-brand">
             <UtensilsCrossed className="h-5 w-5 text-white" />
           </div>
           <div>
             <p className="text-sm font-bold text-surface-900">Le Restaurant</p>
-            <p className="text-xs text-surface-500">Aperçu boutique · vue client</p>
+            <p className="text-xs text-surface-400">Aperçu boutique · vue client</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-full bg-surface-100 px-3 py-1.5 text-xs font-medium text-surface-700 sm:flex">
-            <span className="h-2 w-2 rounded-full bg-brand-500" />
+          <div className="hidden items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 sm:flex">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
             Ouvert · livraison 20-30 min
           </div>
           <button
@@ -430,83 +430,129 @@ function StorePreview({ categories, items, onClose }: StorePreviewProps) {
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Mobile-frame style centered */}
-        <div className="flex flex-1 justify-center overflow-y-auto">
-          <div className="w-full max-w-3xl px-6 py-6">
-            {/* Hero */}
-            <div className="relative mb-6 h-44 overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-emerald-600">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.25),transparent_60%)]" />
-              <div className="relative flex h-full flex-col justify-end p-6">
-                <h2 className="text-2xl font-bold text-white">Notre carte</h2>
-                <p className="mt-1 text-sm text-white/85">
-                  {items.length} articles · cuisine maison
-                </p>
+        {/* Centered content pane */}
+        <div className="flex flex-1 justify-center overflow-y-auto bg-surface-50">
+          <div className="w-full max-w-2xl px-4 py-6 sm:px-6">
+
+            {/* Restaurant hero banner */}
+            <div className="relative mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-surface-900 via-surface-800 to-surface-900">
+              {/* decorative gradient blob */}
+              <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-brand-500/20 blur-3xl" />
+              <div className="relative flex items-end justify-between p-6">
+                <div>
+                  <div className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-brand-500/20 px-2.5 py-1 text-xs font-semibold text-brand-400">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-400" />
+                    Ouvert maintenant
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Le Restaurant</h2>
+                  <p className="mt-1 text-sm text-white/60">
+                    {items.length} articles · Livraison 20-30 min · Min. 12€
+                  </p>
+                </div>
+                <div className="hidden flex-col items-end gap-1 sm:flex">
+                  <div className="flex items-center gap-1 text-yellow-400">
+                    <Star className="h-4 w-4 fill-yellow-400" />
+                    <span className="text-sm font-bold text-white">4.8</span>
+                  </div>
+                  <span className="text-xs text-white/50">200+ avis</span>
+                </div>
               </div>
             </div>
 
             {/* Category tabs */}
-            <div className="sticky top-0 -mx-6 mb-5 bg-surface-50/95 px-6 py-2 backdrop-blur">
-              <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="sticky top-0 -mx-4 mb-4 border-b border-surface-200 bg-surface-50/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6">
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setActiveCat(cat.id)}
-                    className={`flex-shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-all ${
+                    className={`flex-shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
                       activeCat === cat.id
                         ? 'bg-surface-900 text-white shadow-sm'
-                        : 'bg-white text-surface-600 hover:bg-surface-100'
+                        : 'bg-white text-surface-600 border border-surface-200 hover:border-surface-300 hover:bg-surface-50'
                     }`}
                   >
                     {cat.name}
+                    <span className={`ml-1.5 text-[10px] font-medium ${activeCat === cat.id ? 'text-white/60' : 'text-surface-400'}`}>
+                      {items.filter((i) => i.categoryId === cat.id).length}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Items */}
-            <div className="space-y-3 pb-24">
+            {/* Category heading */}
+            <div className="mb-3">
+              <h3 className="text-base font-bold text-surface-900">
+                {categories.find((c) => c.id === activeCat)?.name ?? ''}
+              </h3>
+              <p className="text-xs text-surface-400">
+                {categories.find((c) => c.id === activeCat)?.description ?? ''}
+              </p>
+            </div>
+
+            {/* Items list */}
+            <div className="space-y-3 pb-28">
               {visibleItems.length === 0 ? (
-                <div className="flex h-32 items-center justify-center rounded-2xl bg-white text-sm text-surface-500">
-                  Aucun article disponible.
+                <div className="flex h-32 flex-col items-center justify-center gap-2 rounded-2xl bg-white text-sm text-surface-500 shadow-sm">
+                  <UtensilsCrossed className="h-8 w-8 text-surface-300" />
+                  Aucun article disponible dans cette catégorie.
                 </div>
               ) : (
                 visibleItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex gap-4 overflow-hidden rounded-2xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                    className="flex gap-4 overflow-hidden rounded-2xl bg-white p-4 shadow-sm ring-1 ring-surface-100 transition-all hover:shadow-md hover:ring-surface-200"
                   >
+                    {/* Text */}
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate font-semibold text-surface-900">{item.name}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-surface-900">{item.name}</p>
                         {item.isFeatured && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-yellow-700">
-                            <Star className="h-2.5 w-2.5" /> Top
+                            <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" /> Populaire
                           </span>
                         )}
+                        {item.dietaryTags.includes('vegan') && (
+                          <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">Vegan</span>
+                        )}
+                        {item.dietaryTags.includes('vegetarian') && !item.dietaryTags.includes('vegan') && (
+                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-bold text-green-700">Végé</span>
+                        )}
                       </div>
-                      <p className="mt-1 line-clamp-2 text-sm text-surface-500">
+                      <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-surface-500">
                         {item.description}
                       </p>
-                      <div className="mt-2 flex items-center gap-3 text-xs text-surface-500">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {item.prepTime} min
-                        </span>
+                      {/* Meta row */}
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-surface-400">
+                        {item.prepTime > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {item.prepTime} min
+                          </span>
+                        )}
                         {item.calories && (
                           <span className="flex items-center gap-1">
                             <Flame className="h-3 w-3" />
                             {item.calories} kcal
                           </span>
                         )}
-                        {item.dietaryTags.includes('vegetarian') && (
-                          <span className="flex items-center gap-1 text-emerald-600">
-                            <Leaf className="h-3 w-3" /> Végé
+                        {item.rating && (
+                          <span className="flex items-center gap-1 text-yellow-500">
+                            <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                            {item.rating} ({item.reviewCount})
+                          </span>
+                        )}
+                        {item.allergens.length > 0 && (
+                          <span className="text-surface-300">
+                            Allergènes : {item.allergens.slice(0, 2).join(', ')}{item.allergens.length > 2 ? '…' : ''}
                           </span>
                         )}
                       </div>
+                      {/* Price + CTA */}
                       <div className="mt-3 flex items-center justify-between">
                         <div className="flex items-baseline gap-2">
-                          <span className="font-bold text-surface-900">
+                          <span className="text-base font-bold text-surface-900">
                             {item.price.toFixed(2)}€
                           </span>
                           {item.compareAtPrice && (
@@ -514,17 +560,24 @@ function StorePreview({ categories, items, onClose }: StorePreviewProps) {
                               {item.compareAtPrice.toFixed(2)}€
                             </span>
                           )}
+                          {item.compareAtPrice && (
+                            <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-600">
+                              -{Math.round((1 - item.price / item.compareAtPrice) * 100)}%
+                            </span>
+                          )}
                         </div>
                         <button
                           onClick={() => addToCart(item.id)}
-                          className="flex items-center gap-1.5 rounded-full bg-brand-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-brand-600 active:scale-95"
+                          className="flex items-center gap-1.5 rounded-full bg-brand-500 px-4 py-2 text-xs font-bold text-white shadow-brand transition-all hover:bg-brand-600 active:scale-95"
                         >
                           <Plus className="h-3.5 w-3.5" />
                           Ajouter
+                          {cart[item.id] ? ` (${cart[item.id]})` : ''}
                         </button>
                       </div>
                     </div>
-                    <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-surface-100 to-surface-200">
+                    {/* Image */}
+                    <div className="relative h-28 w-28 flex-shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-surface-100 to-surface-200">
                       {item.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -534,7 +587,12 @@ function StorePreview({ categories, items, onClose }: StorePreviewProps) {
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center">
-                          <UtensilsCrossed className="h-7 w-7 text-surface-300" />
+                          <UtensilsCrossed className="h-8 w-8 text-surface-300" />
+                        </div>
+                      )}
+                      {item.compareAtPrice && (
+                        <div className="absolute left-1 top-1 rounded-full bg-red-500 px-1 py-0.5 text-[9px] font-bold text-white">
+                          Promo
                         </div>
                       )}
                     </div>
@@ -547,26 +605,38 @@ function StorePreview({ categories, items, onClose }: StorePreviewProps) {
       </div>
 
       {/* Sticky cart bar */}
-      {cartCount > 0 && (
-        <motion.div
-          initial={{ y: 60, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-4"
-        >
-          <div className="pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-full bg-surface-900 px-5 py-3 text-white shadow-xl">
-            <div className="flex items-center gap-3">
-              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-brand-500">
-                <ShoppingBag className="h-4 w-4 text-white" />
-                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-surface-900">
-                  {cartCount}
-                </span>
+      <AnimatePresence>
+        {cartCount > 0 && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center px-4"
+          >
+            <div className="pointer-events-auto flex w-full max-w-lg items-center justify-between gap-3 rounded-2xl bg-surface-900 px-5 py-3.5 text-white shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 shadow-brand">
+                  <ShoppingBag className="h-4.5 w-4.5 text-white" />
+                  <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-surface-900 shadow">
+                    {cartCount}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold">Voir le panier</p>
+                  <p className="text-[11px] text-white/50">{cartCount} article{cartCount > 1 ? 's' : ''} sélectionné{cartCount > 1 ? 's' : ''}</p>
+                </div>
               </div>
-              <span className="text-sm font-medium">Voir le panier</span>
+              <div className="flex items-center gap-3">
+                <span className="text-lg font-bold">{cartTotal.toFixed(2)}€</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/10">
+                  <ChevronRight className="h-4 w-4 text-white" />
+                </div>
+              </div>
             </div>
-            <span className="font-bold">{cartTotal.toFixed(2)}€</span>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

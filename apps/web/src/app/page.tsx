@@ -18,6 +18,7 @@ import {
   Zap,
   Users,
   ChevronDown,
+  MonitorSmartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -79,6 +80,13 @@ const features = [
     bg: 'bg-teal-50',
   },
   {
+    icon: MonitorSmartphone,
+    title: 'Kiosque Client',
+    description: 'Borne de commande libre-service élégante — les clients commandent et paient de façon autonome, sans file d\'attente.',
+    color: 'text-cyan-500',
+    bg: 'bg-cyan-50',
+  },
+  {
     icon: Zap,
     title: 'Notifications Instant.',
     description: 'Alertes push en temps réel pour les nouvelles commandes, stocks bas et statuts de livraison.',
@@ -126,6 +134,7 @@ const pricingPlans = [
       'Gestion du menu',
       'Rapports basiques',
       'Support email',
+      'Application kiosque (1 borne)',
     ],
     cta: 'Démarrer',
     highlighted: false,
@@ -136,6 +145,7 @@ const pricingPlans = [
     description: 'Pour les restaurants en croissance',
     features: [
       'POS illimité',
+      'Kiosque client libre-service',
       'Livraison & tracking GPS',
       'Programme fidélité',
       'Gestion des stocks avancée',
@@ -254,13 +264,12 @@ export default function LandingPage() {
               </div>
 
               <h1 className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-6xl">
-                Gérez votre restaurant
-                <span className="block text-brand-500">sans effort</span>
-                tout-en-un
+                La plateforme tout-en-un
+                <span className="block text-brand-500">pour votre restaurant</span>
               </h1>
 
               <p className="mt-5 text-lg text-gray-500 leading-relaxed">
-                FoodStack unifie commandes en ligne, livraison GPS, gestion des stocks, programme fidélité et analytiques dans une seule plateforme. Rapide, fiable, garanti.
+                FoodStack unifie POS, kiosque client, commandes en ligne, livraison GPS, gestion des stocks, programme fidélité et analytiques dans une seule plateforme. Rapide, fiable, garanti.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -277,10 +286,14 @@ export default function LandingPage() {
                 </Link>
               </div>
 
-              <div className="mt-8 flex items-center gap-6">
+              <div className="mt-8 flex flex-wrap items-center gap-5">
                 <div className="flex items-center gap-1.5 text-sm text-gray-500">
                   <Truck className="h-4 w-4 text-brand-500" />
                   Livraison GPS live
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <MonitorSmartphone className="h-4 w-4 text-brand-500" />
+                  Kiosque libre-service
                 </div>
                 <div className="flex items-center gap-1.5 text-sm text-gray-500">
                   <Shield className="h-4 w-4 text-brand-500" />
@@ -294,29 +307,83 @@ export default function LandingPage() {
             </div>
 
             <div className="relative hidden lg:flex items-center justify-center">
-              <div className="relative rounded-3xl bg-gradient-to-br from-brand-500 to-brand-400 p-8 shadow-2xl shadow-brand">
-                <div className="grid grid-cols-2 gap-3">
-                  {['🍔 Burgers', '🍕 Pizzas', '🥗 Salades', '🍟 Frites', '🥤 Boissons', '🍮 Desserts'].map((cat) => (
-                    <div key={cat} className="flex items-center gap-2 rounded-2xl bg-white/20 px-3 py-2.5 text-sm font-medium text-white backdrop-blur-sm">
-                      {cat}
+              {/* Main dashboard mock */}
+              <div className="relative w-full max-w-sm rounded-3xl border border-surface-200 bg-white p-5 shadow-2xl">
+                {/* Mini topbar */}
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand">
+                      <span className="text-[10px] font-bold text-white">F</span>
+                    </div>
+                    <span className="text-xs font-bold text-surface-900">FoodStack</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-full bg-brand-50 px-2 py-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                    <span className="text-[10px] font-semibold text-brand-700">En direct</span>
+                  </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Commandes', value: '2 847', delta: '+12%', color: 'text-brand-600' },
+                    { label: 'CA du jour', value: '4 219€', delta: '+8%', color: 'text-blue-600' },
+                    { label: 'Livraisons', value: '143', delta: '+5%', color: 'text-purple-600' },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl bg-surface-50 p-2.5 text-center">
+                      <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+                      <p className="text-[9px] text-surface-400">{s.label}</p>
+                      <p className="text-[9px] font-semibold text-green-500">{s.delta}</p>
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 rounded-2xl bg-white p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-100 text-2xl">🍔</div>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-gray-900">Classic Smash Burger</p>
-                      <p className="text-xs text-gray-400">Le Comptoir Moderne · 12 min</p>
+
+                {/* Live orders */}
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-surface-400">Commandes récentes</p>
+                <div className="space-y-2">
+                  {[
+                    { id: '#2841', item: 'Classic Burger × 2', status: 'En préparation', statusColor: 'bg-yellow-100 text-yellow-700', time: '3 min' },
+                    { id: '#2840', item: 'Margherita + Tiramisu', status: 'Livraison', statusColor: 'bg-brand-50 text-brand-700', time: '12 min' },
+                    { id: '#2839', item: 'Truffle Burger × 1', status: 'Livré ✓', statusColor: 'bg-surface-100 text-surface-500', time: '28 min' },
+                  ].map((o) => (
+                    <div key={o.id} className="flex items-center gap-2.5 rounded-xl border border-surface-100 bg-white px-3 py-2">
+                      <span className="text-[10px] font-bold text-surface-400">{o.id}</span>
+                      <span className="flex-1 truncate text-xs font-medium text-surface-700">{o.item}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${o.statusColor}`}>{o.status}</span>
                     </div>
-                    <span className="font-bold text-brand-500">14.90€</span>
+                  ))}
+                </div>
+
+                {/* Mini chart bar */}
+                <div className="mt-4">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-surface-400">Ventes · 7 jours</p>
+                  <div className="flex items-end gap-1 h-10">
+                    {[40, 65, 55, 80, 70, 95, 100].map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 rounded-sm bg-brand-500/80 transition-all"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
-              <div className="absolute -bottom-4 -left-4 rounded-2xl bg-white px-4 py-3 shadow-lg">
-                <p className="text-xs text-gray-500">Commandes aujourd&apos;hui</p>
-                <p className="text-2xl font-bold text-gray-900">2 847</p>
-                <p className="text-xs text-green-500 font-medium">↑ 12% vs hier</p>
+
+              {/* Floating kiosk card */}
+              <div className="absolute -right-6 top-6 rounded-2xl bg-white px-3.5 py-3 shadow-lg border border-surface-100">
+                <p className="text-[10px] text-surface-400 mb-0.5">Kiosque #1</p>
+                <p className="text-sm font-bold text-surface-900">Actif</p>
+                <p className="text-[10px] text-brand-600 font-semibold">4 cmd / heure</p>
+              </div>
+
+              {/* Floating loyalty card */}
+              <div className="absolute -left-6 -bottom-4 rounded-2xl bg-white px-3.5 py-3 shadow-lg border border-surface-100">
+                <p className="text-[10px] text-surface-400 mb-0.5">Fidélité active</p>
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                  <p className="text-sm font-bold text-surface-900">1 243 pts</p>
+                </div>
+                <p className="text-[10px] text-green-500 font-semibold">Sophie M. · Or</p>
               </div>
             </div>
           </div>
