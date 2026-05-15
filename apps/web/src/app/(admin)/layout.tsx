@@ -11,6 +11,7 @@ import {
   Settings,
   LogOut,
   ShieldCheck,
+  ScrollText,
 } from 'lucide-react';
 
 interface NavItem {
@@ -24,6 +25,7 @@ const navItems: NavItem[] = [
   { href: '/admin/restaurants',   label: 'Restaurants',    icon: Store           },
   { href: '/admin/subscriptions', label: 'Abonnements',    icon: CreditCard      },
   { href: '/admin/monitoring',    label: 'Monitoring',     icon: Activity        },
+  { href: '/admin/audit-logs',    label: 'Audit logs',     icon: ScrollText      },
   { href: '/admin/config',        label: 'Configuration',  icon: Settings        },
 ];
 
