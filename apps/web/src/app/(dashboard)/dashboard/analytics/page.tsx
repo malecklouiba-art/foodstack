@@ -2,12 +2,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, Users, ShoppingBag, Euro, Download, FileSpreadsheet } from 'lucide-react';
+import {
+  TrendingUp, TrendingDown, Users, ShoppingBag, Euro,
+  Download, FileText, Store, CreditCard, BarChart2,
+} from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import type {} from 'jspdf-autotable';
@@ -45,7 +47,6 @@ const PIE_COLORS = ['#1EFF6A', '#42ff7b', '#70ff98', '#abffbe'];
 const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const HOURS = ['8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h'];
 
-// Peak at 12h Fri/Sat/Sun, dinner peak 19-20h
 const HEATMAP: Record<string, number[]> = {
   Lun: [2, 4, 18, 12,  8, 10, 14,  5],
   Mar: [1, 3, 20, 14,  9, 11, 16,  4],
@@ -66,7 +67,44 @@ const TOP_ITEMS = [
   { rank: 5, name: 'Limonade maison',    sold: 198, revenue: 594,  change: -4.5,  up: false },
 ];
 
-// ── Custom tooltip ─────────────────────────────────────────────────────────────
+// ── Platform (admin) mock data ─────────────────────────────────────────────────
+
+const PLATFORM_KPI = [
+  { title: 'CA Plateforme',           value: '248 600€', change: '+21.4%', positive: true,  icon: Euro,        iconBg: 'bg-green-50',   iconColor: 'text-green-600',   desc: 'Somme des abonnements' },
+  { title: 'Restaurants actifs',      value: '1 342',    change: '+8.3%',  positive: true,  icon: Store,       iconBg: 'bg-brand-50',   iconColor: 'text-brand-600',   desc: 'Abonnés actifs' },
+  { title: 'Clients consommateurs',   value: '84 210',   change: '+15.7%', positive: true,  icon: Users,       iconBg: 'bg-blue-50',    iconColor: 'text-blue-600',    desc: 'Utilisateurs finaux' },
+  { title: 'MRR',                     value: '62 150€',  change: '+11.2%', positive: true,  icon: CreditCard,  iconBg: 'bg-purple-50',  iconColor: 'text-purple-600',  desc: 'Monthly Recurring Revenue' },
+  { title: 'Croissance MoM',          value: '+11.2%',   change: 'vs mois préc.', positive: true, icon: BarChart2, iconBg: 'bg-orange-50', iconColor: 'text-orange-600', desc: 'Growth rate mensuel' },
+];
+
+// 12-month MRR data
+const MRR_DATA = [
+  { month: 'Jun 25', mrr: 38200 },
+  { month: 'Jul 25', mrr: 40500 },
+  { month: 'Aoû 25', mrr: 41800 },
+  { month: 'Sep 25', mrr: 43600 },
+  { month: 'Oct 25', mrr: 46200 },
+  { month: 'Nov 25', mrr: 48900 },
+  { month: 'Déc 25', mrr: 51400 },
+  { month: 'Jan 26', mrr: 54100 },
+  { month: 'Fév 26', mrr: 56800 },
+  { month: 'Mar 26', mrr: 58700 },
+  { month: 'Avr 26', mrr: 60300 },
+  { month: 'Mai 26', mrr: 62150 },
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function parseCookieRole(): string {
+  if (typeof document === 'undefined') return 'owner';
+  const match = document.cookie
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith('fs_demo='));
+  return match ? match.split('=')[1]?.trim() ?? 'owner' : 'owner';
+}
+
+// ── Custom tooltips ────────────────────────────────────────────────────────────
 
 function AreaTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
@@ -82,156 +120,184 @@ function AreaTooltip({ active, payload, label }: { active?: boolean; payload?: A
   );
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
-
-export default function AnalyticsPage() {
-  const [period, setPeriod] = useState(0);
-  const [showExportMenu, setShowExportMenu] = useState(false);
-  const exportMenuRef = useRef<HTMLDivElement>(null);
-  const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
-        setShowExportMenu(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleExportPDF = async () => {
-    setShowExportMenu(false);
-    const { default: jsPDF } = await import('jspdf');
-    const { default: autoTable } = await import('jspdf-autotable');
-    const doc = new jsPDF();
-    const periodLabel = PERIODS[period];
-    const dateStr = new Date().toLocaleDateString('fr-FR');
-
-    // Cover section
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Rapport Analytics FoodStack', 14, 22);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100);
-    doc.text(`Période : ${periodLabel}`, 14, 32);
-    doc.text(`Généré le ${dateStr}`, 14, 39);
-    doc.setTextColor(0);
-
-    // KPI summary table
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Indicateurs clés', 14, 52);
-
-    autoTable(doc, {
-      startY: 57,
-      head: [['Indicateur', 'Valeur', 'Évolution']],
-      body: KPI_CARDS.map((k) => [k.title, k.value, k.change]),
-      styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
-      didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 2) {
-          const val = data.cell.raw as string;
-          data.cell.styles.textColor = val.startsWith('+') ? [22, 163, 74] : [239, 68, 68];
-          data.cell.styles.fontStyle = 'bold';
-        }
-      },
-    });
-
-    const afterKpi = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
-    // Revenue by day table
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Chiffre d\'affaires par jour', 14, afterKpi);
-
-    autoTable(doc, {
-      startY: afterKpi + 5,
-      head: [['Jour', 'CA (€)', 'Objectif (€)', 'Atteint']],
-      body: REVENUE_DATA.map((d) => [
-        d.day,
-        d.revenue.toLocaleString('fr-FR'),
-        d.objectif.toLocaleString('fr-FR'),
-        d.revenue >= d.objectif ? 'Oui' : 'Non',
-      ]),
-      styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
-      didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 3) {
-          data.cell.styles.textColor = data.cell.raw === 'Oui' ? [22, 163, 74] : [239, 68, 68];
-          data.cell.styles.fontStyle = 'bold';
-        }
-      },
-    });
-
-    const afterRevenue = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
-
-    // Top items table
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Top 5 articles', 14, afterRevenue);
-
-    autoTable(doc, {
-      startY: afterRevenue + 5,
-      head: [['#', 'Article', 'Vendus', 'CA (€)', 'Évolution']],
-      body: TOP_ITEMS.map((item) => [
-        item.rank,
-        item.name,
-        item.sold,
-        item.revenue.toLocaleString('fr-FR'),
-        `${item.up ? '+' : ''}${item.change}%`,
-      ]),
-      styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
-      didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 4) {
-          const val = data.cell.raw as string;
-          data.cell.styles.textColor = val.startsWith('+') ? [22, 163, 74] : [239, 68, 68];
-          data.cell.styles.fontStyle = 'bold';
-        }
-      },
-    });
-
-    doc.save(`rapport-analytics-foodstack-${periodLabel}.pdf`);
-  };
-
-  const handleExportCSV = () => {
-    setShowExportMenu(false);
-    const periodLabel = PERIODS[period];
-
-    // KPI section
-    const kpiHeaders = ['Indicateur', 'Valeur', 'Évolution'];
-    const kpiRows = KPI_CARDS.map((k) => [k.title, k.value, k.change]);
-
-    // Revenue section
-    const revenueHeaders = ['Jour', 'CA (€)', 'Objectif (€)'];
-    const revenueRows = REVENUE_DATA.map((d) => [d.day, String(d.revenue), String(d.objectif)]);
-
-    const formatSection = (title: string, headers: string[], rows: string[][]) => {
-      const headerRow = headers.map((h) => `"${h}"`).join(',');
-      const dataRows = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','));
-      return [`"${title}"`, headerRow, ...dataRows].join('\n');
-    };
-
-    const csv = [
-      formatSection(`Analytics FoodStack — Période : ${periodLabel}`, kpiHeaders, kpiRows),
-      '',
-      formatSection('CA par jour', revenueHeaders, revenueRows),
-    ].join('\n');
-
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `analytics-foodstack-${periodLabel}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
+function MrrTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) {
+  if (!active || !payload?.length) return null;
   return (
-    <div ref={pageRef} className="space-y-6 p-6">
+    <div className="rounded-xl border border-surface-200 bg-white px-3 py-2 shadow-md">
+      <p className="mb-1 text-xs font-medium text-surface-500">{label}</p>
+      <p className="text-sm font-bold text-[#1EFF6A]">MRR: {payload[0].value.toLocaleString('fr-FR')}€</p>
+    </div>
+  );
+}
+
+// ── Admin view ─────────────────────────────────────────────────────────────────
+
+function AdminAnalytics({ onExportCSV, onExportPDF }: { onExportCSV: () => void; onExportPDF: () => void }) {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Analytique Plateforme FoodStack</h1>
+          <p className="mt-1 text-sm text-surface-500">Vue globale · Tous les restaurants et consommateurs</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onExportCSV}
+            className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
+          >
+            <Download className="h-4 w-4 text-surface-400" />
+            Exporter CSV
+          </button>
+          <button
+            onClick={onExportPDF}
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: '#1EFF6A', color: '#000' }}
+          >
+            <FileText className="h-4 w-4" />
+            Exporter PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Platform KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {PLATFORM_KPI.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div
+              key={kpi.title}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+              className="gsap-card"
+            >
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className={`mb-3 inline-flex rounded-xl p-2.5 ${kpi.iconBg}`}>
+                  <Icon className={`h-5 w-5 ${kpi.iconColor}`} />
+                </div>
+                <p className="text-xs font-medium text-surface-500">{kpi.title}</p>
+                <p className="mt-1 text-2xl font-bold text-surface-900">{kpi.value}</p>
+                <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${kpi.positive ? 'text-green-600' : 'text-red-500'}`}>
+                  {kpi.positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {kpi.change}
+                </p>
+                <p className="mt-0.5 text-[10px] text-surface-400">{kpi.desc}</p>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* 12-month MRR chart */}
+      <Card padding="lg" className="gsap-card">
+        <CardHeader>
+          <CardTitle>MRR — 12 derniers mois</CardTitle>
+          <span className="text-sm text-surface-400">Monthly Recurring Revenue</span>
+        </CardHeader>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={MRR_DATA} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+            <defs>
+              <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#1EFF6A" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#1EFF6A" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k€`} />
+            <Tooltip content={<MrrTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="mrr"
+              stroke="#1EFF6A"
+              strokeWidth={2.5}
+              fill="url(#mrrGrad)"
+              dot={{ fill: '#1EFF6A', r: 4, strokeWidth: 0 }}
+              activeDot={{ r: 6, fill: '#1EFF6A' }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+        <div className="mt-3 flex items-center gap-4 text-xs text-surface-500">
+          <div className="flex items-center gap-2">
+            <div className="h-0.5 w-6 rounded" style={{ backgroundColor: '#1EFF6A' }} />
+            <span>MRR (€)</span>
+          </div>
+          <span className="text-surface-400">·</span>
+          <span>Croissance juin 25 → mai 26 : <strong className="text-surface-700">+62.7%</strong></span>
+        </div>
+      </Card>
+
+      {/* Bottom row: subscriptions breakdown + growth */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <Card padding="lg" className="gsap-card">
+          <CardHeader>
+            <CardTitle>Répartition abonnements</CardTitle>
+          </CardHeader>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={[
+                { name: 'Starter',     value: 42 },
+                { name: 'Pro',         value: 35 },
+                { name: 'Enterprise',  value: 23 },
+              ]} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
+                {['#1EFF6A', '#42ff7b', '#abffbe'].map((c, i) => <Cell key={i} fill={c} />)}
+              </Pie>
+              <Tooltip formatter={(v: number) => [`${v}%`, '']} />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="mt-2 space-y-1.5">
+            {[['Starter', '42%', '#1EFF6A'], ['Pro', '35%', '#42ff7b'], ['Enterprise', '23%', '#abffbe']].map(([label, val, color]) => (
+              <div key={label} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-surface-600">{label}</span>
+                </div>
+                <span className="font-semibold text-surface-900">{val}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card padding="lg" className="gsap-card">
+          <CardHeader>
+            <CardTitle>Restaurants — top pays</CardTitle>
+          </CardHeader>
+          <div className="space-y-4 mt-1">
+            {[
+              { country: 'France',     count: 682, pct: 51 },
+              { country: 'Belgique',   count: 284, pct: 21 },
+              { country: 'Suisse',     count: 188, pct: 14 },
+              { country: 'Canada',     count: 108, pct: 8  },
+              { country: 'Autres',     count: 80,  pct: 6  },
+            ].map((r) => (
+              <div key={r.country}>
+                <div className="mb-1 flex justify-between text-sm">
+                  <span className="font-medium text-surface-800">{r.country}</span>
+                  <span className="text-surface-500">{r.count} restaurants</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-100">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${r.pct}%`, backgroundColor: '#1EFF6A' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ── Owner view (unchanged restaurant analytics) ────────────────────────────────
+
+function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF }: {
+  period: number;
+  setPeriod: (i: number) => void;
+  onExportCSV: () => void;
+  onExportPDF: () => void;
+}) {
+  return (
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -254,33 +320,21 @@ export default function AnalyticsPage() {
               </button>
             ))}
           </div>
-          <div className="relative" ref={exportMenuRef}>
-            <button
-              onClick={() => setShowExportMenu((v) => !v)}
-              className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2 text-sm font-medium text-surface-700 shadow-sm transition-colors hover:bg-surface-50"
-            >
-              <Download className="h-4 w-4" />
-              Exporter
-            </button>
-            {showExportMenu && (
-              <div className="absolute right-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl border border-surface-200 bg-white shadow-lg">
-                <button
-                  onClick={handleExportPDF}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50"
-                >
-                  <Download className="h-4 w-4 text-surface-400" />
-                  Exporter PDF
-                </button>
-                <button
-                  onClick={handleExportCSV}
-                  className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-surface-700 hover:bg-surface-50"
-                >
-                  <FileSpreadsheet className="h-4 w-4 text-surface-400" />
-                  Exporter CSV
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={onExportCSV}
+            className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
+          >
+            <Download className="h-4 w-4 text-surface-400" />
+            Exporter CSV
+          </button>
+          <button
+            onClick={onExportPDF}
+            className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors"
+            style={{ backgroundColor: '#1EFF6A', color: '#000' }}
+          >
+            <FileText className="h-4 w-4" />
+            Exporter PDF
+          </button>
         </div>
       </div>
 
@@ -503,9 +557,9 @@ export default function AnalyticsPage() {
           </CardHeader>
           <div className="space-y-5">
             {[
-              { label: 'Clients récurrents',      value: '67%',   bar: 67, color: 'bg-green-500',  desc: 'Ont commandé 2× ou plus' },
-              { label: 'Abandon de panier',        value: '23%',   bar: 23, color: 'bg-red-400',    desc: 'Panier non finalisé' },
-              { label: 'NPS Score',                value: '72',    bar: 72, color: 'bg-brand-500',   desc: 'Net Promoter Score' },
+              { label: 'Clients récurrents',      value: '67%', bar: 67, color: 'bg-green-500',  desc: 'Ont commandé 2× ou plus' },
+              { label: 'Abandon de panier',        value: '23%', bar: 23, color: 'bg-red-400',    desc: 'Panier non finalisé' },
+              { label: 'NPS Score',                value: '72',  bar: 72, color: 'bg-brand-500',   desc: 'Net Promoter Score' },
             ].map((metric) => (
               <div key={metric.label}>
                 <div className="mb-1 flex items-center justify-between text-sm">
@@ -529,6 +583,179 @@ export default function AnalyticsPage() {
           </div>
         </Card>
       </div>
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
+export default function AnalyticsPage() {
+  const [period, setPeriod] = useState(0);
+  const [role, setRole] = useState<string>('owner');
+  const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
+
+  // Detect role from cookie fs_demo
+  useEffect(() => {
+    setRole(parseCookieRole());
+  }, []);
+
+  // ── Export handlers ──────────────────────────────────────────────────────────
+
+  const handleExportPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF();
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+
+    if (role === 'admin') {
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Analytique Plateforme FoodStack', 14, 22);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100);
+      doc.text(`Généré le ${dateStr}`, 14, 32);
+      doc.setTextColor(0);
+
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text('KPIs Plateforme', 14, 46);
+
+      autoTable(doc, {
+        startY: 51,
+        head: [['Indicateur', 'Valeur', 'Évolution', 'Description']],
+        body: PLATFORM_KPI.map((k) => [k.title, k.value, k.change, k.desc]),
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      });
+
+      const afterY = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text('MRR — 12 mois', 14, afterY);
+
+      autoTable(doc, {
+        startY: afterY + 5,
+        head: [['Mois', 'MRR (€)']],
+        body: MRR_DATA.map((d) => [d.month, d.mrr.toLocaleString('fr-FR')]),
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      });
+
+      doc.save('analytique-plateforme-foodstack.pdf');
+    } else {
+      const periodLabel = PERIODS[period];
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Rapport Analytics FoodStack', 14, 22);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100);
+      doc.text(`Période : ${periodLabel}`, 14, 32);
+      doc.text(`Généré le ${dateStr}`, 14, 39);
+      doc.setTextColor(0);
+
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Indicateurs clés', 14, 52);
+
+      autoTable(doc, {
+        startY: 57,
+        head: [['Indicateur', 'Valeur', 'Évolution']],
+        body: KPI_CARDS.map((k) => [k.title, k.value, k.change]),
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.column.index === 2) {
+            const val = data.cell.raw as string;
+            data.cell.styles.textColor = val.startsWith('+') ? [22, 163, 74] : [239, 68, 68];
+            data.cell.styles.fontStyle = 'bold';
+          }
+        },
+      });
+
+      const afterKpi = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CA par jour', 14, afterKpi);
+
+      autoTable(doc, {
+        startY: afterKpi + 5,
+        head: [['Jour', 'CA (€)', 'Objectif (€)', 'Atteint']],
+        body: REVENUE_DATA.map((d) => [
+          d.day,
+          d.revenue.toLocaleString('fr-FR'),
+          d.objectif.toLocaleString('fr-FR'),
+          d.revenue >= d.objectif ? 'Oui' : 'Non',
+        ]),
+        styles: { fontSize: 10, cellPadding: 4 },
+        headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
+      });
+
+      doc.save(`rapport-analytics-foodstack-${periodLabel}.pdf`);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const formatSection = (title: string, headers: string[], rows: string[][]) => {
+      const headerRow = headers.map((h) => `"${h}"`).join(',');
+      const dataRows = rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','));
+      return [`"${title}"`, headerRow, ...dataRows].join('\n');
+    };
+
+    let csv: string;
+    let filename: string;
+
+    if (role === 'admin') {
+      const kpiSection = formatSection(
+        'KPIs Plateforme FoodStack',
+        ['Indicateur', 'Valeur', 'Évolution', 'Description'],
+        PLATFORM_KPI.map((k) => [k.title, k.value, k.change, k.desc]),
+      );
+      const mrrSection = formatSection(
+        'MRR 12 mois',
+        ['Mois', 'MRR (€)'],
+        MRR_DATA.map((d) => [d.month, String(d.mrr)]),
+      );
+      csv = [kpiSection, '', mrrSection].join('\n');
+      filename = 'analytique-plateforme-foodstack.csv';
+    } else {
+      const periodLabel = PERIODS[period];
+      const kpiSection = formatSection(
+        `Analytics FoodStack — Période : ${periodLabel}`,
+        ['Indicateur', 'Valeur', 'Évolution'],
+        KPI_CARDS.map((k) => [k.title, k.value, k.change]),
+      );
+      const revenueSection = formatSection(
+        'CA par jour',
+        ['Jour', 'CA (€)', 'Objectif (€)'],
+        REVENUE_DATA.map((d) => [d.day, String(d.revenue), String(d.objectif)]),
+      );
+      csv = [kpiSection, '', revenueSection].join('\n');
+      filename = `analytics-foodstack-${periodLabel}.csv`;
+    }
+
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div ref={pageRef} className="p-6">
+      {role === 'admin' ? (
+        <AdminAnalytics onExportCSV={handleExportCSV} onExportPDF={handleExportPDF} />
+      ) : (
+        <OwnerAnalytics
+          period={period}
+          setPeriod={setPeriod}
+          onExportCSV={handleExportCSV}
+          onExportPDF={handleExportPDF}
+        />
+      )}
     </div>
   );
 }
