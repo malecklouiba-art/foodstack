@@ -75,12 +75,23 @@ export default function ProfilePage() {
   const [editingAddr, setEditingAddr] = useState<Address | null>(null);
   const [addrForm, setAddrForm] = useState<Omit<Address, 'id'>>(EMPTY_ADDR);
   const [notifs, setNotifs] = useState({ orders: true, promotions: true, news: false });
+  const [dietPrefs, setDietPrefs] = useState<Record<DietPref, boolean>>({
+    gluten: false, vegetarien: false, vegan: false, lactose: false, halal: true, epice: false,
+  });
+  const [showAddrInlineForm, setShowAddrInlineForm] = useState(false);
+  const [inlineAddrForm, setInlineAddrForm] = useState<Omit<Address, 'id'>>(EMPTY_ADDR);
 
   const tier = TIER_CONFIG[user.loyaltyTier];
   const nextPoints = tier.nextPoints ?? 0;
   const progress = tier.nextPoints
     ? Math.min(100, Math.round((user.loyaltyPoints / nextPoints) * 100))
     : 100;
+  // Loyalty card: progress toward next reward (1000 pts)
+  const rewardProgress = Math.min(100, Math.round((user.loyaltyPoints / NEXT_REWARD.points) * 100));
+  const tierBadge =
+    user.loyaltyPoints >= 2500 ? { label: 'Gold', color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-200', dot: 'bg-yellow-400' } :
+    user.loyaltyPoints >= 500  ? { label: 'Silver', color: 'text-slate-600', bg: 'bg-slate-50 border-slate-200', dot: 'bg-slate-400' } :
+                                 { label: 'Bronze', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-400' };
 
   async function saveInfo() {
     setSaving(true);
@@ -117,6 +128,24 @@ export default function ProfilePage() {
 
   function setDefault(id: string) {
     setAddresses((as) => as.map((a) => ({ ...a, isDefault: a.id === id })));
+  }
+
+  function saveInlineAddr() {
+    if (!inlineAddrForm.label || !inlineAddrForm.street || !inlineAddrForm.city) return;
+    const id = `a-${Date.now()}`;
+    const newAddr = { id, ...inlineAddrForm };
+    setAddresses((as) =>
+      inlineAddrForm.isDefault
+        ? [...as.map((a) => ({ ...a, isDefault: false })), newAddr]
+        : [...as, newAddr]
+    );
+    setShowAddrInlineForm(false);
+    setInlineAddrForm(EMPTY_ADDR);
+    toast.success('Adresse ajoutée');
+  }
+
+  function toggleDiet(key: DietPref) {
+    setDietPrefs((d) => ({ ...d, [key]: !d[key] }));
   }
 
   return (
@@ -193,8 +222,48 @@ export default function ProfilePage() {
           ))}
         </motion.div>
 
-        {/* ── Personal info ─────────────────────────────────────────────── */}
+        {/* ── Loyalty card ──────────────────────────────────────────────── */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 text-brand-500" />
+              <h3 className="font-semibold text-gray-900">Carte de fidélité</h3>
+            </div>
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${tierBadge.bg} ${tierBadge.color}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${tierBadge.dot}`} />
+              {tierBadge.label}
+            </span>
+          </div>
+          <div className="px-5 py-4 space-y-3">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-3xl font-bold text-gray-900">{user.loyaltyPoints} <span className="text-base font-medium text-gray-400">pts</span></p>
+                <p className="text-xs text-gray-400 mt-0.5">Prochain récompense : <span className="font-semibold text-brand-600">{NEXT_REWARD.label}</span></p>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-gray-400">
+                <Award className="h-3.5 w-3.5" />
+                <span>{NEXT_REWARD.points - user.loyaltyPoints > 0 ? `${NEXT_REWARD.points - user.loyaltyPoints} pts restants` : 'Récompense disponible !'}</span>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-gray-400 mb-1.5">
+                <span>{user.loyaltyPoints} pts</span>
+                <span>{NEXT_REWARD.points} pts</span>
+              </div>
+              <div className="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-3 rounded-full bg-brand-500 transition-all duration-700"
+                  style={{ width: `${rewardProgress}%` }}
+                />
+              </div>
+              <p className="mt-1.5 text-right text-xs text-gray-400">{rewardProgress}%</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ── Personal info ─────────────────────────────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900">Informations personnelles</h3>
@@ -241,14 +310,17 @@ export default function ProfilePage() {
           </div>
         </motion.div>
 
-        {/* ── Addresses ─────────────────────────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+        {/* ── Mes adresses ──────────────────────────────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
           className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Adresses enregistrées</h3>
-            <Button size="sm" variant="ghost" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => openAddrModal()}>
-              Ajouter
-            </Button>
+            <h3 className="font-semibold text-gray-900">Mes adresses</h3>
+            {!showAddrInlineForm && (
+              <Button size="sm" variant="ghost" icon={<Plus className="h-3.5 w-3.5" />}
+                onClick={() => { setShowAddrInlineForm(true); setInlineAddrForm(EMPTY_ADDR); }}>
+                Ajouter une adresse
+              </Button>
+            )}
           </div>
           <div className="divide-y divide-gray-100">
             {addresses.map((addr) => (
@@ -266,7 +338,8 @@ export default function ProfilePage() {
                 <div className="flex gap-1">
                   {!addr.isDefault && (
                     <button onClick={() => setDefault(addr.id)}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-500 transition-colors text-xs">
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-500 transition-colors"
+                      title="Définir par défaut">
                       <Check className="h-3.5 w-3.5" />
                     </button>
                   )}
@@ -281,11 +354,90 @@ export default function ProfilePage() {
                 </div>
               </div>
             ))}
+
+            {/* Inline add form */}
+            <AnimatePresence>
+              {showAddrInlineForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-5 py-4 space-y-3 bg-gray-50 border-t border-gray-100">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Nouvelle adresse</p>
+                    <Input label="Libellé" required placeholder="Maison, Bureau…" value={inlineAddrForm.label}
+                      onChange={(e) => setInlineAddrForm((f) => ({ ...f, label: e.target.value }))} />
+                    <Input label="Rue" required placeholder="12 rue de la Paix" value={inlineAddrForm.street}
+                      onChange={(e) => setInlineAddrForm((f) => ({ ...f, street: e.target.value }))}
+                      leftIcon={<MapPin className="h-4 w-4" />} />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input label="Code postal" required placeholder="75001" value={inlineAddrForm.postalCode}
+                        onChange={(e) => setInlineAddrForm((f) => ({ ...f, postalCode: e.target.value }))} />
+                      <Input label="Ville" required placeholder="Paris" value={inlineAddrForm.city}
+                        onChange={(e) => setInlineAddrForm((f) => ({ ...f, city: e.target.value }))} />
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-3">
+                      <div
+                        onClick={() => setInlineAddrForm((f) => ({ ...f, isDefault: !f.isDefault }))}
+                        className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${inlineAddrForm.isDefault ? 'bg-brand-500' : 'bg-gray-200'}`}
+                      >
+                        <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${inlineAddrForm.isDefault ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">Adresse par défaut</span>
+                    </label>
+                    <div className="flex gap-2 pt-1">
+                      <Button variant="primary" onClick={saveInlineAddr}>Ajouter</Button>
+                      <Button variant="ghost" onClick={() => { setShowAddrInlineForm(false); setInlineAddrForm(EMPTY_ADDR); }}>Annuler</Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </motion.div>
+
+        {/* ── Préférences alimentaires ──────────────────────────────────── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+          className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="font-semibold text-gray-900">Préférences alimentaires</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Sélectionnez vos régimes et restrictions</p>
+          </div>
+          <div className="px-5 py-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {(Object.keys(DIET_LABELS) as DietPref[]).map((key) => (
+                <label
+                  key={key}
+                  className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-colors ${
+                    dietPrefs[key]
+                      ? 'border-brand-500 bg-brand-500/8 text-brand-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div
+                    onClick={() => toggleDiet(key)}
+                    className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border transition-colors ${
+                      dietPrefs[key] ? 'border-brand-500 bg-brand-500' : 'border-gray-300 bg-white'
+                    }`}
+                  >
+                    {dietPrefs[key] && <Check className="h-2.5 w-2.5 text-black" />}
+                  </div>
+                  <span onClick={() => toggleDiet(key)} className="text-sm font-medium leading-tight">{DIET_LABELS[key]}</span>
+                </label>
+              ))}
+            </div>
+            <button
+              onClick={() => toast.success('Préférences enregistrées')}
+              className="mt-4 w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-black hover:bg-brand-400 transition-colors"
+            >
+              Enregistrer les préférences
+            </button>
           </div>
         </motion.div>
 
         {/* ── Notifications ─────────────────────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
           className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900">Notifications</h3>
@@ -312,7 +464,7 @@ export default function ProfilePage() {
         </motion.div>
 
         {/* ── Security & Logout ─────────────────────────────────────────── */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
           className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
           <div className="divide-y divide-gray-100">
             <Link href="/auth/forgot-password" className="flex items-center gap-3 px-5 py-4 hover:bg-gray-50 transition-colors">
