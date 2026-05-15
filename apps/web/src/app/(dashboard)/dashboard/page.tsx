@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { motion } from 'framer-motion';
 import {
   ShoppingBag, Users, Euro, Truck, Star,
   ArrowUpRight, TrendingUp, Clock, Zap,
+  Building2, CreditCard, BarChart3, Percent,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -15,6 +16,10 @@ import { HourlyChart } from '@/components/dashboard/HourlyChart';
 import { LiveFeed, type FeedEvent } from '@/components/dashboard/LiveFeed';
 import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
 import { useRealtimeInventory, type InventoryEvent } from '@/hooks/useRealtimeInventory';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
 // ── KPI helpers ───────────────────────────────────────────────────────────────
 
@@ -58,9 +63,188 @@ const LIVE_ORDERS_INIT = [
   { id: 'ORD-8818', customer: 'Julien K.', items: 1, total: 16.90, status: 'confirmed', time: '18 min' },
 ];
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Super Admin data ──────────────────────────────────────────────────────────
 
-export default function DashboardPage() {
+const PLATFORM_MRR_DATA = [
+  { month: 'Juin',  mrr: 18200 },
+  { month: 'Juil',  mrr: 21400 },
+  { month: 'Août',  mrr: 19800 },
+  { month: 'Sep',   mrr: 24600 },
+  { month: 'Oct',   mrr: 27100 },
+  { month: 'Nov',   mrr: 29800 },
+  { month: 'Déc',   mrr: 32400 },
+  { month: 'Jan',   mrr: 30100 },
+  { month: 'Fév',   mrr: 33800 },
+  { month: 'Mar',   mrr: 37200 },
+  { month: 'Avr',   mrr: 41500 },
+  { month: 'Mai',   mrr: 45800 },
+];
+
+const PLATFORM_RESTAURANTS = [
+  { id: 'r1', name: 'Le Gourmet Bastille',   plan: 'Pro',       mrr: 299, status: 'actif',     joined: '2024-01-12' },
+  { id: 'r2', name: 'Sushi Marais',          plan: 'Starter',   mrr: 99,  status: 'actif',     joined: '2024-02-03' },
+  { id: 'r3', name: 'Pizza Nation',          plan: 'Pro',       mrr: 299, status: 'pause',     joined: '2024-03-17' },
+  { id: 'r4', name: 'Burger République',     plan: 'Business',  mrr: 599, status: 'actif',     joined: '2024-04-05' },
+  { id: 'r5', name: 'Crêperie Montmartre',   plan: 'Starter',   mrr: 99,  status: 'négociation',joined: '2025-05-01' },
+];
+
+const PLAN_COLORS: Record<string, string> = {
+  Starter:  'bg-gray-100 text-gray-700',
+  Pro:      'bg-brand-50 text-brand-700',
+  Business: 'bg-purple-50 text-purple-700',
+};
+const STATUS_COLORS: Record<string, string> = {
+  actif:       'bg-green-50 text-green-700',
+  pause:       'bg-amber-50 text-amber-700',
+  négociation: 'bg-blue-50 text-blue-700',
+  churned:     'bg-red-50 text-red-700',
+};
+
+// ── Super Admin Dashboard ─────────────────────────────────────────────────────
+
+function SuperAdminDashboard() {
+  const totalMRR = PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').reduce((s, r) => s + r.mrr, 0);
+  const activeRestaurants = PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').length;
+  const avgCommission = 12.4;
+  const totalClients = 14872;
+
+  const kpis = [
+    {
+      label: 'MRR Plateforme', value: `${totalMRR.toLocaleString('fr-FR')} €`,
+      sub: '+18% vs mois dernier', icon: Euro, iconBg: 'bg-brand-50', iconColor: 'text-brand-600',
+    },
+    {
+      label: 'Restaurants actifs', value: String(activeRestaurants),
+      sub: `${PLATFORM_RESTAURANTS.length} total`, icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-600',
+    },
+    {
+      label: 'Clients totaux', value: totalClients.toLocaleString('fr-FR'),
+      sub: '+234 ce mois', icon: Users, iconBg: 'bg-blue-50', iconColor: 'text-blue-600',
+    },
+    {
+      label: 'Commission moy.', value: `${avgCommission}%`,
+      sub: 'Par commande livrée', icon: Percent, iconBg: 'bg-purple-50', iconColor: 'text-purple-600',
+    },
+  ];
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Tableau de bord Super Admin — FoodStack</h1>
+          <p className="mt-1 text-sm text-surface-500">
+            Vue globale de la plateforme · {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-2">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+          <span className="text-sm font-medium text-brand-700">Plateforme en ligne</span>
+        </div>
+      </div>
+
+      {/* Platform KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{kpi.label}</p>
+                    <p className="mt-2 text-2xl font-bold text-surface-900">{kpi.value}</p>
+                    <p className="mt-1 text-xs text-surface-400">{kpi.sub}</p>
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${kpi.iconBg}`}>
+                    <Icon className={`h-5 w-5 ${kpi.iconColor}`} />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* 12-month MRR chart */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-brand-500" />
+            <CardTitle>Évolution du MRR — 12 derniers mois</CardTitle>
+          </div>
+        </CardHeader>
+        <div className="px-4 py-6">
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={PLATFORM_MRR_DATA} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#1EFF6A" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#1EFF6A" stopOpacity={0}    />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k€`} />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 13 }}
+                formatter={(v: number) => [`${v.toLocaleString('fr-FR')} €`, 'MRR']}
+              />
+              <Area type="monotone" dataKey="mrr" stroke="#1EFF6A" strokeWidth={2.5} fill="url(#mrrGrad)" dot={false} activeDot={{ r: 5, fill: '#1EFF6A' }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {/* Recent restaurant clients table */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-brand-500" />
+            <CardTitle>Derniers restaurants clients</CardTitle>
+          </div>
+          <span className="text-sm text-surface-400">5 plus récents</span>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-surface-100 text-left">
+                {['Restaurant', 'Plan', 'MRR', 'Statut', 'Rejoint'].map(h => (
+                  <th key={h} className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-50">
+              {PLATFORM_RESTAURANTS.map(r => (
+                <tr key={r.id} className="hover:bg-surface-50 transition-colors">
+                  <td className="px-6 py-4 font-medium text-surface-900">{r.name}</td>
+                  <td className="px-6 py-4">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PLAN_COLORS[r.plan] ?? 'bg-gray-100 text-gray-700'}`}>
+                      {r.plan}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 font-semibold text-surface-900">{r.mrr} €</td>
+                  <td className="px-6 py-4">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[r.status] ?? 'bg-gray-100 text-gray-700'}`}>
+                      {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-surface-500">
+                    {new Date(r.joined).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ── Restaurant Dashboard ──────────────────────────────────────────────────────
+
+function RestaurantDashboard() {
   const [ordersCount,    incOrders   ] = useCounter(BASE_STATS.orders);
   const [revenue,        incRevenue  ] = useCounter(BASE_STATS.revenue);
   const [deliveriesCount,incDeliveries] = useCounter(BASE_STATS.deliveries);
@@ -309,4 +493,34 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+// ── Cookie parser ─────────────────────────────────────────────────────────────
+
+function parseCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function DashboardPage() {
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const val = parseCookie('fs_demo');
+    setRole(val ?? 'restaurant');
+  }, []);
+
+  if (role === null) {
+    // Waiting for cookie parse — render nothing or a skeleton
+    return <div className="p-6 text-surface-400 text-sm">Chargement…</div>;
+  }
+
+  if (role === 'admin') {
+    return <SuperAdminDashboard />;
+  }
+
+  return <RestaurantDashboard />;
 }
