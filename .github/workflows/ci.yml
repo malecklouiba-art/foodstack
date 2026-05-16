@@ -30,21 +30,19 @@ jobs:
         run: npm run --workspace=@foodstack/database generate
 
       - name: Type check (shared)
-        run: npx tsc --noEmit -p packages/shared/tsconfig.json
+        run: npm run type-check --workspace=@foodstack/shared
 
       - name: Type check (api)
-        run: npx tsc --noEmit -p apps/api/tsconfig.json
+        run: npm run type-check --workspace=@foodstack/api
 
       - name: Type check (web)
-        run: npx tsc --noEmit -p apps/web/tsconfig.json
+        run: npm run type-check --workspace=@foodstack/web
 
       - name: Lint (api)
-        run: npx eslint src --ext .ts
-        working-directory: apps/api
+        run: npm run lint --workspace=@foodstack/api
 
       - name: Lint (web)
-        run: npx next lint
-        working-directory: apps/web
+        run: npm run lint --workspace=@foodstack/web
 
   test:
     name: Tests
