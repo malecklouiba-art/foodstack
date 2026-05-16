@@ -4,6 +4,27 @@ import type { NextRequest } from 'next/server';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/pos', '/orders', '/checkout'];
 
+// Pages driver role cannot access (admin/owner/staff only)
+const DRIVER_BLOCKED = [
+  '/dashboard/delivery',
+  '/dashboard/drivers',
+  '/dashboard/menu',
+  '/dashboard/orders',
+  '/dashboard/inventory',
+  '/dashboard/suppliers',
+  '/dashboard/staff',
+  '/dashboard/coupons',
+  '/dashboard/tables',
+  '/dashboard/restaurants',
+  '/dashboard/customers',
+  '/dashboard/loyalty',
+  '/dashboard/payments',
+  '/dashboard/analytics',
+  '/dashboard/zones',
+  '/dashboard/kiosk',
+  '/dashboard/qrcodes',
+];
+
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const path = req.nextUrl.pathname;
@@ -17,6 +38,10 @@ export async function middleware(req: NextRequest) {
   const demoCookie = req.cookies.get('fs_demo')?.value;
   if (demoCookie) {
     if (isAuthPage) return NextResponse.redirect(new URL('/dashboard', req.url));
+    // Driver role: block restricted pages
+    if (demoCookie === 'driver' && DRIVER_BLOCKED.some((p) => path.startsWith(p))) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
     return res;
   }
 
