@@ -351,6 +351,18 @@ export default function CustomersPage() {
     URL.revokeObjectURL(url);
   }, [customers]);
 
+  // ── Excel Export ─────────────────────────────────────────────────────────────
+  const handleExportXLSX = useCallback(async () => {
+    const XLSX = await import('xlsx');
+    const wb = XLSX.utils.book_new();
+    const headers = ['ID', 'Nom', 'Email', 'Téléphone', 'Commandes', 'Dépenses (€)', 'Dernière commande', 'Tier', 'Inscrit le', 'Statut'];
+    const rows = customers.map((c) => [c.id, c.name, c.email, c.phone, c.orders, c.spent, c.lastOrder, c.tier, c.joinedAt, c.status]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = headers.map((_, i) => ({ wch: [8, 20, 26, 14, 10, 12, 14, 10, 12, 10][i] ?? 14 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Clients');
+    XLSX.writeFile(wb, 'clients-foodstack.xlsx');
+  }, [customers]);
+
   // ── PDF Export ──────────────────────────────────────────────────────────────
   const handleExportPDF = useCallback(async () => {
     const { jsPDF } = await import('jspdf');
@@ -476,7 +488,16 @@ export default function CustomersPage() {
             className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
           >
             <Download className="h-4 w-4 text-surface-400" />
-            Exporter CSV
+            CSV
+          </button>
+
+          {/* Export Excel */}
+          <button
+            onClick={handleExportXLSX}
+            className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
+          >
+            <Download className="h-4 w-4 text-green-500" />
+            Excel
           </button>
 
           {/* Export PDF */}
