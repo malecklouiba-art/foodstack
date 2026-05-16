@@ -125,6 +125,42 @@ export default function ZonesPage() {
   const [zones, setZones] = useState<Zone[]>(INITIAL_ZONES);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editZone, setEditZone] = useState<Zone | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; feeEuros: string; radiusKm: string }>({
+    name: '', feeEuros: '', radiusKm: '',
+  });
+
+  function openEdit(zone: Zone) {
+    setEditZone(zone);
+    setEditForm({
+      name: zone.name,
+      feeEuros: zone.feeEuros.toString(),
+      radiusKm: zone.radiusKm.toString(),
+    });
+  }
+
+  function handleSaveEdit() {
+    if (!editZone) return;
+    const radiusKm = parseFloat(editForm.radiusKm) || editZone.radiusKm;
+    const feeEuros = parseFloat(editForm.feeEuros);
+    setZones((prev) =>
+      prev.map((z) =>
+        z.id === editZone.id
+          ? {
+              ...z,
+              name: editForm.name || z.name,
+              feeEuros: isNaN(feeEuros) ? z.feeEuros : feeEuros,
+              radiusKm,
+            }
+          : z,
+      ),
+    );
+    setEditZone(null);
+  }
+
+  function handleDeleteZone(id: string) {
+    setZones((prev) => prev.filter((z) => z.id !== id));
+    setEditZone(null);
+  }
   const [address, setAddress] = useState('42 rue de la Roquette, 75011 Paris');
   const [center, setCenter] = useState<[number, number]>([48.8566, 2.3522]);
   const [geocoding, setGeocoding] = useState(false);
@@ -292,8 +328,12 @@ export default function ZonesPage() {
               Carte des zones
             </h2>
           </div>
-          <div className="flex-1 p-3" style={{ minHeight: 340 }}>
-            <ZonesMap key={center.join(',')} zones={sortedZones} center={center} />
+          <div className="flex-1 p-3 relative isolate" style={{ minHeight: 340 }}>
+            <ZonesMap
+              key={`${center.join(',')}-${zones.filter((z) => z.active).map((z) => `${z.id}:${z.radiusKm}`).join('|')}`}
+              zones={sortedZones}
+              center={center}
+            />
           </div>
         </div>
 
@@ -341,7 +381,7 @@ export default function ZonesPage() {
                     />
                   </button>
                   <button
-                    onClick={() => setEditZone(zone)}
+                    onClick={() => openEdit(zone)}
                     className="rounded-lg p-1 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 hover:text-surface-600 dark:hover:text-surface-300 transition-colors"
                     aria-label="Modifier la zone"
                   >
@@ -571,16 +611,25 @@ export default function ZonesPage() {
         </div>
       </Modal>
 
-      {/* ── Edit Zone Modal (lightweight) ── */}
+      {/* ── Edit Zone Modal ── */}
       <Modal
         open={!!editZone}
         onClose={() => setEditZone(null)}
         title={editZone ? `Modifier — ${editZone.name}` : ''}
         size="sm"
         footer={
-          <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setEditZone(null)}>Fermer</Button>
-            <Button onClick={() => setEditZone(null)}>Enregistrer</Button>
+          <div className="flex w-full items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => editZone && handleDeleteZone(editZone.id)}
+              className="text-red-600 hover:bg-red-50"
+            >
+              Supprimer
+            </Button>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={() => setEditZone(null)}>Annuler</Button>
+              <Button onClick={handleSaveEdit}>Enregistrer</Button>
+            </div>
           </div>
         }
       >
@@ -588,20 +637,23 @@ export default function ZonesPage() {
           <div className="space-y-4">
             <Input
               label="Nom"
-              defaultValue={editZone.name}
+              value={editForm.name}
+              onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
               leftIcon={<MapPin className="h-4 w-4" />}
             />
             <div className="grid grid-cols-2 gap-3">
               <Input
                 label="Frais (€)"
                 type="number"
-                defaultValue={editZone.feeEuros.toString()}
+                value={editForm.feeEuros}
+                onChange={(e) => setEditForm((f) => ({ ...f, feeEuros: e.target.value }))}
                 leftIcon={<Euro className="h-4 w-4" />}
               />
               <Input
                 label="Rayon (km)"
                 type="number"
-                defaultValue={editZone.radiusKm.toString()}
+                value={editForm.radiusKm}
+                onChange={(e) => setEditForm((f) => ({ ...f, radiusKm: e.target.value }))}
               />
             </div>
           </div>
