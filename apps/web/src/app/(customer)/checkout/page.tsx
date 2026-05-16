@@ -118,7 +118,12 @@ export default function CheckoutPage() {
       await new Promise((r) => setTimeout(r, 1000));
       const orderId = `ORD-${Date.now()}`;
       clearCart();
-      toast.success('Commande passée avec succès !');
+      if (selectedSlot === 'schedule' && scheduledDate && scheduledTime) {
+        const dateLabel = new Date(scheduledDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        toast.success(`Commande programmée pour le ${dateLabel} à ${scheduledTime} !`);
+      } else {
+        toast.success('Commande passée avec succès !');
+      }
       router.push(`/orders/${orderId}/track`);
       setLoading(false);
     }

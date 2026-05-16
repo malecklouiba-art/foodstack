@@ -3,10 +3,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import {
   ShoppingBag, Users, Euro, Truck, Star,
   ArrowUpRight, TrendingUp, Clock, Zap,
   Building2, CreditCard, BarChart3, Percent,
+  Bike, MapPin, Navigation, CheckCircle2, XCircle, Package,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -495,6 +497,148 @@ function RestaurantDashboard() {
   );
 }
 
+// ── Driver Dashboard ──────────────────────────────────────────────────────────
+
+const DRIVER_ACTIVE_DELIVERY = {
+  id: 'DEL-441',
+  order: 'ORD-8821',
+  customer: 'Marie L.',
+  address: '12 rue de Rivoli, 75001 Paris',
+  pickupTime: '12:34',
+  eta: '12:56',
+  distance: '2.3 km',
+  status: 'delivering' as const,
+};
+
+const DRIVER_RECENT = [
+  { id: 'DEL-440', order: 'ORD-8820', customer: 'Pierre D.', distance: '1.8 km', time: '12:28', status: 'delivered' as const },
+  { id: 'DEL-439', order: 'ORD-8819', customer: 'Sophie M.', distance: '3.1 km', time: '12:05', status: 'delivered' as const },
+  { id: 'DEL-437', order: 'ORD-8817', customer: 'Emma R.',   distance: '1.5 km', time: '11:30', status: 'failed'    as const },
+  { id: 'DEL-436', order: 'ORD-8815', customer: 'Lucas B.',  distance: '2.7 km', time: '10:52', status: 'delivered' as const },
+];
+
+function DriverDashboard() {
+  const [online, setOnline] = useState(true);
+  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const kpis = [
+    { label: 'Livraisons', value: '8',       icon: Package,  color: 'text-brand-600',  bg: 'bg-brand-50'  },
+    { label: 'Km parcourus', value: '34 km', icon: MapPin,   color: 'text-blue-600',   bg: 'bg-blue-50'   },
+    { label: 'Gains',        value: '64 €',  icon: Euro,     color: 'text-green-600',  bg: 'bg-green-50'  },
+    { label: 'Note moy.',    value: '4.9★',  icon: Star,     color: 'text-yellow-600', bg: 'bg-yellow-50' },
+  ];
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Mon espace livreur</h1>
+          <p className="mt-1 text-sm text-surface-500 capitalize">{today}</p>
+        </div>
+        <button
+          onClick={() => setOnline((v) => !v)}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+            online ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <span className={`h-2 w-2 rounded-full ${online ? 'animate-pulse bg-green-500' : 'bg-gray-400'}`} />
+          {online ? 'En ligne' : 'Hors ligne'}
+        </button>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{kpi.label}</p>
+                    <p className="mt-2 text-2xl font-bold text-surface-900">{kpi.value}</p>
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${kpi.bg}`}>
+                    <Icon className={`h-5 w-5 ${kpi.color}`} />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Active delivery */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <Navigation className="h-4 w-4 text-brand-500" />
+            <CardTitle>Livraison en cours</CardTitle>
+          </div>
+        </CardHeader>
+        <div className="p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{DRIVER_ACTIVE_DELIVERY.order}</p>
+              <p className="text-lg font-bold text-surface-900">{DRIVER_ACTIVE_DELIVERY.address}</p>
+              <p className="text-sm text-surface-500">Client : {DRIVER_ACTIVE_DELIVERY.customer}</p>
+            </div>
+            <div className="flex gap-6 text-center">
+              <div>
+                <p className="text-2xl font-bold text-brand-600">{DRIVER_ACTIVE_DELIVERY.distance}</p>
+                <p className="text-xs text-surface-400">Distance</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-surface-900">{DRIVER_ACTIVE_DELIVERY.eta}</p>
+                <p className="text-xs text-surface-400">ETA</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 flex gap-3">
+            <Link href="/dashboard/delivery" className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-black hover:bg-brand-400 transition-colors">
+              <Navigation className="h-4 w-4" />
+              Voir sur la carte
+            </Link>
+          </div>
+        </div>
+      </Card>
+
+      {/* Recent deliveries */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <Bike className="h-4 w-4 text-brand-500" />
+            <CardTitle>Livraisons récentes</CardTitle>
+          </div>
+          <Link href="/dashboard/delivery" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+            Voir tout →
+          </Link>
+        </CardHeader>
+        <div className="divide-y divide-surface-50">
+          {DRIVER_RECENT.map((d) => (
+            <div key={d.id} className="flex items-center gap-4 px-6 py-4">
+              <div className={`rounded-xl p-2 ${d.status === 'delivered' ? 'bg-green-50' : 'bg-red-50'}`}>
+                {d.status === 'delivered'
+                  ? <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  : <XCircle className="h-4 w-4 text-red-500" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-surface-900">{d.order} — {d.customer}</p>
+                <p className="text-xs text-surface-400">{d.distance} · {d.time}</p>
+              </div>
+              <span className={`text-xs font-medium ${d.status === 'delivered' ? 'text-green-600' : 'text-red-500'}`}>
+                {d.status === 'delivered' ? 'Livrée' : 'Échouée'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 // ── Cookie parser ─────────────────────────────────────────────────────────────
 
 function parseCookie(name: string): string | null {
@@ -520,6 +664,10 @@ export default function DashboardPage() {
 
   if (role === 'admin') {
     return <SuperAdminDashboard />;
+  }
+
+  if (role === 'driver') {
+    return <DriverDashboard />;
   }
 
   return <RestaurantDashboard />;

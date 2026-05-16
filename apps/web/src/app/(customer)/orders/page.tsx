@@ -7,7 +7,7 @@ import {
   ShoppingBag, ChevronRight, Search, Filter,
   MapPin, Clock, Star, RotateCcw, Eye,
   CheckCircle2, Truck, XCircle, AlertCircle,
-  CreditCard, Smartphone, Coins, Calendar, X,
+  CreditCard, Smartphone, Coins, Calendar, X, Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -170,6 +170,47 @@ export default function OrdersPage() {
 
   const total = ORDERS.reduce((sum, o) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
   const points = ORDERS.reduce((sum, o) => sum + o.loyaltyPointsEarned, 0);
+
+  async function downloadInvoice(order: Order) {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+    const doc = new jsPDF();
+    const dateStr = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(order.createdAt);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.text('FACTURE', 20, 25);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`FoodStack — Restaurant`, 20, 35);
+    doc.text(`Commande : ${order.orderNumber}`, 20, 42);
+    doc.text(`Date : ${dateStr}`, 20, 49);
+    doc.text(`Mode : ${order.type === 'delivery' ? 'Livraison' : order.type === 'pickup' ? 'À emporter' : 'Sur place'}`, 20, 56);
+
+    if (order.deliveryAddress) {
+      doc.text(`Adresse : ${order.deliveryAddress.street}, ${order.deliveryAddress.postalCode} ${order.deliveryAddress.city}`, 20, 63);
+    }
+
+    autoTable(doc, {
+      startY: 72,
+      head: [['Article', 'Qté', 'Prix unit.', 'Total']],
+      body: order.items.map((i) => [i.name, i.quantity, `${i.price.toFixed(2)} €`, `${i.subtotal.toFixed(2)} €`]),
+      foot: [
+        ['', '', 'Sous-total', `${order.subtotal.toFixed(2)} €`],
+        ...(order.deliveryFee > 0 ? [['', '', 'Livraison', `${order.deliveryFee.toFixed(2)} €`]] : []),
+        ['', '', 'TVA', `${order.tax.toFixed(2)} €`],
+        ...(order.discount > 0 ? [['', '', 'Réduction', `-${order.discount.toFixed(2)} €`]] : []),
+        ['', '', 'TOTAL', `${order.total.toFixed(2)} €`],
+      ],
+      headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0] },
+      footStyles: { fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [248, 248, 248] },
+    });
+
+    doc.save(`facture-${order.orderNumber}.pdf`);
+    toast.success('Facture téléchargée');
+  }
 
   function cancelScheduled(id: string) {
     setScheduled((prev) => prev.map((s) => s.id === id ? { ...s, status: 'cancelled' as const } : s));
@@ -537,13 +578,23 @@ export default function OrdersPage() {
 
             {/* Actions */}
             {selected.status === 'delivered' && (
-              <div className="flex gap-3">
-                <Button variant="ghost" fullWidth icon={<Star className="h-4 w-4" />}>
-                  Laisser un avis
+              <div className="space-y-3">
+                <Button
+                  variant="ghost"
+                  fullWidth
+                  icon={<Download className="h-4 w-4" />}
+                  onClick={() => downloadInvoice(selected)}
+                >
+                  Télécharger la facture PDF
                 </Button>
-                <Button variant="primary" fullWidth icon={<RotateCcw className="h-4 w-4" />} onClick={() => { reorder(selected); setSelected(null); }}>
-                  Recommander
-                </Button>
+                <div className="flex gap-3">
+                  <Button variant="ghost" fullWidth icon={<Star className="h-4 w-4" />}>
+                    Laisser un avis
+                  </Button>
+                  <Button variant="primary" fullWidth icon={<RotateCcw className="h-4 w-4" />} onClick={() => { reorder(selected); setSelected(null); }}>
+                    Recommander
+                  </Button>
+                </div>
               </div>
             )}
             {selected.status === 'confirmed' || selected.status === 'pending' ? (
