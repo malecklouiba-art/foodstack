@@ -8,7 +8,7 @@ import {
   ShoppingBag, Users, Euro, Truck, Star,
   ArrowUpRight, TrendingUp, Clock, Zap,
   Building2, BarChart3, Percent,
-  Bike, MapPin, Navigation, CheckCircle2, XCircle, Package,
+  Bike, MapPin, Navigation, CheckCircle2, XCircle, Package, AlertCircle,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -517,8 +517,29 @@ const DRIVER_RECENT = [
   { id: 'DEL-436', order: 'ORD-8815', customer: 'Lucas B.',  distance: '2.7 km', time: '10:52', status: 'delivered' as const },
 ];
 
+type PendingOrder = {
+  id: string;
+  order: string;
+  customer: string;
+  address: string;
+  items: number;
+  total: number;
+  distance: string;
+  eta: string;
+  status: 'ready' | 'assigned';
+};
+
+const DRIVER_PENDING_INIT: PendingOrder[] = [
+  { id: 'DEL-442', order: 'ORD-8823', customer: 'Camille T.', address: '45 av. Montaigne, 75008 Paris',   items: 2, total: 34.50, distance: '1.4 km', eta: '13:15', status: 'ready'    },
+  { id: 'DEL-443', order: 'ORD-8824', customer: 'Nadia K.',   address: '8 rue du Temple, 75004 Paris',     items: 4, total: 58.90, distance: '2.9 km', eta: '13:30', status: 'assigned' },
+  { id: 'DEL-444', order: 'ORD-8825', customer: 'Adrien F.',  address: '23 bd Haussmann, 75009 Paris',     items: 1, total: 19.90, distance: '3.5 km', eta: '13:45', status: 'assigned' },
+];
+
 function DriverDashboard() {
   const [online, setOnline] = useState(true);
+  const [pending, setPending] = useState<PendingOrder[]>(DRIVER_PENDING_INIT);
+  const [activeDelivery, setActiveDelivery] = useState(DRIVER_ACTIVE_DELIVERY);
+  const [delivering, setDelivering] = useState(true);
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const kpis = [
@@ -527,6 +548,27 @@ function DriverDashboard() {
     { label: 'Gains',        value: '64 €',  icon: Euro,     color: 'text-green-600',  bg: 'bg-green-50'  },
     { label: 'Note moy.',    value: '4.9★',  icon: Star,     color: 'text-yellow-600', bg: 'bg-yellow-50' },
   ];
+
+  function handleMarkDelivered() {
+    setDelivering(false);
+  }
+
+  function handleTakeOrder(id: string) {
+    const order = pending.find(o => o.id === id);
+    if (!order) return;
+    setPending(prev => prev.filter(o => o.id !== id));
+    setActiveDelivery({
+      id: order.id,
+      order: order.order,
+      customer: order.customer,
+      address: order.address,
+      pickupTime: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      eta: order.eta,
+      distance: order.distance,
+      status: 'delivering',
+    });
+    setDelivering(true);
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -569,40 +611,108 @@ function DriverDashboard() {
         })}
       </div>
 
-      {/* Active delivery */}
+      {/* Pending orders to manage */}
       <Card padding="none">
         <CardHeader className="border-b border-surface-100 px-6 py-5">
           <div className="flex items-center gap-2">
-            <Navigation className="h-4 w-4 text-brand-500" />
-            <CardTitle>Livraison en cours</CardTitle>
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <CardTitle>Commandes à prendre en charge</CardTitle>
+            {pending.length > 0 && (
+              <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs font-bold text-amber-700">
+                {pending.length}
+              </span>
+            )}
           </div>
         </CardHeader>
-        <div className="p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{DRIVER_ACTIVE_DELIVERY.order}</p>
-              <p className="text-lg font-bold text-surface-900">{DRIVER_ACTIVE_DELIVERY.address}</p>
-              <p className="text-sm text-surface-500">Client : {DRIVER_ACTIVE_DELIVERY.customer}</p>
-            </div>
-            <div className="flex gap-6 text-center">
-              <div>
-                <p className="text-2xl font-bold text-brand-600">{DRIVER_ACTIVE_DELIVERY.distance}</p>
-                <p className="text-xs text-surface-400">Distance</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-surface-900">{DRIVER_ACTIVE_DELIVERY.eta}</p>
-                <p className="text-xs text-surface-400">ETA</p>
-              </div>
-            </div>
+        {pending.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-surface-400">
+            <CheckCircle2 className="mb-2 h-8 w-8 text-green-400" />
+            <p className="text-sm font-medium">Aucune commande en attente</p>
           </div>
-          <div className="mt-4 flex gap-3">
-            <Link href="/dashboard/delivery" className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-black hover:bg-brand-400 transition-colors">
-              <Navigation className="h-4 w-4" />
-              Voir sur la carte
-            </Link>
+        ) : (
+          <div className="divide-y divide-surface-50">
+            {pending.map((order) => (
+              <motion.div
+                key={order.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-4 px-6 py-4"
+              >
+                <div className={`rounded-xl p-2 ${order.status === 'ready' ? 'bg-brand-50' : 'bg-blue-50'}`}>
+                  <Package className={`h-4 w-4 ${order.status === 'ready' ? 'text-brand-600' : 'text-blue-600'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-surface-900">{order.order} — {order.customer}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${order.status === 'ready' ? 'bg-brand-50 text-brand-700' : 'bg-blue-50 text-blue-700'}`}>
+                      {order.status === 'ready' ? 'Prête' : 'Assignée'}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-surface-400 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />{order.address}
+                  </p>
+                  <p className="mt-0.5 text-xs text-surface-400">
+                    {order.items} article{order.items > 1 ? 's' : ''} · {order.total.toFixed(2)} € · {order.distance} · ETA {order.eta}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleTakeOrder(order.id)}
+                  disabled={delivering}
+                  className="flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-black hover:bg-brand-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  <Navigation className="h-3.5 w-3.5" />
+                  Prendre
+                </button>
+              </motion.div>
+            ))}
           </div>
-        </div>
+        )}
       </Card>
+
+      {/* Active delivery */}
+      {delivering && (
+        <Card padding="none">
+          <CardHeader className="border-b border-surface-100 px-6 py-5">
+            <div className="flex items-center gap-2">
+              <Navigation className="h-4 w-4 text-brand-500" />
+              <CardTitle>Livraison en cours</CardTitle>
+              <span className="ml-1 h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+            </div>
+          </CardHeader>
+          <div className="p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{activeDelivery.order}</p>
+                <p className="text-lg font-bold text-surface-900">{activeDelivery.address}</p>
+                <p className="text-sm text-surface-500">Client : {activeDelivery.customer}</p>
+              </div>
+              <div className="flex gap-6 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-brand-600">{activeDelivery.distance}</p>
+                  <p className="text-xs text-surface-400">Distance</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-surface-900">{activeDelivery.eta}</p>
+                  <p className="text-xs text-surface-400">ETA</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={handleMarkDelivered}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-semibold text-white hover:bg-green-600 transition-colors"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Marquer comme livrée
+              </button>
+              <button className="flex items-center justify-center gap-2 rounded-xl border border-surface-200 px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors">
+                <XCircle className="h-4 w-4 text-red-500" />
+                Problème
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Recent deliveries */}
       <Card padding="none">
@@ -611,9 +721,6 @@ function DriverDashboard() {
             <Bike className="h-4 w-4 text-brand-500" />
             <CardTitle>Livraisons récentes</CardTitle>
           </div>
-          <Link href="/dashboard/delivery" className="text-sm font-medium text-brand-600 hover:text-brand-700">
-            Voir tout →
-          </Link>
         </CardHeader>
         <div className="divide-y divide-surface-50">
           {DRIVER_RECENT.map((d) => (

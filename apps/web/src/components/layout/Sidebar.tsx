@@ -47,10 +47,11 @@ interface NavItem {
 // Role × page matrix from FoodStack spec
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Tableau de bord', icon: LayoutDashboard, section: 'Général', roles: ['admin', 'owner', 'staff'] },
+  { href: '/dashboard', label: 'Mon espace', icon: Bike, section: 'Général', roles: ['driver'] },
   { href: '/dashboard/orders', label: 'Commandes', icon: ShoppingBag, badge: 5, section: 'Général', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/menu', label: 'Menu', icon: UtensilsCrossed, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
-  { href: '/dashboard/delivery', label: 'Livraisons', icon: Truck, badge: 2, section: 'Gestion', roles: ['admin', 'owner', 'staff', 'driver'] },
-  { href: '/dashboard/drivers', label: 'Livreurs', icon: Bike, section: 'Gestion', roles: ['admin', 'owner', 'driver'] },
+  { href: '/dashboard/delivery', label: 'Livraisons', icon: Truck, badge: 2, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
+  { href: '/dashboard/drivers', label: 'Livreurs', icon: Bike, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/zones', label: 'Zones livraison', icon: MapPin, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Boxes, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/suppliers', label: 'Fournisseurs', icon: Package, section: 'Gestion', roles: ['admin', 'owner'] },
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/qrcodes', label: 'QR Codes', icon: QrCode, section: 'Gestion', roles: ['owner'] },
   { href: '/dashboard/analytics', label: 'Analytiques', icon: BarChart3, section: 'Rapports', roles: ['admin', 'owner'] },
   { href: '/dashboard/settings', label: 'Paramètres', icon: Settings, section: 'Rapports', roles: ['admin', 'owner'] },
+  { href: '/dashboard/settings', label: 'Paramètres', icon: Settings, section: 'Général', roles: ['driver'] },
 ];
 
 const DEMO_ACCOUNTS = [
