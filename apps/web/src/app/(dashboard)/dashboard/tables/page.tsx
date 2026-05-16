@@ -569,8 +569,8 @@ export default function TablesPage() {
         section: form.section,
         shape: form.shape,
         status: 'free',
-        x: 60 + (prev.length % 8) * 110,
-        y: 480,
+        x: 60 + (prev.length % 6) * 130,
+        y: 80 + Math.floor(prev.length / 6) * 130,
       }]);
     }
     setShowModal(false);
