@@ -8,7 +8,7 @@ import {
   Building2, FileText, History, FolderOpen,
   Phone, Mail, User, CreditCard, Percent,
   CheckCircle2, AlertCircle, XCircle,
-  Euro, Users, TrendingDown,
+  Euro, Users, TrendingDown, Upload, Trash2, Download, Eye,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -32,6 +32,9 @@ interface HistoryEntry {
 interface RestaurantDoc {
   name: string;
   status: DocStatus;
+  fileName?: string;
+  fileSize?: string;
+  uploadedAt?: string;
 }
 
 interface Restaurant {
@@ -430,25 +433,122 @@ function RestaurantDetailModal({
           {/* ── Documents ── */}
           {tab === 'Documents' && (
             <div className="space-y-3">
-              {r.documents.map(doc => {
-                const ok = doc.status === 'fourni';
-                return (
-                  <div key={doc.name} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm font-medium text-gray-700">{doc.name}</span>
-                    </div>
-                    <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                    }`}>
-                      {ok
-                        ? <><CheckCircle2 className="h-3.5 w-3.5" />Fourni</>
-                        : <><AlertCircle className="h-3.5 w-3.5" />Manquant</>
-                      }
-                    </span>
+              {/* Add document button */}
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-brand-300 bg-brand-50/40 px-4 py-4 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50">
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const sizeKb = (file.size / 1024).toFixed(0);
+                    const sizeLabel = file.size > 1024 * 1024
+                      ? `${(file.size / 1024 / 1024).toFixed(1)} Mo`
+                      : `${sizeKb} Ko`;
+                    const newDoc: RestaurantDoc = {
+                      name: file.name.replace(/\.[^.]+$/, ''),
+                      status: 'fourni',
+                      fileName: file.name,
+                      fileSize: sizeLabel,
+                      uploadedAt: new Date().toLocaleDateString('fr-FR'),
+                    };
+                    setR(prev => ({ ...prev, documents: [...prev.documents, newDoc] }));
+                    onUpdate({ ...r, documents: [...r.documents, newDoc] });
+                    e.target.value = '';
+                  }}
+                />
+                <Upload className="h-4 w-4" />
+                Importer un document (PDF, image, Word)
+              </label>
+
+              {/* Document list */}
+              {r.documents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                  <FolderOpen className="mb-2 h-8 w-8" />
+                  <p className="text-sm">Aucun document importé</p>
+                </div>
+              ) : (
+                r.documents.map((doc, idx) => {
+                  const ok = doc.status === 'fourni';
+                  return (
+                    <motion.div
+                      key={`${doc.name}-${idx}`}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-sm"
+                    >
+                      {/* Icon */}
+                      <div className={`rounded-lg p-2 ${ok ? 'bg-green-50' : 'bg-red-50'}`}>
+                        <FileText className={`h-4 w-4 ${ok ? 'text-green-600' : 'text-red-500'}`} />
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-semibold text-gray-800">{doc.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {doc.fileName && (
+                            <span className="truncate text-xs text-gray-400">{doc.fileName}</span>
+                          )}
+                          {doc.fileSize && (
+                            <span className="text-xs text-gray-400">· {doc.fileSize}</span>
+                          )}
+                          {doc.uploadedAt && (
+                            <span className="text-xs text-gray-400">· {doc.uploadedAt}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      <span className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                        ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                      }`}>
+                        {ok
+                          ? <><CheckCircle2 className="h-3 w-3" />Fourni</>
+                          : <><AlertCircle className="h-3 w-3" />Manquant</>
+                        }
+                      </span>
+
+                      {/* Actions */}
+                      <div className="flex shrink-0 items-center gap-1">
+                        {ok && (
+                          <button
+                            title="Télécharger"
+                            className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                        <button
+                          title="Supprimer"
+                          onClick={() => {
+                            const updated = r.documents.filter((_, i) => i !== idx);
+                            setR(prev => ({ ...prev, documents: updated }));
+                            onUpdate({ ...r, documents: updated });
+                          }}
+                          className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+
+              {/* Upload all required docs checklist */}
+              {['Kbis', 'RIB', 'Contrat signé'].some(req => !r.documents.find(d => d.name === req && d.status === 'fourni')) && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-xs font-semibold text-amber-700 mb-2">Documents requis manquants :</p>
+                  <div className="space-y-1">
+                    {['Kbis', 'RIB', 'Contrat signé'].filter(req => !r.documents.find(d => d.name === req && d.status === 'fourni')).map(req => (
+                      <p key={req} className="flex items-center gap-2 text-xs text-amber-600">
+                        <AlertCircle className="h-3 w-3 shrink-0" />{req}
+                      </p>
+                    ))}
                   </div>
-                );
-              })}
+                </div>
+              )}
             </div>
           )}
         </div>

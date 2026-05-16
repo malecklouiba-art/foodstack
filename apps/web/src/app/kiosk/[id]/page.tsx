@@ -2,9 +2,52 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, X, Plus, Minus, ChevronLeft, Check, Clock, CreditCard, Banknote, Smartphone } from 'lucide-react';
+import { ShoppingCart, X, Plus, Minus, ChevronLeft, Check, Clock, CreditCard, Banknote, Smartphone, LayoutGrid } from 'lucide-react';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Theme Types (mirrors designer) ────────────────────────────────────────────
+
+interface GradientConfig {
+  enabled: boolean;
+  from: string;
+  to: string;
+  direction: string;
+}
+
+interface ShadowConfig {
+  enabled: boolean;
+  size: 'sm' | 'md' | 'lg' | 'xl';
+}
+
+interface BorderConfig {
+  enabled: boolean;
+  color: string;
+  width: number;
+}
+
+interface ElementTheme {
+  bgColor: string;
+  bgGradient: GradientConfig;
+  textColor: string;
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  borderRadius: number;
+  shadow: ShadowConfig;
+  border: BorderConfig;
+}
+
+interface KioskTheme {
+  background: ElementTheme;
+  primaryButton: ElementTheme;
+  secondaryButton: ElementTheme;
+  heading: ElementTheme;
+  subheading: ElementTheme;
+  productCard: ElementTheme;
+  navbar: ElementTheme;
+  badge: ElementTheme;
+}
+
+// ── Domain Types ──────────────────────────────────────────────────────────────
 
 type Screen = 'welcome' | 'mode' | 'menu' | 'product' | 'cart' | 'payment' | 'confirm';
 type OrderMode = 'sur_place' | 'emporter';
@@ -80,7 +123,7 @@ const PRODUCTS: Product[] = [
     description: 'Burger Classic + Frites + Boisson au choix.',
     price: 17.9, image: '🍱', allergens: ['gluten', 'lait', 'sésame'],
     options: [
-      { id: 'boisson', label: 'Boisson', choices: [{ id: 'coca', label: 'Coca-Cola', extra: 0 }, { id: 'eau', label: 'Eau', extra: 0 }, { id: 'jus', label: 'Jus d\'orange', extra: 0 }] },
+      { id: 'boisson', label: 'Boisson', choices: [{ id: 'coca', label: 'Coca-Cola', extra: 0 }, { id: 'eau', label: 'Eau', extra: 0 }, { id: 'jus', label: "Jus d'orange", extra: 0 }] },
     ],
     badge: 'Économique',
   },
@@ -108,9 +151,9 @@ const CATEGORIES = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: 'card',   label: 'Carte bancaire', sublabel: 'Sans contact', icon: CreditCard },
-  { id: 'cash',   label: 'Espèces',        sublabel: 'À la caisse',  icon: Banknote },
-  { id: 'nfc',    label: 'Ticket restaurant', sublabel: 'NFC',       icon: Smartphone },
+  { id: 'card',  label: 'Carte bancaire',    sublabel: 'Sans contact', icon: CreditCard },
+  { id: 'cash',  label: 'Espèces',           sublabel: 'À la caisse',  icon: Banknote },
+  { id: 'nfc',   label: 'Ticket restaurant', sublabel: 'NFC',          icon: Smartphone },
 ];
 
 const ALLERGEN_LABELS: Record<string, string> = {
@@ -118,14 +161,74 @@ const ALLERGEN_LABELS: Record<string, string> = {
   sésame: 'Sésame', soja: 'Soja', arachides: 'Arachides', fruits_coque: 'Fruits à coque',
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Animation variants ────────────────────────────────────────────────────────
 
 const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 const slideUp = { initial: { opacity: 0, y: 40 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -40 } };
 
+// ── Theme helpers ─────────────────────────────────────────────────────────────
+
+const SHADOW_VALUES: Record<ShadowConfig['size'], string> = {
+  sm: '0 1px 3px rgba(0,0,0,.12)',
+  md: '0 4px 12px rgba(0,0,0,.15)',
+  lg: '0 8px 24px rgba(0,0,0,.2)',
+  xl: '0 16px 40px rgba(0,0,0,.25)',
+};
+
+function buildGradient(g: GradientConfig): string {
+  if (g.direction === 'radial') {
+    return `radial-gradient(circle, ${g.from}, ${g.to})`;
+  }
+  return `linear-gradient(${g.direction}, ${g.from}, ${g.to})`;
+}
+
+function applyTheme(el: ElementTheme): React.CSSProperties {
+  const bg = el.bgGradient.enabled ? buildGradient(el.bgGradient) : el.bgColor;
+  return {
+    background: bg,
+    color: el.textColor,
+    fontFamily: `'${el.fontFamily}', system-ui, sans-serif`,
+    fontSize: el.fontSize,
+    fontWeight: el.fontWeight,
+    borderRadius: el.borderRadius,
+    boxShadow: el.shadow.enabled ? SHADOW_VALUES[el.shadow.size] : undefined,
+    border: el.border.enabled ? `${el.border.width}px solid ${el.border.color}` : undefined,
+  };
+}
+
+// Default fallback theme (matches designer's MINIMAL_THEME)
+function makeDefaultElement(overrides: Partial<ElementTheme> = {}): ElementTheme {
+  return {
+    bgColor: '#ffffff',
+    bgGradient: { enabled: false, from: '#ffffff', to: '#f4f4f5', direction: 'to bottom' },
+    textColor: '#09090b',
+    fontFamily: 'Inter',
+    fontSize: 16,
+    fontWeight: 400,
+    borderRadius: 8,
+    shadow: { enabled: false, size: 'md' },
+    border: { enabled: false, color: '#e4e4e7', width: 1 },
+    ...overrides,
+  };
+}
+
+const DEFAULT_THEME: KioskTheme = {
+  background:      makeDefaultElement({ bgColor: '#0f0f0f', bgGradient: { enabled: true, from: '#0f0f0f', to: '#1a1a1a', direction: 'to bottom right' }, textColor: '#ffffff' }),
+  primaryButton:   makeDefaultElement({ bgColor: '#1EFF6A', textColor: '#000000', borderRadius: 16, fontSize: 20, fontWeight: 700, shadow: { enabled: true, size: 'lg' } }),
+  secondaryButton: makeDefaultElement({ bgColor: 'transparent', textColor: '#6b7280', borderRadius: 12, fontSize: 16, fontWeight: 500, border: { enabled: true, color: '#374151', width: 1 } }),
+  heading:         makeDefaultElement({ bgColor: 'transparent', textColor: '#ffffff', fontSize: 48, fontWeight: 900 }),
+  subheading:      makeDefaultElement({ bgColor: 'transparent', textColor: '#6b7280', fontSize: 20, fontWeight: 400 }),
+  productCard:     makeDefaultElement({ bgColor: '#111827', borderRadius: 20, shadow: { enabled: true, size: 'sm' }, border: { enabled: true, color: '#1f2937', width: 1 }, textColor: '#ffffff' }),
+  navbar:          makeDefaultElement({ bgColor: '#030712', textColor: '#ffffff', fontSize: 16, fontWeight: 600 }),
+  badge:           makeDefaultElement({ bgColor: '#1EFF6A', textColor: '#000000', borderRadius: 999, fontSize: 12, fontWeight: 700 }),
+};
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function KioskPage() {
+  const [theme, setTheme] = useState<KioskTheme>(DEFAULT_THEME);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+
   const [screen, setScreen] = useState<Screen>('welcome');
   const [orderMode, setOrderMode] = useState<OrderMode | null>(null);
   const [activeCategory, setActiveCategory] = useState('menus');
@@ -137,7 +240,32 @@ export default function KioskPage() {
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(30);
 
-  // Auto-reset on welcome screen idle
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('kioskTheme');
+      if (stored) {
+        const parsed = JSON.parse(stored) as KioskTheme;
+        setTheme(parsed);
+      }
+    } catch {
+      // Malformed JSON — keep default
+    }
+
+    // Detect preview mode from URL search params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('preview') === 'true') {
+      setIsPreviewMode(true);
+    }
+
+    // Also treat /kiosk/demo as preview mode
+    if (window.location.pathname === '/kiosk/demo') {
+      setIsPreviewMode(true);
+    }
+  }, []);
+
+  // Auto-reset countdown on confirm screen
   useEffect(() => {
     if (screen !== 'confirm') return;
     const t = setInterval(() => setCountdown((c) => c - 1), 1000);
@@ -146,6 +274,7 @@ export default function KioskPage() {
 
   useEffect(() => {
     if (countdown <= 0) resetKiosk();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown]);
 
   const resetKiosk = useCallback(() => {
@@ -191,28 +320,70 @@ export default function KioskPage() {
 
   const filteredProducts = PRODUCTS.filter((p) => p.category === activeCategory);
 
+  // Derived theme styles
+  const bgStyle        = applyTheme(theme.background);
+  const primaryStyle   = applyTheme(theme.primaryButton);
+  const secondaryStyle = applyTheme(theme.secondaryButton);
+  const headingStyle   = applyTheme(theme.heading);
+  const subStyle       = applyTheme(theme.subheading);
+  const cardStyle      = applyTheme(theme.productCard);
+  const navStyle       = applyTheme(theme.navbar);
+  const badgeStyle     = applyTheme(theme.badge);
+
+  // Convenience: background-only (no text/border on wrapper divs)
+  const bgBackground = bgStyle.background;
+  const bgColor      = theme.background.textColor;
+
   return (
     <div
       className="relative flex h-screen w-screen flex-col overflow-hidden select-none"
-      style={{ background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%)', fontFamily: 'system-ui, sans-serif' }}
+      style={{ background: bgBackground, fontFamily: `'${theme.background.fontFamily}', system-ui, sans-serif` }}
     >
+      {/* Preview mode: "back to config" button */}
+      {isPreviewMode && (
+        <a
+          href="/dashboard/kiosk"
+          className="absolute left-4 top-4 z-50 flex items-center gap-1.5 rounded-xl border border-white/20 bg-black/40 px-3 py-2 text-xs font-semibold text-white backdrop-blur-sm transition-opacity hover:bg-black/60"
+        >
+          <LayoutGrid size={13} />
+          Retour config
+        </a>
+      )}
+
       <AnimatePresence mode="wait">
 
         {/* ── Welcome ─────────────────────────────────────────────────────── */}
         {screen === 'welcome' && (
-          <motion.div key="welcome" {...fade} className="flex h-full flex-col items-center justify-center gap-10 p-12">
+          <motion.div
+            key="welcome"
+            {...fade}
+            className="flex h-full flex-col items-center justify-center gap-10 p-12"
+            style={{ background: bgBackground }}
+          >
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 200, damping: 20 }}
               className="text-center"
             >
-              <div className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-3xl shadow-2xl"
-                style={{ background: 'linear-gradient(135deg, #1EFF6A, #00cc52)' }}>
-                <span className="text-6xl font-black text-black">F</span>
+              <div
+                className="mx-auto mb-6 flex h-32 w-32 items-center justify-center rounded-3xl shadow-2xl"
+                style={{ background: theme.primaryButton.bgColor }}
+              >
+                <span className="text-6xl font-black" style={{ color: theme.primaryButton.textColor }}>F</span>
               </div>
-              <h1 className="text-6xl font-black text-white tracking-tight">FoodStack</h1>
-              <p className="mt-3 text-2xl" style={{ color: '#1EFF6A' }}>Bienvenue !</p>
+              <h1
+                className="tracking-tight"
+                style={{ ...headingStyle, background: undefined, border: undefined, boxShadow: undefined }}
+              >
+                FoodStack
+              </h1>
+              <p
+                className="mt-3"
+                style={{ ...subStyle, background: undefined, border: undefined, boxShadow: undefined, color: theme.primaryButton.bgColor }}
+              >
+                Bienvenue !
+              </p>
             </motion.div>
 
             <motion.button
@@ -221,8 +392,8 @@ export default function KioskPage() {
               transition={{ delay: 0.3 }}
               onClick={() => setScreen('mode')}
               whileTap={{ scale: 0.96 }}
-              className="rounded-2xl px-16 py-6 text-2xl font-bold text-black shadow-2xl transition-all"
-              style={{ background: 'linear-gradient(135deg, #1EFF6A, #00cc52)' }}
+              style={primaryStyle}
+              className="px-16 py-6 transition-all"
             >
               Toucher pour commander
             </motion.button>
@@ -230,7 +401,7 @@ export default function KioskPage() {
             <motion.p
               animate={{ opacity: [0.4, 1, 0.4] }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="text-lg text-gray-500"
+              style={{ color: bgColor, opacity: 0.5, fontSize: 18 }}
             >
               Commande rapide • Paiement sans contact
             </motion.p>
@@ -239,34 +410,65 @@ export default function KioskPage() {
 
         {/* ── Mode Selection ──────────────────────────────────────────────── */}
         {screen === 'mode' && (
-          <motion.div key="mode" {...slideUp} className="flex h-full flex-col items-center justify-center gap-12 p-12">
+          <motion.div
+            key="mode"
+            {...slideUp}
+            className="flex h-full flex-col items-center justify-center gap-12 p-12"
+            style={{ background: bgBackground }}
+          >
             <div className="text-center">
-              <h2 className="text-5xl font-black text-white">Comment souhaitez-vous commander ?</h2>
-              <p className="mt-3 text-xl text-gray-400">Choisissez votre mode de commande</p>
+              <h2
+                style={{ ...headingStyle, background: undefined, border: undefined, boxShadow: undefined }}
+              >
+                Comment souhaitez-vous commander ?
+              </h2>
+              <p
+                className="mt-3"
+                style={{ ...subStyle, background: undefined, border: undefined, boxShadow: undefined }}
+              >
+                Choisissez votre mode de commande
+              </p>
             </div>
 
             <div className="flex gap-8">
               {[
-                { id: 'sur_place' as const, label: 'Sur place', sublabel: 'Je mange ici', icon: '🪑', color: '#1EFF6A' },
-                { id: 'emporter' as const, label: 'À emporter', sublabel: 'Je repars avec ma commande', icon: '🛍️', color: '#3b82f6' },
+                { id: 'sur_place' as const, label: 'Sur place',  sublabel: 'Je mange ici',               icon: '🪑' },
+                { id: 'emporter' as const,  label: 'À emporter', sublabel: 'Je repars avec ma commande',  icon: '🛍️' },
               ].map((opt) => (
                 <motion.button
                   key={opt.id}
                   whileTap={{ scale: 0.96 }}
                   onClick={() => { setOrderMode(opt.id); setScreen('menu'); }}
-                  className="flex flex-col items-center justify-center gap-6 rounded-3xl border-2 p-12 transition-all w-64"
-                  style={{ borderColor: opt.color, background: `${opt.color}18` }}
+                  className="flex flex-col items-center justify-center gap-6 p-12 w-64 transition-all"
+                  style={{
+                    ...cardStyle,
+                    border: `2px solid ${theme.primaryButton.bgColor}`,
+                    background: `${theme.primaryButton.bgColor}18`,
+                  }}
                 >
                   <span className="text-7xl">{opt.icon}</span>
                   <div className="text-center">
-                    <p className="text-3xl font-black text-white">{opt.label}</p>
-                    <p className="mt-1 text-base text-gray-400">{opt.sublabel}</p>
+                    <p
+                      style={{ ...headingStyle, background: undefined, border: undefined, boxShadow: undefined, fontSize: 28 }}
+                    >
+                      {opt.label}
+                    </p>
+                    <p
+                      className="mt-1"
+                      style={{ ...subStyle, background: undefined, border: undefined, boxShadow: undefined, fontSize: 16 }}
+                    >
+                      {opt.sublabel}
+                    </p>
                   </div>
                 </motion.button>
               ))}
             </div>
 
-            <button onClick={() => setScreen('welcome')} className="flex items-center gap-2 text-gray-500 hover:text-gray-300">
+            <button
+              onClick={() => setScreen('welcome')}
+              className="flex items-center gap-2 transition-opacity hover:opacity-70"
+              style={secondaryStyle}
+            >
               <ChevronLeft size={20} /> Retour
             </button>
           </motion.div>
@@ -276,40 +478,54 @@ export default function KioskPage() {
         {screen === 'menu' && (
           <motion.div key="menu" {...fade} className="flex h-full">
             {/* Left: categories */}
-            <div className="flex w-28 flex-col gap-2 border-r border-gray-800 bg-gray-950 p-3">
-              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl mx-auto"
-                style={{ background: '#1EFF6A' }}>
-                <span className="text-xl font-black text-black">F</span>
+            <div
+              className="flex w-28 flex-col gap-2 p-3"
+              style={{ background: theme.navbar.bgColor, borderRight: `1px solid ${theme.productCard.border.color}` }}
+            >
+              <div
+                className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl mx-auto"
+                style={{ background: theme.primaryButton.bgColor }}
+              >
+                <span className="text-xl font-black" style={{ color: theme.primaryButton.textColor }}>F</span>
               </div>
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   className="flex flex-col items-center gap-1 rounded-xl p-3 transition-all"
-                  style={activeCategory === cat.id ? { background: '#1EFF6A22', border: '1px solid #1EFF6A' } : { border: '1px solid transparent' }}
+                  style={activeCategory === cat.id
+                    ? { background: `${theme.primaryButton.bgColor}22`, border: `1px solid ${theme.primaryButton.bgColor}` }
+                    : { border: '1px solid transparent' }
+                  }
                 >
                   <span className="text-2xl">{cat.icon}</span>
-                  <span className="text-xs text-gray-400">{cat.label}</span>
+                  <span className="text-xs" style={{ color: theme.navbar.textColor, opacity: 0.7 }}>{cat.label}</span>
                 </button>
               ))}
             </div>
 
             {/* Center: products */}
-            <div className="flex flex-1 flex-col overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-gray-800 bg-gray-950 px-6 py-4">
+            <div className="flex flex-1 flex-col overflow-hidden" style={{ background: bgBackground }}>
+              {/* Header / nav bar */}
+              <div
+                className="flex items-center justify-between px-6 py-4"
+                style={{ ...navStyle, borderRadius: 0, borderBottom: `1px solid ${theme.productCard.border.color}` }}
+              >
                 <div>
-                  <h2 className="text-2xl font-bold text-white">
+                  <h2
+                    className="font-bold"
+                    style={{ color: theme.navbar.textColor, fontSize: 22, fontWeight: 700 }}
+                  >
                     {CATEGORIES.find((c) => c.id === activeCategory)?.label}
                   </h2>
-                  <p className="text-sm text-gray-400">
+                  <p style={{ color: theme.navbar.textColor, opacity: 0.6, fontSize: 13 }}>
                     {orderMode === 'sur_place' ? '🪑 Sur place' : '🛍️ À emporter'}
                   </p>
                 </div>
                 <button
                   onClick={() => setScreen('cart')}
-                  className="relative flex items-center gap-3 rounded-2xl px-6 py-3 text-black font-bold shadow-lg"
-                  style={{ background: '#1EFF6A' }}
+                  className="relative flex items-center gap-3 px-6 py-3 font-bold shadow-lg transition-all active:scale-95"
+                  style={primaryStyle}
                 >
                   <ShoppingCart size={22} />
                   <span>{cartTotal.toFixed(2)} €</span>
@@ -321,7 +537,7 @@ export default function KioskPage() {
                 </button>
               </div>
 
-              {/* Grid */}
+              {/* Product grid */}
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="grid grid-cols-3 gap-4">
                   {filteredProducts.map((product, i) => (
@@ -339,18 +555,36 @@ export default function KioskPage() {
                         setQty(1);
                         setScreen('product');
                       }}
-                      className="flex flex-col items-center rounded-2xl border border-gray-800 bg-gray-900 p-5 text-left transition-all hover:border-gray-600"
+                      className="flex flex-col items-center p-5 text-left transition-all"
+                      style={cardStyle}
                     >
                       {product.badge && (
-                        <span className="mb-2 self-start rounded-full px-2 py-0.5 text-xs font-bold text-black"
-                          style={{ background: '#1EFF6A' }}>
+                        <span
+                          className="mb-2 self-start px-2 py-0.5 text-xs font-bold"
+                          style={badgeStyle}
+                        >
                           {product.badge}
                         </span>
                       )}
                       <span className="text-5xl">{product.image}</span>
-                      <p className="mt-3 text-center text-base font-bold text-white">{product.name}</p>
-                      <p className="mt-1 line-clamp-2 text-center text-xs text-gray-500">{product.description}</p>
-                      <p className="mt-3 text-xl font-black" style={{ color: '#1EFF6A' }}>{product.price.toFixed(2)} €</p>
+                      <p
+                        className="mt-3 text-center text-base font-bold"
+                        style={{ color: theme.productCard.textColor }}
+                      >
+                        {product.name}
+                      </p>
+                      <p
+                        className="mt-1 line-clamp-2 text-center text-xs"
+                        style={{ color: theme.productCard.textColor, opacity: 0.6 }}
+                      >
+                        {product.description}
+                      </p>
+                      <p
+                        className="mt-3 text-xl font-black"
+                        style={{ color: theme.primaryButton.bgColor }}
+                      >
+                        {product.price.toFixed(2)} €
+                      </p>
                     </motion.button>
                   ))}
                 </div>
@@ -361,32 +595,64 @@ export default function KioskPage() {
 
         {/* ── Product Detail ──────────────────────────────────────────────── */}
         {screen === 'product' && selectedProduct && (
-          <motion.div key="product" {...slideUp} className="flex h-full">
+          <motion.div
+            key="product"
+            {...slideUp}
+            className="flex h-full"
+            style={{ background: bgBackground }}
+          >
             <div className="flex flex-1 flex-col overflow-y-auto p-10">
-              <button onClick={() => setScreen('menu')} className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white">
+              <button
+                onClick={() => setScreen('menu')}
+                className="mb-6 flex items-center gap-2 transition-opacity hover:opacity-70"
+                style={secondaryStyle}
+              >
                 <ChevronLeft size={20} /> Retour au menu
               </button>
 
               <div className="flex gap-10">
                 {/* Left: product info */}
                 <div className="flex-1">
-                  <div className="mb-6 flex h-48 items-center justify-center rounded-3xl bg-gray-900 text-9xl">
+                  <div
+                    className="mb-6 flex h-48 items-center justify-center rounded-3xl text-9xl"
+                    style={{ background: `${theme.productCard.bgColor}`, border: theme.productCard.border.enabled ? `${theme.productCard.border.width}px solid ${theme.productCard.border.color}` : undefined }}
+                  >
                     {selectedProduct.image}
                   </div>
+
                   {selectedProduct.badge && (
-                    <span className="rounded-full px-3 py-1 text-sm font-bold text-black" style={{ background: '#1EFF6A' }}>
+                    <span className="px-3 py-1 text-sm font-bold" style={badgeStyle}>
                       {selectedProduct.badge}
                     </span>
                   )}
-                  <h2 className="mt-4 text-4xl font-black text-white">{selectedProduct.name}</h2>
-                  <p className="mt-3 text-lg text-gray-400 leading-relaxed">{selectedProduct.description}</p>
+
+                  <h2
+                    className="mt-4"
+                    style={{ ...headingStyle, background: undefined, border: undefined, boxShadow: undefined, fontSize: 36 }}
+                  >
+                    {selectedProduct.name}
+                  </h2>
+                  <p
+                    className="mt-3 leading-relaxed"
+                    style={{ ...subStyle, background: undefined, border: undefined, boxShadow: undefined }}
+                  >
+                    {selectedProduct.description}
+                  </p>
 
                   {selectedProduct.allergens.length > 0 && (
                     <div className="mt-6">
-                      <p className="mb-2 text-sm font-semibold text-gray-500 uppercase tracking-wide">Allergènes</p>
+                      <p
+                        className="mb-2 text-sm font-semibold uppercase tracking-wide"
+                        style={{ color: theme.subheading.textColor, opacity: 0.6 }}
+                      >
+                        Allergènes
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {selectedProduct.allergens.map((a) => (
-                          <span key={a} className="rounded-full border border-yellow-600 px-3 py-1 text-sm text-yellow-500">
+                          <span
+                            key={a}
+                            className="rounded-full border border-yellow-600 px-3 py-1 text-sm text-yellow-500"
+                          >
                             ⚠ {ALLERGEN_LABELS[a] ?? a}
                           </span>
                         ))}
@@ -395,11 +661,16 @@ export default function KioskPage() {
                   )}
                 </div>
 
-                {/* Right: options + add */}
+                {/* Right: options + quantity + add */}
                 <div className="w-80 flex flex-col gap-6">
                   {selectedProduct.options.map((opt) => (
                     <div key={opt.id}>
-                      <p className="mb-3 font-bold text-white">{opt.label}</p>
+                      <p
+                        className="mb-3 font-bold"
+                        style={{ color: theme.heading.textColor }}
+                      >
+                        {opt.label}
+                      </p>
                       <div className="flex flex-col gap-2">
                         {opt.choices.map((choice) => (
                           <button
@@ -407,12 +678,15 @@ export default function KioskPage() {
                             onClick={() => setSelectedOptions((prev) => ({ ...prev, [opt.id]: choice.id }))}
                             className="flex items-center justify-between rounded-xl border px-4 py-3 transition-all"
                             style={selectedOptions[opt.id] === choice.id
-                              ? { borderColor: '#1EFF6A', background: '#1EFF6A18' }
-                              : { borderColor: '#374151' }}
+                              ? { borderColor: theme.primaryButton.bgColor, background: `${theme.primaryButton.bgColor}18`, color: theme.heading.textColor }
+                              : { borderColor: theme.productCard.border.color, color: theme.heading.textColor }
+                            }
                           >
-                            <span className="text-white">{choice.label}</span>
+                            <span>{choice.label}</span>
                             {choice.extra > 0 && (
-                              <span className="text-sm font-semibold" style={{ color: '#1EFF6A' }}>+{choice.extra.toFixed(2)} €</span>
+                              <span className="text-sm font-semibold" style={{ color: theme.primaryButton.bgColor }}>
+                                +{choice.extra.toFixed(2)} €
+                              </span>
                             )}
                           </button>
                         ))}
@@ -426,20 +700,26 @@ export default function KioskPage() {
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => setQty((q) => Math.max(1, q - 1))}
-                          className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white text-xl"
+                          className="flex h-12 w-12 items-center justify-center rounded-full"
+                          style={secondaryStyle}
                         >
                           <Minus size={18} />
                         </button>
-                        <span className="text-3xl font-black text-white">{qty}</span>
+                        <span
+                          className="text-3xl font-black"
+                          style={{ color: theme.heading.textColor }}
+                        >
+                          {qty}
+                        </span>
                         <button
                           onClick={() => setQty((q) => q + 1)}
-                          className="flex h-12 w-12 items-center justify-center rounded-full text-black text-xl"
-                          style={{ background: '#1EFF6A' }}
+                          className="flex h-12 w-12 items-center justify-center rounded-full"
+                          style={{ background: theme.primaryButton.bgColor, color: theme.primaryButton.textColor, borderRadius: '50%' }}
                         >
                           <Plus size={18} />
                         </button>
                       </div>
-                      <span className="text-3xl font-black text-white">
+                      <span className="text-3xl font-black" style={{ color: theme.heading.textColor }}>
                         {(() => {
                           const extra = selectedProduct.options.reduce((s, opt) => {
                             const choice = opt.choices.find((c) => c.id === selectedOptions[opt.id]);
@@ -451,8 +731,8 @@ export default function KioskPage() {
                     </div>
                     <button
                       onClick={addToCart}
-                      className="w-full rounded-2xl py-5 text-xl font-black text-black shadow-lg transition-all active:scale-95"
-                      style={{ background: 'linear-gradient(135deg, #1EFF6A, #00cc52)' }}
+                      className="w-full py-5 text-xl font-black shadow-lg transition-all active:scale-95"
+                      style={primaryStyle}
                     >
                       Ajouter au panier
                     </button>
@@ -465,30 +745,49 @@ export default function KioskPage() {
 
         {/* ── Cart ────────────────────────────────────────────────────────── */}
         {screen === 'cart' && (
-          <motion.div key="cart" {...slideUp} className="flex h-full flex-col p-10">
+          <motion.div
+            key="cart"
+            {...slideUp}
+            className="flex h-full flex-col p-10"
+            style={{ background: bgBackground }}
+          >
             <div className="mb-8 flex items-center justify-between">
-              <button onClick={() => setScreen('menu')} className="flex items-center gap-2 text-gray-400 hover:text-white">
+              <button
+                onClick={() => setScreen('menu')}
+                className="flex items-center gap-2 transition-opacity hover:opacity-70"
+                style={secondaryStyle}
+              >
                 <ChevronLeft size={20} /> Continuer à commander
               </button>
-              <h2 className="text-3xl font-black text-white">Votre commande</h2>
-              <div className="w-40" />
+              <h2
+                className="text-3xl font-black"
+                style={{ ...headingStyle, background: undefined, border: undefined, boxShadow: undefined, fontSize: 30 }}
+              >
+                Votre commande
+              </h2>
+              <div className="w-48" />
             </div>
 
             {cart.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-6">
                 <span className="text-8xl">🛒</span>
-                <p className="text-2xl text-gray-500">Votre panier est vide</p>
+                <p
+                  className="text-2xl"
+                  style={{ ...subStyle, background: undefined, border: undefined, boxShadow: undefined }}
+                >
+                  Votre panier est vide
+                </p>
                 <button
                   onClick={() => setScreen('menu')}
-                  className="rounded-2xl px-8 py-4 text-lg font-bold text-black"
-                  style={{ background: '#1EFF6A' }}
+                  className="px-8 py-4 text-lg font-bold transition-all active:scale-95"
+                  style={primaryStyle}
                 >
                   Parcourir le menu
                 </button>
               </div>
             ) : (
               <div className="flex flex-1 gap-10 overflow-hidden">
-                {/* Items */}
+                {/* Items list */}
                 <div className="flex-1 overflow-y-auto">
                   <div className="flex flex-col gap-4">
                     {cart.map((item, i) => (
@@ -497,21 +796,34 @@ export default function KioskPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.06 }}
-                        className="flex items-center gap-5 rounded-2xl border border-gray-800 bg-gray-900 p-5"
+                        className="flex items-center gap-5 p-5"
+                        style={cardStyle}
                       >
                         <span className="text-4xl">{item.product.image}</span>
                         <div className="flex-1">
-                          <p className="font-bold text-white">{item.product.name}</p>
+                          <p className="font-bold" style={{ color: theme.productCard.textColor }}>
+                            {item.product.name}
+                          </p>
                           {Object.entries(item.selectedOptions).map(([optId, choiceId]) => {
                             const opt = item.product.options.find((o) => o.id === optId);
                             const choice = opt?.choices.find((c) => c.id === choiceId);
-                            return choice && <p key={optId} className="text-sm text-gray-500">{opt?.label}: {choice.label}</p>;
+                            return choice && (
+                              <p key={optId} style={{ color: theme.productCard.textColor, opacity: 0.5, fontSize: 13 }}>
+                                {opt?.label}: {choice.label}
+                              </p>
+                            );
                           })}
-                          <p className="mt-1 text-sm text-gray-500">× {item.qty}</p>
+                          <p style={{ color: theme.productCard.textColor, opacity: 0.4, fontSize: 13 }}>× {item.qty}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xl font-black" style={{ color: '#1EFF6A' }}>{item.subtotal.toFixed(2)} €</p>
-                          <button onClick={() => removeFromCart(i)} className="mt-1 text-gray-600 hover:text-red-400">
+                          <p className="text-xl font-black" style={{ color: theme.primaryButton.bgColor }}>
+                            {item.subtotal.toFixed(2)} €
+                          </p>
+                          <button
+                            onClick={() => removeFromCart(i)}
+                            style={{ color: theme.subheading.textColor, opacity: 0.5 }}
+                            className="mt-1 transition-opacity hover:opacity-100"
+                          >
                             <X size={16} />
                           </button>
                         </div>
@@ -520,19 +832,27 @@ export default function KioskPage() {
                   </div>
                 </div>
 
-                {/* Summary */}
+                {/* Order summary */}
                 <div className="w-80 flex flex-col gap-6">
-                  <div className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                    <p className="text-lg font-bold text-gray-400 mb-4">Récapitulatif</p>
-                    <div className="flex justify-between text-gray-400">
+                  <div className="p-6" style={cardStyle}>
+                    <p
+                      className="text-lg font-bold mb-4"
+                      style={{ color: theme.productCard.textColor, opacity: 0.6 }}
+                    >
+                      Récapitulatif
+                    </p>
+                    <div className="flex justify-between" style={{ color: theme.productCard.textColor, opacity: 0.6 }}>
                       <span>Sous-total</span>
                       <span>{cartTotal.toFixed(2)} €</span>
                     </div>
-                    <div className="flex justify-between text-gray-400 mt-2">
+                    <div className="mt-2 flex justify-between" style={{ color: theme.productCard.textColor, opacity: 0.6 }}>
                       <span>TVA (10%)</span>
                       <span>{(cartTotal * 0.1).toFixed(2)} €</span>
                     </div>
-                    <div className="mt-4 border-t border-gray-700 pt-4 flex justify-between text-xl font-black text-white">
+                    <div
+                      className="mt-4 border-t pt-4 flex justify-between text-xl font-black"
+                      style={{ borderColor: theme.productCard.border.color, color: theme.productCard.textColor }}
+                    >
                       <span>Total</span>
                       <span>{cartTotal.toFixed(2)} €</span>
                     </div>
@@ -540,8 +860,8 @@ export default function KioskPage() {
 
                   <button
                     onClick={() => setScreen('payment')}
-                    className="w-full rounded-2xl py-5 text-xl font-black text-black shadow-lg active:scale-95"
-                    style={{ background: 'linear-gradient(135deg, #1EFF6A, #00cc52)' }}
+                    className="w-full py-5 text-xl font-black shadow-lg transition-all active:scale-95"
+                    style={primaryStyle}
                   >
                     Passer au paiement →
                   </button>
@@ -553,34 +873,56 @@ export default function KioskPage() {
 
         {/* ── Payment ─────────────────────────────────────────────────────── */}
         {screen === 'payment' && (
-          <motion.div key="payment" {...slideUp} className="flex h-full flex-col items-center justify-center gap-10 p-12">
+          <motion.div
+            key="payment"
+            {...slideUp}
+            className="flex h-full flex-col items-center justify-center gap-10 p-12"
+            style={{ background: bgBackground }}
+          >
             <div className="text-center">
-              <h2 className="text-5xl font-black text-white">Mode de paiement</h2>
-              <p className="mt-3 text-xl text-gray-400">Total : <span className="font-black text-white">{cartTotal.toFixed(2)} €</span></p>
+              <h2
+                style={{ ...headingStyle, background: undefined, border: undefined, boxShadow: undefined, fontSize: 48 }}
+              >
+                Mode de paiement
+              </h2>
+              <p className="mt-3 text-xl" style={{ ...subStyle, background: undefined, border: undefined, boxShadow: undefined }}>
+                Total :{' '}
+                <span className="font-black" style={{ color: theme.heading.textColor }}>
+                  {cartTotal.toFixed(2)} €
+                </span>
+              </p>
             </div>
 
             <div className="flex flex-col gap-4 w-full max-w-lg">
               {PAYMENT_METHODS.map((method) => {
                 const Icon = method.icon;
+                const selected = paymentMethod === method.id;
                 return (
                   <motion.button
                     key={method.id}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => setPaymentMethod(method.id)}
-                    className="flex items-center gap-5 rounded-2xl border-2 p-6 transition-all"
-                    style={paymentMethod === method.id
-                      ? { borderColor: '#1EFF6A', background: '#1EFF6A18' }
-                      : { borderColor: '#374151', background: '#111827' }}
+                    className="flex items-center gap-5 p-6 transition-all"
+                    style={selected
+                      ? { ...cardStyle, border: `2px solid ${theme.primaryButton.bgColor}`, background: `${theme.primaryButton.bgColor}18` }
+                      : cardStyle
+                    }
                   >
-                    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gray-800">
-                      <Icon size={28} className={paymentMethod === method.id ? 'text-green-400' : 'text-gray-400'} />
+                    <div
+                      className="flex h-14 w-14 items-center justify-center rounded-xl"
+                      style={{ background: theme.secondaryButton.bgColor }}
+                    >
+                      <Icon
+                        size={28}
+                        style={{ color: selected ? theme.primaryButton.bgColor : theme.subheading.textColor }}
+                      />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="text-xl font-bold text-white">{method.label}</p>
-                      <p className="text-sm text-gray-500">{method.sublabel}</p>
+                      <p className="text-xl font-bold" style={{ color: theme.productCard.textColor }}>{method.label}</p>
+                      <p className="text-sm" style={{ color: theme.subheading.textColor }}>{method.sublabel}</p>
                     </div>
-                    {paymentMethod === method.id && (
-                      <Check size={24} style={{ color: '#1EFF6A' }} />
+                    {selected && (
+                      <Check size={24} style={{ color: theme.primaryButton.bgColor }} />
                     )}
                   </motion.button>
                 );
@@ -588,14 +930,18 @@ export default function KioskPage() {
             </div>
 
             <div className="flex gap-4">
-              <button onClick={() => setScreen('cart')} className="flex items-center gap-2 rounded-2xl border border-gray-700 px-8 py-4 text-gray-400 hover:text-white">
+              <button
+                onClick={() => setScreen('cart')}
+                className="flex items-center gap-2 px-8 py-4 transition-all"
+                style={secondaryStyle}
+              >
                 <ChevronLeft size={20} /> Retour
               </button>
               <button
                 onClick={placeOrder}
                 disabled={!paymentMethod}
-                className="rounded-2xl px-12 py-4 text-xl font-black text-black shadow-lg transition-all disabled:opacity-40"
-                style={{ background: paymentMethod ? 'linear-gradient(135deg, #1EFF6A, #00cc52)' : '#4b5563' }}
+                className="px-12 py-4 text-xl font-black shadow-lg transition-all disabled:opacity-40 active:scale-95"
+                style={paymentMethod ? primaryStyle : { ...primaryStyle, background: '#4b5563' }}
               >
                 Confirmer la commande →
               </button>
@@ -605,40 +951,66 @@ export default function KioskPage() {
 
         {/* ── Confirmation ─────────────────────────────────────────────────── */}
         {screen === 'confirm' && (
-          <motion.div key="confirm" {...fade} className="flex h-full flex-col items-center justify-center gap-10 p-12">
+          <motion.div
+            key="confirm"
+            {...fade}
+            className="flex h-full flex-col items-center justify-center gap-10 p-12"
+            style={{ background: bgBackground }}
+          >
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 300, damping: 20 }}
               className="flex h-32 w-32 items-center justify-center rounded-full"
-              style={{ background: 'linear-gradient(135deg, #1EFF6A, #00cc52)' }}
+              style={{ background: theme.primaryButton.bgColor }}
             >
-              <Check size={60} className="text-black" strokeWidth={3} />
+              <Check size={60} style={{ color: theme.primaryButton.textColor }} strokeWidth={3} />
             </motion.div>
 
             <div className="text-center">
-              <h2 className="text-5xl font-black text-white">Commande confirmée !</h2>
-              <p className="mt-3 text-2xl text-gray-400">
-                {orderMode === 'sur_place' ? 'Votre commande arrive bientôt' : 'Récupérez votre commande au comptoir'}
+              <h2
+                style={{ ...headingStyle, background: undefined, border: undefined, boxShadow: undefined, fontSize: 48 }}
+              >
+                Commande confirmée !
+              </h2>
+              <p
+                className="mt-3 text-2xl"
+                style={{ ...subStyle, background: undefined, border: undefined, boxShadow: undefined }}
+              >
+                {orderMode === 'sur_place'
+                  ? 'Votre commande arrive bientôt'
+                  : 'Récupérez votre commande au comptoir'}
               </p>
             </div>
 
-            <div className="rounded-3xl border border-gray-700 bg-gray-900 p-10 text-center">
-              <p className="text-lg text-gray-500 uppercase tracking-widest mb-3">Numéro de commande</p>
-              <p className="text-8xl font-black" style={{ color: '#1EFF6A' }}>#{orderNumber}</p>
+            <div className="p-10 text-center" style={cardStyle}>
+              <p
+                className="text-lg uppercase tracking-widest mb-3"
+                style={{ color: theme.productCard.textColor, opacity: 0.5 }}
+              >
+                Numéro de commande
+              </p>
+              <p className="text-8xl font-black" style={{ color: theme.primaryButton.bgColor }}>
+                #{orderNumber}
+              </p>
             </div>
 
-            <div className="flex items-center gap-3 text-gray-500">
+            <div className="flex items-center gap-3" style={{ color: theme.subheading.textColor }}>
               <Clock size={20} />
-              <p className="text-xl">Temps d'attente estimé : <span className="font-bold text-white">15–20 min</span></p>
+              <p className="text-xl">
+                Temps d&apos;attente estimé :{' '}
+                <span className="font-bold" style={{ color: theme.heading.textColor }}>15–20 min</span>
+              </p>
             </div>
 
             <div className="text-center">
-              <p className="text-gray-500 mb-4">Nouvelle commande dans {countdown}s</p>
+              <p className="mb-4" style={{ color: theme.subheading.textColor }}>
+                Nouvelle commande dans {countdown}s
+              </p>
               <button
                 onClick={resetKiosk}
-                className="rounded-2xl px-10 py-4 text-lg font-bold text-black"
-                style={{ background: '#1EFF6A' }}
+                className="px-10 py-4 text-lg font-bold transition-all active:scale-95"
+                style={primaryStyle}
               >
                 Nouvelle commande
               </button>
