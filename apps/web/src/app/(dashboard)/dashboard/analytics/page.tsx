@@ -12,6 +12,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
+import { AIInsights } from '@/components/analytics/AIInsights';
 import type {} from 'jspdf-autotable';
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
@@ -195,6 +196,13 @@ function AdminAnalytics({ onExportCSV, onExportPDF, onExportXLSX }: { onExportCS
           );
         })}
       </div>
+
+      {/* AI Insights */}
+      <AIInsights
+        scope="admin"
+        period="12 mois"
+        kpis={PLATFORM_KPI.map((k) => ({ title: k.title, value: k.value, change: k.change }))}
+      />
 
       {/* 12-month MRR chart */}
       <Card padding="lg" className="gsap-card">
@@ -384,6 +392,16 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
           );
         })}
       </div>
+
+      {/* AI Insights */}
+      <AIInsights
+        scope="owner"
+        period={PERIODS[period]}
+        kpis={KPI_CARDS.map((k) => ({ title: k.title, value: k.value, change: k.change }))}
+        topItems={TOP_ITEMS.map((t) => ({ name: t.name, sold: t.sold, revenue: t.revenue, change: t.change }))}
+        revenue={REVENUE_DATA}
+        categories={PIE_DATA}
+      />
 
       {/* Charts row */}
       <div className="grid gap-6 xl:grid-cols-2">
