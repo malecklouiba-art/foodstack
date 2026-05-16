@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
   ShoppingBag, Users, Euro, Truck, Star,
   ArrowUpRight, TrendingUp, Clock, Zap,
-  Building2, CreditCard, BarChart3, Percent,
+  Building2, BarChart3, Percent,
   Bike, MapPin, Navigation, CheckCircle2, XCircle, Package,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';

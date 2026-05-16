@@ -418,7 +418,6 @@ export default function OrdersPage() {
           <AnimatePresence>
             {filtered.map((order, idx) => {
               const status = STATUS_CONFIG[order.status];
-              const StatusIcon = status.icon;
               const PayIcon = PAYMENT_ICONS[order.paymentMethod] ?? CreditCard;
               return (
                 <motion.div
