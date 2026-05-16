@@ -119,7 +119,7 @@
 | Programme fidélité | ✅ | `/loyalty` — points, niveaux, récompenses |
 | Favoris / restaurants sauvegardés | ✅ | |
 | Notifications | ✅ | Centre de notifications `/notifications` |
-| Commandes programmées | ❌ | Sélection date/heure future |
+| Commandes programmées | ✅ | Tab "Programmées" dans `/orders` — annulation, modification, badge compteur |
 
 ### Pages auth
 
@@ -131,7 +131,7 @@
 | Mot de passe oublié | ✅ | `/auth/forgot-password` |
 | Reset mot de passe | ✅ | `/auth/reset-password` |
 | Vérification email | ✅ | Page confirmation |
-| 2FA setup / vérification | ❌ | |
+| 2FA setup / vérification | ✅ | `/2fa/setup` — QR code, clé manuelle, vérification TOTP |
 
 ### Dashboard restaurant (`/dashboard`)
 
@@ -143,10 +143,10 @@
 | Caisse POS (`/pos`) | ✅ | Interface tactile, calcul monnaie, paiement |
 | Gestion menus | ✅ | CRUD catégories + articles + modificateurs |
 | Gestion employés | ✅ | Invitations, rôles, permissions |
-| Statistiques avancées | ❌ | Revenus par heure, best-sellers, clients |
-| Gestion fournisseurs | ✅ | Contacts, commandes fournisseurs |
+| Statistiques avancées | ✅ | KPIs, CA/j, heatmap, top articles, fidélisation — export PDF/CSV/Excel |
+| Gestion fournisseurs | ✅ | Contacts, commandes fournisseurs, export Excel |
 | Zones de livraison | ✅ | Carte avec polygones de zone |
-| Paramètres restaurant | ❌ | Horaires, logo, infos, intégrations |
+| Paramètres restaurant | ✅ | 7 onglets : infos, horaires, notifs, livraison, paiements, équipe, périphériques |
 
 ### Super Admin (`/admin`)
 
@@ -155,8 +155,8 @@
 | Dashboard super admin | ✅ | Vue globale tous restaurants |
 | Gestion abonnements | ✅ | Plans, facturation, Stripe |
 | Gestion restaurants clients | ✅ | Onboarding, suspension, metrics |
-| Monitoring / logs erreurs | ❌ | |
-| Configuration plateforme | ❌ | |
+| Monitoring / logs erreurs | ✅ | CPU/RAM/latence live (3s), logs, services uptime |
+| Configuration plateforme | ✅ | 6 onglets : plateforme, plans, webhooks, clés API, SMTP, feature flags |
 
 ---
 
@@ -258,7 +258,7 @@
 | Scan code-barres | ❌ | |
 | Impression thermique tickets | ❌ | |
 | Export PDF rapports | ✅ | |
-| Export Excel données | 🔄 | PDF done, Excel partial |
+| Export Excel données | ✅ | xlsx sur analytics, inventaire, commandes, fournisseurs, clients |
 | Dark mode | ❌ | |
 | Multi-langue (i18n, futur-ready) | ✅ | |
 | Analytics avancées | 🔄 | Module scaffold, requêtes à écrire |
