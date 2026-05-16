@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ChevronRight, Plus, X, Clock, Users,
   CalendarDays, Sun, Sunset, Moon, Copy, Trash2,
-  Download, Check,
+  Download, Check, ImagePlus, Trash,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -147,6 +147,7 @@ export default function PlanningPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [copied, setCopied] = useState(false);
+  const [bgImage, setBgImage] = useState<string | null>(null);
 
   const weekDates = getWeekDates(weekOffset);
   const totalStaff = EMPLOYEES.length;
@@ -215,7 +216,14 @@ export default function PlanningPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div
+      className="space-y-6 p-6 min-h-screen transition-all duration-500"
+      style={bgImage ? {
+        backgroundImage: `linear-gradient(rgba(255,255,255,0.78), rgba(255,255,255,0.78)), url(${bgImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      } : undefined}
+    >
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -230,6 +238,32 @@ export default function PlanningPage() {
             {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
             {copied ? 'Copié !' : 'Copier semaine'}
           </button>
+          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors dark:border-surface-700 dark:bg-surface-800 dark:text-surface-200">
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (bgImage) URL.revokeObjectURL(bgImage);
+                setBgImage(URL.createObjectURL(file));
+                e.target.value = '';
+              }}
+            />
+            <ImagePlus className="h-4 w-4" />
+            Image de fond
+          </label>
+          {bgImage && (
+            <button
+              onClick={() => { URL.revokeObjectURL(bgImage); setBgImage(null); }}
+              className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 transition-colors"
+              title="Supprimer l'image de fond"
+            >
+              <Trash className="h-4 w-4" />
+              Retirer
+            </button>
+          )}
           <Button onClick={() => openAdd()} size="sm">
             <Plus className="h-4 w-4" />
             Ajouter shift
