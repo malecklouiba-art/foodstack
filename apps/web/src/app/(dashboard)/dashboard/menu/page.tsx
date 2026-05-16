@@ -14,26 +14,11 @@ import { Card } from '@/components/ui/Card';
 import { CategoryModal } from '@/components/dashboard/menu/CategoryModal';
 import { ItemModal } from '@/components/dashboard/menu/ItemModal';
 import type { MenuCategory, MenuItem } from '@foodstack/shared';
+import { MENU_CATEGORIES, MENU_ITEMS } from '@/data/menuData';
 
-// ── Mock data ──────────────────────────────────────────────────────────────
-const INIT_CATEGORIES: MenuCategory[] = [
-  { id: 'cat-1', restaurantId: 'r1', name: 'Burgers', description: 'Nos burgers maison', position: 0, isActive: true },
-  { id: 'cat-2', restaurantId: 'r1', name: 'Pizzas', description: 'Cuites au feu de bois', position: 1, isActive: true },
-  { id: 'cat-3', restaurantId: 'r1', name: 'Salades', description: 'Fraîches & légères', position: 2, isActive: true },
-  { id: 'cat-4', restaurantId: 'r1', name: 'Desserts', description: 'Nos douceurs', position: 3, isActive: true },
-  { id: 'cat-5', restaurantId: 'r1', name: 'Boissons', description: '', position: 4, isActive: false },
-];
-
-const INIT_ITEMS: MenuItem[] = [
-  { id: 'i-1', restaurantId: 'r1', categoryId: 'cat-1', name: 'Classic Burger', description: 'Steak haché, cheddar, salade, tomate, oignons', price: 14.90, prepTime: 12, dietaryTags: [], allergens: ['Gluten', 'Lait', 'Oeufs'], modifierGroups: [], isActive: true, isFeatured: true, position: 0, rating: 4.8, reviewCount: 124, soldCount: 843, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'i-2', restaurantId: 'r1', categoryId: 'cat-1', name: 'Truffle Burger', description: 'Huile de truffe, champignons, emmental, mayo maison', price: 22.50, compareAtPrice: 26.00, prepTime: 15, dietaryTags: [], allergens: ['Gluten', 'Lait', 'Oeufs'], modifierGroups: [], isActive: true, isFeatured: false, position: 1, rating: 4.9, reviewCount: 67, soldCount: 312, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'i-3', restaurantId: 'r1', categoryId: 'cat-1', name: 'Chicken Burger', description: 'Poulet croustillant, coleslaw, sauce BBQ', price: 12.90, prepTime: 14, dietaryTags: [], allergens: ['Gluten', 'Lait'], modifierGroups: [], isActive: true, isFeatured: false, position: 2, rating: 4.6, reviewCount: 89, soldCount: 445, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'i-4', restaurantId: 'r1', categoryId: 'cat-1', name: 'Veggie Burger', description: 'Steak de légumes, avocat, tomate, roquette', price: 13.50, prepTime: 10, dietaryTags: ['vegetarian', 'vegan'], allergens: ['Gluten'], modifierGroups: [], isActive: false, isFeatured: false, position: 3, rating: 4.3, reviewCount: 34, soldCount: 156, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'i-5', restaurantId: 'r1', categoryId: 'cat-2', name: 'Margherita', description: 'Tomate, mozzarella, basilic frais', price: 13.90, prepTime: 18, dietaryTags: ['vegetarian'], allergens: ['Gluten', 'Lait'], modifierGroups: [], isActive: true, isFeatured: true, position: 0, rating: 4.7, reviewCount: 201, soldCount: 934, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'i-6', restaurantId: 'r1', categoryId: 'cat-2', name: 'Diavola', description: 'Tomate, mozzarella, salami piquant', price: 15.90, prepTime: 18, dietaryTags: ['spicy'], allergens: ['Gluten', 'Lait'], modifierGroups: [], isActive: true, isFeatured: false, position: 1, rating: 4.5, reviewCount: 88, soldCount: 421, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'i-7', restaurantId: 'r1', categoryId: 'cat-3', name: 'Salade César', description: 'Romaine, parmesan, croûtons, poulet grillé', price: 12.50, prepTime: 8, dietaryTags: [], allergens: ['Gluten', 'Lait', 'Oeufs'], modifierGroups: [], isActive: true, isFeatured: false, position: 0, rating: 4.4, reviewCount: 56, soldCount: 234, createdAt: new Date(), updatedAt: new Date() },
-  { id: 'i-8', restaurantId: 'r1', categoryId: 'cat-4', name: 'Tiramisu', description: 'Recette traditionnelle italienne', price: 7.50, prepTime: 0, dietaryTags: ['vegetarian'], allergens: ['Oeufs', 'Lait', 'Gluten'], modifierGroups: [], isActive: true, isFeatured: false, position: 0, rating: 4.9, reviewCount: 145, soldCount: 678, createdAt: new Date(), updatedAt: new Date() },
-];
+// ── helpers ────────────────────────────────────────────────────────────────
+const INIT_CATEGORIES: MenuCategory[] = MENU_CATEGORIES;
+const INIT_ITEMS: MenuItem[] = MENU_ITEMS;
 
 // ── helpers ────────────────────────────────────────────────────────────────
 function uid() { return `id-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }

@@ -1,19 +1,19 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { clsx } from 'clsx';
 import {
   Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone,
-  Users, Percent, Receipt, ChevronLeft, Check,
-  Shield, FileText, BookOpen, X, Lock, Hash,
-  AlertTriangle, Clock, Pencil, Loader2, User, UserPlus, Star, History, Camera,
+  Users, Percent, Receipt, Check,
+  Shield, FileText, BookOpen, X,
+  Pencil, Loader2, User, UserPlus, Star, History, Camera,
   Home, ShoppingBag, BarChart2, Settings, Wifi, RefreshCw,
-  ChevronRight, ShoppingCart, LayoutGrid, LogOut, RotateCcw, Download,
+  ChevronRight, ShoppingCart, LayoutGrid, LogOut, Download,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { MENU_ITEMS as RAW_MENU_ITEMS, MENU_CATEGORIES, CATEGORY_TVA, CATEGORY_EMOJI } from '@/data/menuData';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -76,29 +76,27 @@ type OrderTab = 'history' | 'hold' | 'offline';
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const TVA_RATES = [5.5, 10, 20];
-const CATEGORIES = ['Tout', 'Burgers', 'Pizzas', 'Salades', 'Boissons', 'Desserts'];
 const PIN_OPERATORS: Record<string, { name: string; role: string }> = {
   '1234': { name: 'Alice Martin', role: 'Caissière' },
   '5678': { name: 'Bob Durand', role: 'Manager' },
   '9012': { name: 'Chef Léa', role: 'Cuisine' },
 };
 
-const MENU_ITEMS: POSItem[] = [
-  { id: '1',  name: 'Classic Smash Burger',  category: 'Burgers',  price: 14.90, tvaRate: 10,  emoji: '🍔', image: 'https://cdn.pixabay.com/photo/2016/03/05/19/02/hamburger-1238246_640.jpg' },
-  { id: '2',  name: 'Truffle Burger',        category: 'Burgers',  price: 22.50, tvaRate: 10,  emoji: '🍔', image: 'https://cdn.pixabay.com/photo/2020/08/09/14/17/mushroom-burger-5476453_640.jpg' },
-  { id: '3',  name: 'Chicken Burger',        category: 'Burgers',  price: 12.90, tvaRate: 10,  emoji: '🍔', image: 'https://cdn.pixabay.com/photo/2014/10/23/18/05/burger-500054_640.jpg' },
-  { id: '4',  name: 'Margherita',            category: 'Pizzas',   price: 13.90, tvaRate: 10,  emoji: '🍕', image: 'https://cdn.pixabay.com/photo/2017/12/09/08/18/pizza-3007395_640.jpg' },
-  { id: '5',  name: 'Diavola',               category: 'Pizzas',   price: 16.50, tvaRate: 10,  emoji: '🍕', image: 'https://cdn.pixabay.com/photo/2019/09/26/08/14/pizza-4505870_640.jpg' },
-  { id: '6',  name: 'Quattro Formaggi',      category: 'Pizzas',   price: 18.00, tvaRate: 10,  emoji: '🍕', image: 'https://cdn.pixabay.com/photo/2022/02/10/21/23/pizza-7005859_640.jpg' },
-  { id: '7',  name: 'Salade César',          category: 'Salades',  price: 12.50, tvaRate: 10,  emoji: '🥗', image: 'https://cdn.pixabay.com/photo/2017/10/09/19/29/salad-2836445_640.jpg' },
-  { id: '8',  name: 'Salade Niçoise',        category: 'Salades',  price: 13.90, tvaRate: 10,  emoji: '🥗', image: 'https://cdn.pixabay.com/photo/2017/05/11/19/44/fresh-2305367_640.jpg' },
-  { id: '9',  name: 'Eau Minérale',          category: 'Boissons', price: 2.50,  tvaRate: 5.5, emoji: '💧', image: 'https://cdn.pixabay.com/photo/2016/12/22/09/21/mineral-water-1925835_640.jpg' },
-  { id: '10', name: 'Limonade',              category: 'Boissons', price: 4.90,  tvaRate: 10,  emoji: '🍋', image: 'https://cdn.pixabay.com/photo/2018/07/07/19/55/lemon-3523243_640.jpg' },
-  { id: '11', name: 'Café Espresso',         category: 'Boissons', price: 2.20,  tvaRate: 10,  emoji: '☕', image: 'https://cdn.pixabay.com/photo/2017/11/29/15/41/coffee-2987455_640.jpg' },
-  { id: '12', name: 'Tiramisu',              category: 'Desserts', price: 7.50,  tvaRate: 10,  emoji: '🍮', image: 'https://cdn.pixabay.com/photo/2017/01/11/11/33/cake-1971552_640.jpg' },
-  { id: '13', name: 'Fondant Chocolat',      category: 'Desserts', price: 8.00,  tvaRate: 10,  emoji: '🍫', image: 'https://cdn.pixabay.com/photo/2020/01/17/16/54/chocolate-4773322_640.jpg' },
-  { id: '14', name: 'Frites Maison',         category: 'Tout',     price: 4.50,  tvaRate: 10,  emoji: '🍟', image: 'https://cdn.pixabay.com/photo/2016/11/20/11/06/fries-1842589_640.jpg' },
-];
+// Derived from shared menuData — single source of truth with menu page
+const CATEGORIES = ['Tout', ...MENU_CATEGORIES.map(c => c.name)];
+const MENU_ITEMS: POSItem[] = RAW_MENU_ITEMS.filter(i => i.isActive).map(i => {
+  const cat = MENU_CATEGORIES.find(c => c.id === i.categoryId);
+  const catName = cat?.name ?? 'Tout';
+  return {
+    id: i.id,
+    name: i.name,
+    category: catName,
+    price: i.price,
+    tvaRate: CATEGORY_TVA[catName] ?? 10,
+    emoji: CATEGORY_EMOJI[catName] ?? '🍽️',
+    image: i.image ?? '',
+  };
+});
 
 const CUSTOMERS: Customer[] = [
   { id: 'c1', name: 'Marie Dupont',   phone: '06 12 34 56 78', loyalty: 450, totalSpent: 342.50, visits: 18 },
@@ -621,7 +619,7 @@ export default function POSPage() {
             {filteredItems.map(item => (
               <button key={item.id} onClick={() => addToCart(item)}
                 className="group flex flex-col items-center rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition-all hover:shadow-md hover:ring-orange-300 active:scale-95">
-                <div className="mb-3 h-20 w-20 overflow-hidden rounded-full ring-2 ring-gray-100">
+                <div className="mb-3 h-24 w-full overflow-hidden rounded-xl ring-1 ring-gray-100">
                   <img src={item.image} alt={item.name} className="h-full w-full object-cover"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
