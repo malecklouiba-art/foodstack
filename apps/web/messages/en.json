@@ -1,0 +1,107 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "menu": "Menu",
+    "inventory": "Inventory",
+    "delivery": "Deliveries",
+    "drivers": "Drivers",
+    "suppliers": "Suppliers",
+    "zones": "Delivery Zones",
+    "staff": "Staff",
+    "restaurants": "Restaurants",
+    "customers": "Customers",
+    "loyalty": "Loyalty",
+    "payments": "Payments",
+    "pos": "POS Register",
+    "kiosk": "Kiosk",
+    "qrcodes": "QR Codes",
+    "analytics": "Analytics",
+    "settings": "Settings"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "total": "Total",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "address": "Address"
+  },
+  "auth": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "revenue": "Revenue",
+    "ordersToday": "Orders today",
+    "activeDeliveries": "Active deliveries",
+    "avgOrder": "Average order",
+    "openStatus": "Restaurant open",
+    "closedStatus": "Restaurant closed",
+    "liveOrders": "Live orders"
+  },
+  "orders": {
+    "title": "Orders",
+    "new": "New order",
+    "status": {
+      "confirmed": "Confirmed",
+      "preparing": "Preparing",
+      "ready": "Ready",
+      "delivering": "Delivering",
+      "delivered": "Delivered",
+      "cancelled": "Cancelled"
+    }
+  },
+  "inventory": {
+    "title": "Inventory",
+    "addItem": "Add item",
+    "stock": "Stock",
+    "minStock": "Minimum stock",
+    "cost": "Purchase price",
+    "price": "Sale price",
+    "margin": "Margin",
+    "lowStock": "Low stock",
+    "outOfStock": "Out of stock"
+  },
+  "loyalty": {
+    "title": "Loyalty Program",
+    "points": "points",
+    "tiers": {
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold",
+      "platinum": "Platinum"
+    }
+  },
+  "twoFactor": {
+    "setup": "Enable 2FA",
+    "verify": "2FA Verification",
+    "scanQr": "Scan this QR code",
+    "enterCode": "Enter the 6-digit code",
+    "enable": "Enable 2FA",
+    "enabled": "2FA enabled!",
+    "invalidCode": "Invalid code"
+  }
+}

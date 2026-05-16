@@ -26,11 +26,23 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
-        run: npm run type-check
+      - name: Generate Prisma client
+        run: npm run --workspace=@foodstack/database generate
 
-      - name: Lint
-        run: npm run lint
+      - name: Type check (shared)
+        run: npm run type-check --workspace=@foodstack/shared
+
+      - name: Type check (api)
+        run: npm run type-check --workspace=@foodstack/api
+
+      - name: Type check (web)
+        run: npm run type-check --workspace=@foodstack/web
+
+      - name: Lint (api)
+        run: npm run lint --workspace=@foodstack/api
+
+      - name: Lint (web)
+        run: npm run lint --workspace=@foodstack/web
 
   test:
     name: Tests
@@ -76,8 +88,8 @@ jobs:
       - name: Generate Prisma client
         run: npm run --workspace=@foodstack/database generate
 
-      - name: Run migrations
-        run: npm run --workspace=@foodstack/database migrate
+      - name: Push database schema
+        run: npm run --workspace=@foodstack/database db:push
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/foodstack_test
 

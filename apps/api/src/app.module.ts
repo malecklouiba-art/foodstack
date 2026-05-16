@@ -12,12 +12,18 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { DatabaseModule } from './database/database.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { CouponsModule } from './modules/coupons/coupons.module';
+import { DriversModule } from './modules/drivers/drivers.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     DatabaseModule,
+    RealtimeModule,
     AuthModule,
     UsersModule,
     RestaurantsModule,
@@ -28,6 +34,10 @@ import { DatabaseModule } from './database/database.module';
     PaymentsModule,
     LoyaltyModule,
     AnalyticsModule,
+    NotificationsModule,
+    CouponsModule,
+    DriversModule,
+    SuperAdminModule,
   ],
 })
 export class AppModule {}

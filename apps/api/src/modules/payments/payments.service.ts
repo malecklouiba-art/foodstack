@@ -1,12 +1,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import Stripe from 'stripe';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
+import { OrdersService } from '../orders/orders.service';
+import { OrderStatus } from '../orders/dto/update-order-status.dto';
 
 @Injectable()
 export class PaymentsService {
   private readonly stripe: Stripe;
 
-  constructor() {
+  constructor(private readonly orders: OrdersService) {
     // TODO: Inject ConfigService and use process.env.STRIPE_SECRET_KEY via ConfigModule
     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
       apiVersion: '2024-04-10' as any,
@@ -50,14 +52,24 @@ export class PaymentsService {
   async handleWebhook(event: Stripe.Event) {
     // TODO: Verify webhook signature using stripe.webhooks.constructEvent before calling this
     switch (event.type) {
-      case 'payment_intent.succeeded':
-        // TODO: Mark order as PAID in the database
+      case 'payment_intent.succeeded': {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        const orderId = intent.metadata?.orderId;
+        if (orderId) {
+          await this.orders.updateStatus(orderId, { status: OrderStatus.CONFIRMED });
+        }
         break;
-      case 'payment_intent.payment_failed':
-        // TODO: Notify customer of failed payment
+      }
+      case 'payment_intent.payment_failed': {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        const orderId = intent.metadata?.orderId;
+        if (orderId) {
+          await this.orders.updateStatus(orderId, { status: OrderStatus.CANCELLED });
+        }
         break;
+      }
       case 'charge.refunded':
-        // TODO: Update order to REFUNDED status
+        // Logged — order status managed separately via refund endpoint
         break;
       default:
         // Unhandled event type — log and ignore

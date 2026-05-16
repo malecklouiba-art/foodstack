@@ -35,6 +35,9 @@ export class UsersService {
         firstName: true,
         lastName: true,
         phone: true,
+        role: true,
+        twoFactorSecret: true,
+        twoFactorEnabled: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -43,14 +46,17 @@ export class UsersService {
     return user;
   }
 
-  async create(dto: CreateUserDto) {
-    // TODO: Hash password before storing
+  async updateUser(id: string, data: Partial<{ twoFactorSecret: string | null; twoFactorEnabled: boolean }>) {
+    return this.prisma.user.update({ where: { id }, data });
+  }
+
+  async create(dto: CreateUserDto, passwordHash: string) {
     return this.prisma.user.create({
       data: {
         email: dto.email,
         firstName: dto.firstName,
         lastName: dto.lastName,
-        password: dto.password, // TODO: bcrypt hash
+        passwordHash,
         phone: dto.phone,
       },
     });

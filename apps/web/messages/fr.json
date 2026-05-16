@@ -1,0 +1,107 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "orders": "Commandes",
+    "menu": "Menu",
+    "inventory": "Inventaire",
+    "delivery": "Livraisons",
+    "drivers": "Livreurs",
+    "suppliers": "Fournisseurs",
+    "zones": "Zones livraison",
+    "staff": "Employés",
+    "restaurants": "Restaurants",
+    "customers": "Clients",
+    "loyalty": "Fidélité",
+    "payments": "Paiements",
+    "pos": "Caisse POS",
+    "kiosk": "Borne de commande",
+    "qrcodes": "QR Codes",
+    "analytics": "Analytiques",
+    "settings": "Paramètres"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "loading": "Chargement...",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "yes": "Oui",
+    "no": "Non",
+    "actions": "Actions",
+    "status": "Statut",
+    "date": "Date",
+    "total": "Total",
+    "name": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "address": "Adresse"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "Créer un compte",
+    "email": "Email",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Déjà un compte ?"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "revenue": "Chiffre d'affaires",
+    "ordersToday": "Commandes aujourd'hui",
+    "activeDeliveries": "Livraisons actives",
+    "avgOrder": "Panier moyen",
+    "openStatus": "Restaurant ouvert",
+    "closedStatus": "Restaurant fermé",
+    "liveOrders": "Commandes en cours"
+  },
+  "orders": {
+    "title": "Commandes",
+    "new": "Nouvelle commande",
+    "status": {
+      "confirmed": "Confirmée",
+      "preparing": "En préparation",
+      "ready": "Prête",
+      "delivering": "En livraison",
+      "delivered": "Livrée",
+      "cancelled": "Annulée"
+    }
+  },
+  "inventory": {
+    "title": "Inventaire",
+    "addItem": "Ajouter un article",
+    "stock": "Stock",
+    "minStock": "Stock minimum",
+    "cost": "Prix d'achat",
+    "price": "Prix de vente",
+    "margin": "Marge",
+    "lowStock": "Stock bas",
+    "outOfStock": "Rupture de stock"
+  },
+  "loyalty": {
+    "title": "Programme Fidélité",
+    "points": "points",
+    "tiers": {
+      "bronze": "Bronze",
+      "silver": "Silver",
+      "gold": "Gold",
+      "platinum": "Platinum"
+    }
+  },
+  "twoFactor": {
+    "setup": "Activer la 2FA",
+    "verify": "Vérification 2FA",
+    "scanQr": "Scannez ce QR code",
+    "enterCode": "Entrez le code à 6 chiffres",
+    "enable": "Activer la 2FA",
+    "enabled": "2FA activée !",
+    "invalidCode": "Code invalide"
+  }
+}

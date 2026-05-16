@@ -2,15 +2,19 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
+import { authenticator } from 'otplib';
+import * as QRCode from 'qrcode';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-    private config: ConfigService
+    private config: ConfigService,
+    private notifications: NotificationsService,
   ) {}
 
   async validateUser(email: string, password: string) {
@@ -41,9 +45,19 @@ export class AuthService {
     if (existing) throw new ConflictException('Email déjà utilisé');
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const user = await this.usersService.create({ ...dto, passwordHash });
+    const [firstName, ...rest] = dto.name.trim().split(' ');
+    const lastName = rest.join(' ') || '';
+    const user = await this.usersService.create(
+      { email: dto.email, firstName, lastName, password: dto.password, phone: dto.phone },
+      passwordHash,
+    );
 
     const { passwordHash: _, ...result } = user;
+    try {
+      void this.notifications.sendWelcome(dto.email, dto.name);
+    } catch {
+      // fire-and-forget — never block registration on email failure
+    }
     return this.login(result);
   }
 
@@ -54,11 +68,43 @@ export class AuthService {
       });
       const user = await this.usersService.findById(payload.sub);
       if (!user) throw new UnauthorizedException();
-
-      const { passwordHash: _, ...result } = user;
-      return this.login(result);
+      return this.login(user);
     } catch {
       throw new UnauthorizedException('Token de rafraîchissement invalide');
     }
+  }
+
+  async generate2FASecret(userId: string) {
+    const user = await this.usersService.findById(userId);
+    const secret = authenticator.generateSecret();
+    const otpAuthUrl = authenticator.keyuri(user.email, 'FoodStack', secret);
+    const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
+    // Store secret temporarily (not yet enabled)
+    await this.usersService.updateUser(userId, { twoFactorSecret: secret });
+    return { secret, qrCodeDataUrl, otpAuthUrl };
+  }
+
+  async enable2FA(userId: string, token: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user.twoFactorSecret) throw new UnauthorizedException('2FA not initialized');
+    const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
+    if (!isValid) throw new UnauthorizedException('Code TOTP invalide');
+    await this.usersService.updateUser(userId, { twoFactorEnabled: true });
+    return { enabled: true };
+  }
+
+  async disable2FA(userId: string) {
+    await this.usersService.updateUser(userId, { twoFactorEnabled: false, twoFactorSecret: null });
+    return { enabled: false };
+  }
+
+  async verify2FA(userId: string, token: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+      throw new UnauthorizedException('2FA non activé');
+    }
+    const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
+    if (!isValid) throw new UnauthorizedException('Code TOTP invalide');
+    return this.login(user);
   }
 }

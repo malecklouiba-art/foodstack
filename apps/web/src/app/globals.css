@@ -10,7 +10,7 @@
     --card-foreground: 240 10% 3.9%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 24 95% 53%;
+    --ring: 145 100% 50%;
 
     --font-geist-sans: 'Geist', 'Inter', system-ui, sans-serif;
     --font-geist-mono: 'Geist Mono', monospace;
@@ -37,6 +37,10 @@
   body {
     @apply bg-surface-50 text-surface-900 antialiased;
     font-family: var(--font-geist-sans);
+  }
+
+  .dark body {
+    @apply bg-[#0A0A0A] text-surface-100;
   }
 
   ::selection {
@@ -123,6 +127,23 @@
 }
 
 @layer utilities {
+  /* Dark mode surface color remaps — in utilities layer to beat component styles */
+  .dark .text-surface-900 { color: #fafafa; }
+  .dark .text-surface-800 { color: #f4f4f5; }
+  .dark .text-surface-700 { color: #e4e4e7; }
+  .dark .text-surface-600 { color: #d4d4d8; }
+  .dark .text-surface-500 { color: #a1a1aa; }
+  .dark .text-surface-400 { color: #71717a; }
+  .dark .bg-white         { background-color: #27272a; }
+  .dark .bg-surface-50    { background-color: #18181b; }
+  .dark .bg-surface-100   { background-color: #27272a; }
+  .dark .bg-surface-200   { background-color: #3f3f46; }
+  .dark .border-surface-100 { border-color: #3f3f46; }
+  .dark .border-surface-200 { border-color: #3f3f46; }
+  .dark .hover\:bg-surface-50:hover  { background-color: #27272a; }
+  .dark .hover\:bg-surface-100:hover { background-color: #3f3f46; }
+  .dark .divide-surface-100 > * + * { border-color: #3f3f46; }
+
   .text-balance {
     text-wrap: balance;
   }

@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ─── Enums ───────────────────────────────────────────────────
@@ -84,12 +83,15 @@ model User {
   id             String      @id @default(cuid())
   email          String      @unique
   passwordHash   String
-  name           String
+  firstName      String
+  lastName       String
   phone          String?
   avatar         String?
   role           UserRole    @default(customer)
   isActive       Boolean     @default(true)
-  emailVerified  Boolean     @default(false)
+  emailVerified    Boolean     @default(false)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean     @default(false)
 
   loyaltyPoints  Int         @default(0)
   loyaltyTier    LoyaltyTier @default(bronze)
@@ -102,6 +104,8 @@ model User {
   loyaltyTx        LoyaltyTransaction[]
   reviews          Review[]
   addresses        SavedAddress[]
+  driver           Driver?
+  notifications    Notification[]
 
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -170,6 +174,10 @@ model Restaurant {
   suppliers   Supplier[]
   promotions  Promotion[]
   reviews     Review[]
+  coupons     Coupon[]
+  drivers     Driver[]
+  tables      RestaurantTable[]
+  subscription Subscription?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -477,4 +485,102 @@ model Review {
 
   @@index([restaurantId])
   @@map("reviews")
+}
+
+model Coupon {
+  id            String     @id @default(cuid())
+  code          String     @unique
+  description   String?
+  discountType  String     @default("percent") // "percent" | "fixed"
+  discountValue Float
+  minOrderValue Float      @default(0)
+  maxUses       Int?
+  usedCount     Int        @default(0)
+  expiresAt     DateTime?
+  active        Boolean    @default(true)
+  restaurantId  String
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("coupons")
+}
+
+model Driver {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id])
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  vehicleType  String    @default("bike") // "bike" | "scooter" | "car"
+  vehiclePlate String?
+  latitude     Float?
+  longitude    Float?
+  isAvailable  Boolean   @default(true)
+  isOnline     Boolean   @default(false)
+  totalDeliveries Int    @default(0)
+  rating       Float     @default(5.0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("drivers")
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  type       String   // "order_new" | "order_status" | "low_stock" | "promo" | "system"
+  title      String
+  body       String
+  read       Boolean  @default(false)
+  data       Json?
+  createdAt  DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model RestaurantTable {
+  id           String   @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  number       Int
+  capacity     Int      @default(4)
+  section      String   @default("Salle principale")
+  status       String   @default("free") // "free" | "occupied" | "reserved" | "cleaning"
+  qrCode       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([restaurantId, number])
+  @@map("restaurant_tables")
+}
+
+model Subscription {
+  id           String    @id @default(cuid())
+  restaurantId String    @unique
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  plan         String    @default("starter") // "starter" | "pro" | "enterprise"
+  status       String    @default("active") // "active" | "suspended" | "cancelled"
+  stripeSubId  String?
+  currentPeriodEnd DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("subscriptions")
 }
