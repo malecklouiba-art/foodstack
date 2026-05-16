@@ -110,7 +110,7 @@ function exportCSV(txs: Transaction[], title: string) {
 }
 
 async function exportPDF(txs: Transaction[], title: string) {
-  const { jsPDF } = await import('jspdf');
+  const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   doc.setFontSize(14); doc.text(title, 14, 18);
   doc.setFontSize(9);

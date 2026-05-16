@@ -365,7 +365,7 @@ export default function CustomersPage() {
 
   // ── PDF Export ──────────────────────────────────────────────────────────────
   const handleExportPDF = useCallback(async () => {
-    const { jsPDF } = await import('jspdf');
+    const { default: jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const dateStr = new Date().toLocaleDateString('fr-FR');
 
