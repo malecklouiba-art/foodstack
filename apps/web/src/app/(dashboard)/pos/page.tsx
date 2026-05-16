@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import {
   Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone,
   Users, RotateCcw, Percent, Receipt, ChevronLeft, Check,
   Shield, FileText, BookOpen, X, Download, Lock, Hash,
-  AlertTriangle, Clock, Pencil, Loader2, User, UserPlus, Star, History,
+  AlertTriangle, Clock, Pencil, Loader2, User, UserPlus, Star, History, Camera,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -253,6 +253,181 @@ function TRPaymentPanel() {
   );
 }
 
+const TR_SCAN_ISSUERS = [
+  'Ticket Restaurant Sodexo',
+  'Swile',
+  'Edenred',
+];
+
+function randomTRAmount() {
+  // random between 8.00 and 11.50 in 0.50 steps
+  const steps = [8.00, 8.50, 9.00, 9.50, 10.00, 10.50, 11.00, 11.50];
+  return steps[Math.floor(Math.random() * steps.length)];
+}
+
+interface TicketScanModalProps {
+  onClose: () => void;
+  onValidate: (amount: number, issuer: string) => void;
+}
+
+function TicketScanModal({ onClose, onValidate }: TicketScanModalProps) {
+  const [scanState, setScanState] = useState<'scanning' | 'success' | 'manual'>('scanning');
+  const [detectedIssuer, setDetectedIssuer] = useState('');
+  const [detectedAmount, setDetectedAmount] = useState(0);
+  const [manualAmount, setManualAmount] = useState('');
+
+  useEffect(() => {
+    if (scanState !== 'scanning') return;
+    const timer = setTimeout(() => {
+      const issuer = TR_SCAN_ISSUERS[Math.floor(Math.random() * TR_SCAN_ISSUERS.length)];
+      const amount = randomTRAmount();
+      setDetectedIssuer(issuer);
+      setDetectedAmount(amount);
+      setScanState('success');
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [scanState]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white shadow-2xl overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+            <Camera className="h-4 w-4 text-brand-600" />
+            Scanner le ticket restaurant
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {scanState === 'scanning' && (
+            <>
+              {/* Camera viewfinder */}
+              <div className="relative h-44 w-full rounded-xl bg-gray-900 overflow-hidden flex items-center justify-center">
+                {/* corner brackets */}
+                <div className="absolute top-3 left-3 h-6 w-6 border-t-2 border-l-2 border-brand-400 rounded-tl" />
+                <div className="absolute top-3 right-3 h-6 w-6 border-t-2 border-r-2 border-brand-400 rounded-tr" />
+                <div className="absolute bottom-3 left-3 h-6 w-6 border-b-2 border-l-2 border-brand-400 rounded-bl" />
+                <div className="absolute bottom-3 right-3 h-6 w-6 border-b-2 border-r-2 border-brand-400 rounded-br" />
+                {/* animated scan line */}
+                <motion.div
+                  className="absolute left-4 right-4 h-0.5 bg-brand-400 shadow-[0_0_8px_2px_rgba(var(--color-brand-400),0.6)]"
+                  animate={{ top: ['20%', '80%', '20%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <Camera className="h-10 w-10 text-gray-600" />
+              </div>
+              <p className="text-center text-sm text-gray-500">Autorisez l&apos;accès à la caméra</p>
+              <motion.div animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }} className="flex items-center justify-center gap-2 text-xs text-gray-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-gray-400 inline-block" />
+                Détection en cours...
+              </motion.div>
+            </>
+          )}
+
+          {scanState === 'success' && (
+            <div className="space-y-3">
+              <div className="flex flex-col items-center py-3 gap-1">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 220, damping: 12 }}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-2">
+                  <Check className="h-6 w-6 text-green-600" strokeWidth={3} />
+                </motion.div>
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Ticket détecté</p>
+              </div>
+              <div className="rounded-xl border border-green-200 bg-green-50 p-4 space-y-1.5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Émetteur</span>
+                  <span className="font-semibold text-gray-900">{detectedIssuer}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Montant détecté</span>
+                  <span className="font-black text-green-700 text-lg">{detectedAmount.toFixed(2)}€</span>
+                </div>
+              </div>
+              <button
+                onClick={() => onValidate(detectedAmount, detectedIssuer)}
+                className="w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-black hover:bg-brand-400 transition-colors"
+              >
+                Valider — {detectedAmount.toFixed(2)}€
+              </button>
+            </div>
+          )}
+
+          {scanState === 'manual' && (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">Saisissez le montant du ticket restaurant :</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.50"
+                  value={manualAmount}
+                  onChange={(e) => setManualAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-900 focus:border-brand-500 focus:bg-white focus:outline-none"
+                  autoFocus
+                />
+                <span className="text-gray-500 font-medium">€</span>
+              </div>
+              <button
+                onClick={() => {
+                  const amt = parseFloat(manualAmount);
+                  if (amt > 0) onValidate(amt, 'Ticket Restaurant (manuel)');
+                }}
+                disabled={!manualAmount || parseFloat(manualAmount) <= 0}
+                className="w-full rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-black hover:bg-brand-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Valider
+              </button>
+            </div>
+          )}
+
+          {/* Footer buttons */}
+          <div className="flex gap-2 pt-1">
+            {scanState !== 'manual' && (
+              <button
+                onClick={() => setScanState('manual')}
+                className="flex-1 rounded-xl border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Saisie manuelle
+              </button>
+            )}
+            {scanState === 'manual' && (
+              <button
+                onClick={() => setScanState('scanning')}
+                className="flex-1 rounded-xl border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Scanner
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-xl border border-gray-200 bg-white py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function POSPage() {
   // Auth
   const [authenticated, setAuthenticated] = useState(false);
@@ -293,6 +468,10 @@ export default function POSPage() {
   const [journal, setJournal] = useState<JournalEvent[]>([
     { id: 'e0', timestamp: '2026-05-14T07:00:00Z', type: 'open', description: 'Ouverture de caisse — session démarrée', operator: 'Alice', hash: 'A1B2C3D4F5E6' },
   ]);
+
+  // Ticket scan modal
+  const [showTicketScan, setShowTicketScan] = useState(false);
+  const [appliedTicket, setAppliedTicket] = useState<{ amount: number; issuer: string } | null>(null);
 
   // Discount modal
   const [discountTarget, setDiscountTarget] = useState<string | null>(null);
@@ -935,10 +1114,34 @@ export default function POSPage() {
                   </div>
                 )}
 
+                {payMethod === 'tr' && appliedTicket && (
+                  <div className="mb-3 rounded-xl border border-green-200 bg-green-50 p-3 flex items-center justify-between">
+                    <div className="text-sm">
+                      <p className="font-semibold text-green-800">{appliedTicket.issuer}</p>
+                      <p className="text-xs text-green-600">Ticket appliqué</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-green-700">−{appliedTicket.amount.toFixed(2)}€</span>
+                      <button onClick={() => setAppliedTicket(null)} className="text-green-600 hover:text-green-800">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {(payMethod === 'card' || payMethod === 'tr' || payMethod === 'mobile') && (
                   <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
                     {payMethod === 'tr' ? (
-                      <TRPaymentPanel />
+                      <>
+                        <button
+                          onClick={() => setShowTicketScan(true)}
+                          className="mb-4 w-full flex items-center justify-center gap-2 rounded-xl border border-brand-500/50 bg-brand-500/10 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-500/20 transition-colors"
+                        >
+                          <Camera className="h-4 w-4" />
+                          Scan ticket restaurant
+                        </button>
+                        <TRPaymentPanel />
+                      </>
                     ) : (
                       <>
                         <div className="mb-2 text-center text-4xl">
@@ -1290,6 +1493,20 @@ export default function POSPage() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Ticket Scan Modal ─────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showTicketScan && (
+          <TicketScanModal
+            onClose={() => setShowTicketScan(false)}
+            onValidate={(amount, issuer) => {
+              setAppliedTicket({ amount, issuer });
+              setShowTicketScan(false);
+              toast.success(`${issuer} — ${amount.toFixed(2)}€ appliqué`);
+            }}
+          />
         )}
       </AnimatePresence>
 

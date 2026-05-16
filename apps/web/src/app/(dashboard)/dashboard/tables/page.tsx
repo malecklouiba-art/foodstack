@@ -346,6 +346,15 @@ function ActionMenu({
             <CheckCircle className="h-4 w-4 text-green-500" />
             Libérer la table
           </button>
+          {table.status === 'cleaning' && (
+            <button
+              onClick={() => onChangeStatus('free')}
+              className="flex w-full items-center gap-2.5 bg-green-50 px-4 py-2 text-left text-sm font-medium text-green-700 hover:bg-green-100"
+            >
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              Nettoyage terminé → Libérer
+            </button>
+          )}
         </div>
 
         <div className="border-t border-gray-100 py-1.5">
@@ -485,6 +494,10 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
             >
               {/* Status dot */}
               <span className={`absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-white ${cfg.dot}`} />
+              {/* Cleaning pulse ring */}
+              {table.status === 'cleaning' && (
+                <span className="absolute inset-0 rounded-[inherit] animate-pulse ring-2 ring-yellow-400/60 pointer-events-none" />
+              )}
 
               <div className="flex items-baseline gap-1">
                 <span className="text-lg font-extrabold text-gray-900 leading-none">{table.number}</span>
@@ -520,6 +533,7 @@ export default function TablesPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [actionMenu, setActionMenu] = useState<{ table: RestaurantTable; x: number; y: number } | null>(null);
   const [assignOrderFor, setAssignOrderFor] = useState<RestaurantTable | null>(null);
+  const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
 
   const sections = ['Tous', ...SECTIONS.filter(s => tables.some(t => t.section === s))];
 
@@ -583,11 +597,22 @@ export default function TablesPage() {
   function changeStatus(id: string, status: TableStatus) {
     setTables(prev => prev.map(t => {
       if (t.id !== id) return t;
+      // When a customer leaves (occupied/reserved → free), require cleaning first
+      if (status === 'free' && (t.status === 'occupied' || t.status === 'reserved')) {
+        addToast(`🧹 Table ${t.number} — nettoyage requis avant de l'attribuer`);
+        return { ...t, status: 'cleaning', currentOrderId: undefined, occupiedSince: undefined, reservedAt: undefined, reservedBy: undefined };
+      }
       if (status === 'free') {
         return { ...t, status, currentOrderId: undefined, occupiedSince: undefined, reservedAt: undefined, reservedBy: undefined };
       }
       return { ...t, status };
     }));
+  }
+
+  function addToast(message: string) {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
   }
 
   function confirmDelete(id: string) { setDeleteId(id); }
@@ -616,6 +641,43 @@ export default function TablesPage() {
 
   return (
     <div className="space-y-6 bg-white p-6">
+      {/* Toast notifications */}
+      <div className="fixed bottom-4 right-4 z-[60] flex flex-col gap-2">
+        <AnimatePresence>
+          {toasts.map(toast => (
+            <motion.div
+              key={toast.id}
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              className="flex items-center gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3 shadow-lg"
+            >
+              <span className="text-sm font-medium text-yellow-900">{toast.message}</span>
+              <button onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} className="ml-1 text-yellow-500 hover:text-yellow-700">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* IA Nettoyage banner */}
+      {stats.cleaning > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 rounded-2xl border border-yellow-200 bg-yellow-50 px-4 py-3"
+        >
+          <span className="text-xl">🤖</span>
+          <p className="flex-1 text-sm font-medium text-yellow-900">
+            IA Suggestion&nbsp;: <span className="font-bold">{stats.cleaning} table{stats.cleaning > 1 ? 's' : ''}</span> nécessite{stats.cleaning > 1 ? 'nt' : ''} nettoyage
+          </p>
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-xs font-bold text-white">
+            {stats.cleaning}
+          </span>
+        </motion.div>
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -770,6 +832,16 @@ export default function TablesPage() {
                     {cfg.label}
                   </div>
                   <div className="flex items-center gap-1">
+                    {table.status === 'cleaning' && (
+                      <button
+                        onClick={() => changeStatus(table.id, 'free')}
+                        className="flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-100"
+                        title="Nettoyage terminé"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        Libérer
+                      </button>
+                    )}
                     <button
                       onClick={(e) => openActionMenu(table, e.clientX, e.clientY)}
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"

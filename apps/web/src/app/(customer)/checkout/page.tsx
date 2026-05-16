@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
@@ -11,8 +11,10 @@ import {
   Tag,
   X,
   Calendar,
+  Star,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/Button';
@@ -50,6 +52,10 @@ export default function CheckoutPage() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; type: 'percent' | 'fixed' } | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewStars, setReviewStars] = useState(0);
+  const [hoveredStar, setHoveredStar] = useState(0);
+  const reviewDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const DEMO_COUPONS: Record<string, { discount: number; type: 'percent' | 'fixed' }> = {
     'BIENVENUE10': { discount: 10, type: 'percent' },
@@ -57,6 +63,20 @@ export default function CheckoutPage() {
     'FIDELE20':    { discount: 20, type: 'percent' },
     'FLASH15':     { discount: 15, type: 'percent' },
   };
+
+  function triggerReviewModal() {
+    const isFirstOrder = true; // demo: always show; replace with real check
+    if (!isFirstOrder) return;
+    setTimeout(() => {
+      setShowReviewModal(true);
+      reviewDismissTimer.current = setTimeout(() => setShowReviewModal(false), 30000);
+    }, 3000);
+  }
+
+  function dismissReviewModal() {
+    setShowReviewModal(false);
+    if (reviewDismissTimer.current) clearTimeout(reviewDismissTimer.current);
+  }
 
   function applyCoupon() {
     if (!couponCode.trim()) return;
@@ -124,6 +144,7 @@ export default function CheckoutPage() {
       } else {
         toast.success('Commande passée avec succès !');
       }
+      triggerReviewModal();
       router.push(`/orders/${orderId}/track`);
       setLoading(false);
     }
@@ -418,6 +439,72 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showReviewModal && (
+          <motion.div
+            initial={{ opacity: 0, y: 32, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 32, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+            className="fixed bottom-6 right-6 z-50 w-80 rounded-2xl bg-white shadow-2xl ring-1 ring-surface-200 p-5"
+          >
+            <button
+              onClick={dismissReviewModal}
+              className="absolute right-3 top-3 text-surface-400 hover:text-surface-600"
+              aria-label="Fermer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow ring-1 ring-surface-100 text-lg font-bold">
+                <span style={{ background: 'linear-gradient(135deg,#4285F4 25%,#EA4335 50%,#FBBC05 75%,#34A853)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>G</span>
+              </span>
+              <p className="font-semibold text-surface-900 text-sm">Votre avis compte !</p>
+            </div>
+
+            <p className="mb-4 text-xs text-surface-500 leading-relaxed">
+              Vous avez apprécié votre commande ? Laissez-nous un avis Google pour aider d&apos;autres clients.
+            </p>
+
+            <div className="mb-4 flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onMouseEnter={() => setHoveredStar(n)}
+                  onMouseLeave={() => setHoveredStar(0)}
+                  onClick={() => setReviewStars(n)}
+                  className="transition-transform hover:scale-110"
+                  aria-label={`${n} étoile${n > 1 ? 's' : ''}`}
+                >
+                  <Star
+                    className="h-6 w-6"
+                    fill={(hoveredStar || reviewStars) >= n ? '#f97316' : 'none'}
+                    stroke={(hoveredStar || reviewStars) >= n ? '#f97316' : '#d1d5db'}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <a
+              href="https://g.page/r/review"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-600 transition-colors"
+            >
+              Laisser un avis Google →
+            </a>
+
+            <button
+              onClick={dismissReviewModal}
+              className="mt-2.5 w-full text-center text-xs text-surface-400 hover:text-surface-600 transition-colors"
+            >
+              Plus tard
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

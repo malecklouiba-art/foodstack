@@ -142,11 +142,16 @@
 | Inventaire (`/dashboard/inventory`) | ✅ | Niveaux stock, alertes, stats |
 | Caisse POS (`/pos`) | ✅ | Interface tactile, calcul monnaie, paiement |
 | Gestion menus | ✅ | CRUD catégories + articles + modificateurs |
-| Gestion employés | ✅ | Invitations, rôles, permissions |
+| Gestion employés | ✅ | Invitations, rôles, permissions, convocations RDV |
 | Statistiques avancées | ✅ | KPIs, CA/j, heatmap, top articles, fidélisation — export PDF/CSV/Excel |
 | Gestion fournisseurs | ✅ | Contacts, commandes fournisseurs, export Excel |
 | Zones de livraison | ✅ | Carte avec polygones de zone |
 | Paramètres restaurant | ✅ | 7 onglets : infos, horaires, notifs, livraison, paiements, équipe, périphériques |
+| **Planning employés** (`/dashboard/planning`) | ✅ | Grille hebdomadaire, shifts par employé, drag-and-drop |
+| **Scan tickets restaurant** | ✅ | Caméra dans POS, détection titre-restaurant, validation montant |
+| **Convocations RDV** | ✅ | Boss peut planifier réunion/convocation depuis page Employés |
+| **Avis Google post-livraison** | ✅ | Lien satisfaction envoyé après 1ère commande livrée client non identifié |
+| **IA nettoyage tables** | ✅ | Alerte automatique équipe quand table libérée après paiement |
 
 ### Super Admin (`/admin`)
 

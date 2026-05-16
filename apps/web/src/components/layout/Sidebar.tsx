@@ -31,6 +31,7 @@ import {
   TableIcon,
   Package,
   Boxes,
+  CalendarDays,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -57,6 +58,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/inventory', label: 'Inventaire', icon: Boxes, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/suppliers', label: 'Fournisseurs', icon: Package, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/staff', label: 'Employés', icon: UserCog, section: 'Gestion', roles: ['admin', 'owner'] },
+  { href: '/dashboard/planning', label: 'Planning', icon: CalendarDays, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/coupons', label: 'Codes Promo', icon: Tag, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/tables', label: 'Tables', icon: TableIcon, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration', roles: ['admin', 'owner'] },

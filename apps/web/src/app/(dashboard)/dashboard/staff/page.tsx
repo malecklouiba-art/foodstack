@@ -4,8 +4,9 @@ import { useState } from 'react';
 import {
   Users, UserPlus, Search, Shield, ChefHat,
   Utensils, Bike, ToggleLeft, ToggleRight, Pencil, Trash2, Mail, X,
-  Lock, KeyRound,
+  Lock, KeyRound, CalendarCheck,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -199,9 +200,10 @@ interface EmployeeCardProps {
   onToggleStatus: (id: string) => void;
   onRemove: (id: string) => void;
   onManagePin: (employee: Employee) => void;
+  onConvoke: (employee: Employee) => void;
 }
 
-function EmployeeCard({ employee, onToggleStatus, onRemove, onManagePin }: EmployeeCardProps) {
+function EmployeeCard({ employee, onToggleStatus, onRemove, onManagePin, onConvoke }: EmployeeCardProps) {
   const role = roleConfig[employee.role];
   const isActive = employee.status === 'actif';
 
@@ -253,6 +255,16 @@ function EmployeeCard({ employee, onToggleStatus, onRemove, onManagePin }: Emplo
                 ? <ToggleRight className="h-5 w-5" />
                 : <ToggleLeft  className="h-5 w-5" />}
             </button>
+
+            {/* Convoquer */}
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<CalendarCheck className="h-3.5 w-3.5" />}
+              onClick={() => onConvoke(employee)}
+            >
+              Convoquer
+            </Button>
 
             {/* Manage POS PIN */}
             <Button
@@ -376,6 +388,175 @@ function InviteModal({ open, onClose }: InviteModalProps) {
   );
 }
 
+// ── Convocation modal ──────────────────────────────────────────────────────────
+
+const SELECT_CLASS = 'h-10 w-full appearance-none rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-100';
+
+interface ConvocationModalProps {
+  open: boolean;
+  onClose: () => void;
+  preSelected?: string[];
+}
+
+function ConvocationModal({ open, onClose, preSelected = [] }: ConvocationModalProps) {
+  const [subject, setSubject] = useState('');
+  const [selected, setSelected] = useState<string[]>(preSelected);
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [location, setLocation] = useState('Sur place');
+  const [note, setNote] = useState('');
+
+  // Sync preSelected when modal opens with a new employee
+  const [prevPre, setPrevPre] = useState(preSelected);
+  if (preSelected !== prevPre) {
+    setPrevPre(preSelected);
+    setSelected(preSelected);
+  }
+
+  function toggleEmployee(id: string) {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function handleSubmit() {
+    if (!subject || !date || !time || selected.length === 0) return;
+    toast.success(`Convocation envoyée à ${selected.length} employé(s)`);
+    setSubject('');
+    setSelected([]);
+    setDate('');
+    setTime('');
+    setLocation('Sur place');
+    setNote('');
+    onClose();
+  }
+
+  function handleClose() {
+    setSubject('');
+    setSelected(preSelected);
+    setDate('');
+    setTime('');
+    setLocation('Sur place');
+    setNote('');
+    onClose();
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Planifier une réunion"
+      description="Sélectionnez les participants et définissez les détails."
+    >
+      <div className="space-y-4">
+        {/* Subject */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+            Objet de la réunion
+          </label>
+          <Input
+            placeholder="Ex : Réunion hebdomadaire"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+          />
+        </div>
+
+        {/* Employees */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+            Participants
+          </label>
+          <div className="max-h-40 overflow-y-auto rounded-xl border border-surface-200 dark:border-surface-700 divide-y divide-surface-100 dark:divide-surface-700">
+            {INITIAL_EMPLOYEES.map((emp) => (
+              <label
+                key={emp.id}
+                className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-50 dark:hover:bg-surface-800"
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.includes(emp.id)}
+                  onChange={() => toggleEmployee(emp.id)}
+                  className="h-4 w-4 rounded accent-brand-500"
+                />
+                <span className="text-sm text-surface-700 dark:text-surface-300">
+                  {emp.firstName} {emp.lastName}
+                </span>
+                <span className="ml-auto text-xs text-surface-400">{emp.role}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Date + Time */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+              Date
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className={SELECT_CLASS}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+              Heure
+            </label>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className={SELECT_CLASS}
+            />
+          </div>
+        </div>
+
+        {/* Location */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+            Lieu
+          </label>
+          <select
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className={SELECT_CLASS}
+          >
+            <option>Sur place</option>
+            <option>Visioconférence</option>
+            <option>En ligne (lien)</option>
+          </select>
+        </div>
+
+        {/* Note */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">
+            Note <span className="font-normal text-surface-400">— optionnel</span>
+          </label>
+          <textarea
+            rows={3}
+            placeholder="Informations complémentaires…"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            className="w-full resize-none rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm text-surface-700 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-100"
+          />
+        </div>
+
+        <Button
+          variant="primary"
+          fullWidth
+          icon={<CalendarCheck className="h-4 w-4" />}
+          disabled={!subject || !date || !time || selected.length === 0}
+          onClick={handleSubmit}
+        >
+          Envoyer la convocation
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function StaffPage() {
@@ -384,6 +565,13 @@ export default function StaffPage() {
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('Tous');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [pinEmployee, setPinEmployee] = useState<Employee | null>(null);
+  const [showConvocationModal, setShowConvocationModal] = useState(false);
+  const [convokeEmployee, setConvokeEmployee] = useState<Employee | null>(null);
+
+  function openConvoke(employee?: Employee) {
+    setConvokeEmployee(employee ?? null);
+    setShowConvocationModal(true);
+  }
 
   const totalCount  = employees.length;
   const activeCount = employees.filter((e) => e.status === 'actif').length;
@@ -433,13 +621,22 @@ export default function StaffPage() {
             Gérez votre équipe et leurs accès
           </p>
         </div>
-        <Button
-          variant="primary"
-          icon={<UserPlus className="h-4 w-4" />}
-          onClick={() => setShowInviteModal(true)}
-        >
-          Inviter un employé
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            icon={<CalendarCheck className="h-4 w-4" />}
+            onClick={() => openConvoke()}
+          >
+            Planifier une réunion
+          </Button>
+          <Button
+            variant="primary"
+            icon={<UserPlus className="h-4 w-4" />}
+            onClick={() => setShowInviteModal(true)}
+          >
+            Inviter un employé
+          </Button>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -514,6 +711,7 @@ export default function StaffPage() {
                 onToggleStatus={toggleStatus}
                 onRemove={removeEmployee}
                 onManagePin={setPinEmployee}
+                onConvoke={openConvoke}
               />
             ))
           )}
@@ -522,6 +720,13 @@ export default function StaffPage() {
 
       {/* Invite modal */}
       <InviteModal open={showInviteModal} onClose={() => setShowInviteModal(false)} />
+
+      {/* Convocation modal */}
+      <ConvocationModal
+        open={showConvocationModal}
+        onClose={() => { setShowConvocationModal(false); setConvokeEmployee(null); }}
+        preSelected={convokeEmployee ? [convokeEmployee.id] : []}
+      />
 
       {/* Manage POS PIN modal */}
       {pinEmployee && (
