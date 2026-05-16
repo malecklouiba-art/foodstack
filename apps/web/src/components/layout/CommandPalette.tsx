@@ -6,7 +6,7 @@ import {
   Search, LayoutDashboard, ShoppingBag, UtensilsCrossed, Truck,
   Users, UserCog, BarChart3, Settings, Store, Star, CreditCard,
   Bike, MapPin, Monitor, ShoppingCart, QrCode, Tag, TableIcon,
-  Package, Boxes, ArrowRight, Command,
+  ArrowRight, Command,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,8 +28,6 @@ const COMMANDS: CommandItem[] = [
   { id: 'delivery',     label: 'Livraisons',         icon: Truck,           href: '/dashboard/delivery',    section: 'Navigation', keywords: ['livraison', 'delivery'] },
   { id: 'drivers',      label: 'Livreurs',           icon: Bike,            href: '/dashboard/drivers',     section: 'Navigation', keywords: ['driver', 'livreur'] },
   { id: 'zones',        label: 'Zones livraison',    icon: MapPin,          href: '/dashboard/zones',       section: 'Navigation', keywords: ['zone', 'map'] },
-  { id: 'inventory',    label: 'Inventaire',         icon: Boxes,           href: '/dashboard/inventory',   section: 'Navigation', keywords: ['stock', 'inventaire'] },
-  { id: 'suppliers',    label: 'Fournisseurs',       icon: Package,         href: '/dashboard/suppliers',   section: 'Navigation', keywords: ['fournisseur', 'supplier'] },
   { id: 'staff',        label: 'Employés',           icon: UserCog,         href: '/dashboard/staff',       section: 'Navigation', keywords: ['employe', 'staff', 'team'] },
   { id: 'coupons',      label: 'Codes Promo',        icon: Tag,             href: '/dashboard/coupons',     section: 'Navigation', keywords: ['coupon', 'promo', 'code', 'remise'] },
   { id: 'tables',       label: 'Tables',             icon: TableIcon,       href: '/dashboard/tables',      section: 'Navigation', keywords: ['table', 'salle'] },
