@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _Unused = typeof ShoppingBag; // icons used via ICON_MAP lookup
+
 type NotifType = 'order' | 'stock' | 'user' | 'system' | 'success';
 
 interface Notification {
@@ -106,26 +109,20 @@ export function DashboardHeader() {
       <h2 className="text-sm font-semibold text-surface-700">{pageLabel}</h2>
 
       <div className="flex items-center gap-3">
-        {/* Search */}
-        <div className={clsx(
-          'flex items-center gap-2 rounded-xl border px-3 py-1.5 transition-all',
-          searchFocused ? 'w-56 border-brand-400 bg-white' : 'w-36 border-surface-200 bg-surface-50'
-        )}>
+        {/* Search — triggers command palette */}
+        <button
+          onClick={() => {
+            const ev = new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true });
+            window.dispatchEvent(ev);
+          }}
+          className="flex items-center gap-2 rounded-xl border border-surface-200 bg-surface-50 px-3 py-1.5 w-44 text-left hover:border-brand-300 hover:bg-white transition-all"
+        >
           <Search className="h-3.5 w-3.5 text-surface-400 shrink-0" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
-            placeholder="Rechercher…"
-            className="w-full bg-transparent text-xs text-surface-700 outline-none placeholder:text-surface-400"
-          />
-          {search && (
-            <button onClick={() => setSearch('')}>
-              <X className="h-3 w-3 text-surface-400" />
-            </button>
-          )}
-        </div>
+          <span className="flex-1 text-xs text-surface-400">Rechercher…</span>
+          <kbd className="rounded border border-surface-200 bg-white px-1 py-0.5 text-[9px] font-medium text-surface-400 leading-none">
+            ⌘K
+          </kbd>
+        </button>
 
         {/* Notification bell */}
         <div className="relative" ref={dropdownRef}>

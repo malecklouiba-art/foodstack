@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/layout/Sidebar';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { CommandPalette } from '@/components/layout/CommandPalette';
 import { PageTransition } from '@/components/layout/PageTransition';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </PageTransition>
         </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }
