@@ -132,7 +132,7 @@ function MrrTooltip({ active, payload, label }: { active?: boolean; payload?: Ar
 
 // ── Admin view ─────────────────────────────────────────────────────────────────
 
-function AdminAnalytics({ onExportCSV, onExportPDF }: { onExportCSV: () => void; onExportPDF: () => void }) {
+function AdminAnalytics({ onExportCSV, onExportPDF, onExportXLSX }: { onExportCSV: () => void; onExportPDF: () => void; onExportXLSX: () => void }) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -147,7 +147,14 @@ function AdminAnalytics({ onExportCSV, onExportPDF }: { onExportCSV: () => void;
             className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
           >
             <Download className="h-4 w-4 text-surface-400" />
-            Exporter CSV
+            CSV
+          </button>
+          <button
+            onClick={onExportXLSX}
+            className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
+          >
+            <Download className="h-4 w-4 text-green-500" />
+            Excel
           </button>
           <button
             onClick={onExportPDF}
@@ -155,7 +162,7 @@ function AdminAnalytics({ onExportCSV, onExportPDF }: { onExportCSV: () => void;
             style={{ backgroundColor: '#1EFF6A', color: '#000' }}
           >
             <FileText className="h-4 w-4" />
-            Exporter PDF
+            PDF
           </button>
         </div>
       </div>
@@ -290,11 +297,12 @@ function AdminAnalytics({ onExportCSV, onExportPDF }: { onExportCSV: () => void;
 
 // ── Owner view (unchanged restaurant analytics) ────────────────────────────────
 
-function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF }: {
+function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportXLSX }: {
   period: number;
   setPeriod: (i: number) => void;
   onExportCSV: () => void;
   onExportPDF: () => void;
+  onExportXLSX: () => void;
 }) {
   return (
     <div className="space-y-6">
@@ -325,7 +333,14 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF }: {
             className="flex items-center gap-2 rounded-xl border border-surface-200 bg-white px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors"
           >
             <Download className="h-4 w-4 text-surface-400" />
-            Exporter CSV
+            CSV
+          </button>
+          <button
+            onClick={onExportXLSX}
+            className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 hover:bg-green-100 transition-colors"
+          >
+            <Download className="h-4 w-4 text-green-500" />
+            Excel
           </button>
           <button
             onClick={onExportPDF}
@@ -333,7 +348,7 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF }: {
             style={{ backgroundColor: '#1EFF6A', color: '#000' }}
           >
             <FileText className="h-4 w-4" />
-            Exporter PDF
+            PDF
           </button>
         </div>
       </div>
@@ -744,16 +759,54 @@ export default function AnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportXLSX = async () => {
+    const XLSX = await import('xlsx');
+    const periodLabel = PERIODS[period];
+    const wb = XLSX.utils.book_new();
+
+    if (role === 'admin') {
+      const kpiSheet = XLSX.utils.aoa_to_sheet([
+        ['Indicateur', 'Valeur', 'Évolution', 'Description'],
+        ...PLATFORM_KPI.map((k) => [k.title, k.value, k.change, k.desc]),
+      ]);
+      const mrrSheet = XLSX.utils.aoa_to_sheet([
+        ['Mois', 'MRR (€)'],
+        ...MRR_DATA.map((d) => [d.month, d.mrr]),
+      ]);
+      XLSX.utils.book_append_sheet(wb, kpiSheet, 'KPIs Plateforme');
+      XLSX.utils.book_append_sheet(wb, mrrSheet, 'MRR 12 mois');
+      XLSX.writeFile(wb, 'analytique-plateforme-foodstack.xlsx');
+    } else {
+      const kpiSheet = XLSX.utils.aoa_to_sheet([
+        ['Indicateur', 'Valeur', 'Évolution'],
+        ...KPI_CARDS.map((k) => [k.title, k.value, k.change]),
+      ]);
+      const revenueSheet = XLSX.utils.aoa_to_sheet([
+        ['Jour', 'CA (€)', 'Objectif (€)', 'Atteint'],
+        ...REVENUE_DATA.map((d) => [d.day, d.revenue, d.objectif, d.revenue >= d.objectif ? 'Oui' : 'Non']),
+      ]);
+      const topSheet = XLSX.utils.aoa_to_sheet([
+        ['Rang', 'Article', 'Vendus', 'CA (€)', 'Évolution (%)'],
+        ...TOP_ITEMS.map((t) => [t.rank, t.name, t.sold, t.revenue, `${t.up ? '+' : ''}${t.change}%`]),
+      ]);
+      XLSX.utils.book_append_sheet(wb, kpiSheet, 'KPIs');
+      XLSX.utils.book_append_sheet(wb, revenueSheet, 'CA par jour');
+      XLSX.utils.book_append_sheet(wb, topSheet, 'Top articles');
+      XLSX.writeFile(wb, `analytics-foodstack-${periodLabel}.xlsx`);
+    }
+  };
+
   return (
     <div ref={pageRef} className="p-6">
       {role === 'admin' ? (
-        <AdminAnalytics onExportCSV={handleExportCSV} onExportPDF={handleExportPDF} />
+        <AdminAnalytics onExportCSV={handleExportCSV} onExportPDF={handleExportPDF} onExportXLSX={handleExportXLSX} />
       ) : (
         <OwnerAnalytics
           period={period}
           setPeriod={setPeriod}
           onExportCSV={handleExportCSV}
           onExportPDF={handleExportPDF}
+          onExportXLSX={handleExportXLSX}
         />
       )}
     </div>

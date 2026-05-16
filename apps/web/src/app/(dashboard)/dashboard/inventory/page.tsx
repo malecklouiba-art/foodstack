@@ -383,6 +383,41 @@ export default function InventoryPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportXLSX = async () => {
+    const XLSX = await import('xlsx');
+    const dateStr = new Date().toISOString().split('T')[0];
+    const wb = XLSX.utils.book_new();
+
+    const headers = ['Nom', 'Catégorie', 'Stock actuel', 'Unité', 'Stock min', 'Coût/unité (€)', 'Prix vente (€)', 'Marge %', 'Fournisseur', 'Statut', 'Dernière MàJ'];
+    const rows = items.map((item) => {
+      const status = getStockStatus(item);
+      const margin = computeMargin(item.sellPrice, item.costPerUnit);
+      return [
+        item.name, item.category, item.currentStock, item.unit, item.minStock,
+        item.costPerUnit, item.sellPrice,
+        margin !== null ? margin : null,
+        item.supplier,
+        status === 'critical' ? 'Critique' : status === 'low' ? 'Stock bas' : 'OK',
+        item.lastUpdated,
+      ];
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = headers.map((_, i) => ({ wch: i === 0 ? 25 : 14 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Inventaire');
+
+    const summaryWs = XLSX.utils.aoa_to_sheet([
+      ['Indicateur', 'Valeur'],
+      ['Valeur totale stock (€)', totalValue],
+      ['Articles stock bas', lowItems],
+      ['Articles critiques', criticalItems],
+      ['Références totales', items.length],
+    ]);
+    XLSX.utils.book_append_sheet(wb, summaryWs, 'Résumé');
+
+    XLSX.writeFile(wb, `inventaire-foodstack-${dateStr}.xlsx`);
+  };
+
   // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -408,6 +443,13 @@ export default function InventoryPage() {
               className="flex items-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 py-1.5 text-sm font-medium text-surface-600 transition-colors hover:bg-surface-50"
             >
               <FileSpreadsheet className="h-3.5 w-3.5" /> CSV
+            </button>
+            <button
+              onClick={handleExportXLSX}
+              title="Exporter en Excel"
+              className="flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 transition-colors hover:bg-green-100"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" /> Excel
             </button>
           </div>
           <Button icon={<Plus className="h-4 w-4" />} onClick={openAddModal}>Ajouter un article</Button>
