@@ -18,7 +18,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-surface-700">
+          <label htmlFor={inputId} className="text-sm font-medium text-surface-700 dark:text-surface-300">
             {label}
             {props.required && <span className="ml-1 text-red-500">*</span>}
           </label>
@@ -34,16 +34,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={twMerge(
               clsx(
-                'h-10 w-full rounded-xl border bg-white px-3 text-sm text-surface-900',
+                'h-10 w-full rounded-xl border bg-white px-3 text-sm text-surface-900 dark:bg-surface-800 dark:text-surface-50',
                 'placeholder:text-surface-400',
                 'transition-all duration-200',
-                'focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20',
+                'focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:focus:ring-brand-500/10',
                 error
                   ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
-                  : 'border-surface-200',
+                  : 'border-surface-200 dark:border-surface-600',
                 leftIcon && 'pl-10',
                 rightIcon && 'pr-10',
-                props.disabled && 'cursor-not-allowed bg-surface-50 text-surface-400',
+                props.disabled && 'cursor-not-allowed bg-surface-50 text-surface-400 dark:bg-surface-700 dark:text-surface-500',
                 className
               )
             )}

@@ -104,9 +104,9 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-surface-100 bg-white px-6 shrink-0">
+    <header className="flex h-14 items-center justify-between border-b border-surface-100 bg-white px-6 shrink-0 dark:border-surface-700 dark:bg-surface-800">
       {/* Page title */}
-      <h2 className="text-sm font-semibold text-surface-700">{pageLabel}</h2>
+      <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-200">{pageLabel}</h2>
 
       <div className="flex items-center gap-3">
         {/* Search — triggers command palette */}
@@ -115,7 +115,7 @@ export function DashboardHeader() {
             const ev = new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true });
             window.dispatchEvent(ev);
           }}
-          className="flex items-center gap-2 rounded-xl border border-surface-200 bg-surface-50 px-3 py-1.5 w-44 text-left hover:border-brand-300 hover:bg-white transition-all"
+          className="flex items-center gap-2 rounded-xl border border-surface-200 bg-surface-50 px-3 py-1.5 w-44 text-left hover:border-brand-300 hover:bg-white transition-all dark:border-surface-600 dark:bg-surface-700 dark:hover:bg-surface-600"
         >
           <Search className="h-3.5 w-3.5 text-surface-400 shrink-0" />
           <span className="flex-1 text-xs text-surface-400">Rechercher…</span>
@@ -139,11 +139,11 @@ export function DashboardHeader() {
           </button>
 
           {open && (
-            <div className="absolute right-0 top-10 z-50 w-80 rounded-2xl border border-surface-100 bg-white shadow-xl">
+            <div className="absolute right-0 top-10 z-50 w-80 rounded-2xl border border-surface-100 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-800">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-surface-100 px-4 py-3">
+              <div className="flex items-center justify-between border-b border-surface-100 px-4 py-3 dark:border-surface-700">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-surface-900">Notifications</span>
+                  <span className="text-sm font-semibold text-surface-900 dark:text-white">Notifications</span>
                   {unread > 0 && (
                     <span className="rounded-full bg-red-50 px-1.5 py-0.5 text-xs font-bold text-red-600">
                       {unread} non lues
