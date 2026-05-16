@@ -486,6 +486,27 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportXLSX = async () => {
+    const XLSX = await import('xlsx');
+    const wb = XLSX.utils.book_new();
+
+    const headers = ['N° commande', 'Client', 'Téléphone', 'Type', 'Articles', 'Total (€)', 'Statut', 'Date'];
+    const rows = filteredOrders.map((o) => [
+      o.id,
+      o.customer,
+      o.phone,
+      TYPE_CONFIG[o.type].label,
+      formatItems(o),
+      o.total,
+      STATUS_CONFIG[o.status].label,
+      formatDate(o.createdAt),
+    ]);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = [{ wch: 14 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 30 }, { wch: 10 }, { wch: 16 }, { wch: 18 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Commandes');
+    XLSX.writeFile(wb, `commandes-foodstack-${timeRange}.xlsx`);
+  };
+
   const handleExportPDF = async () => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
@@ -704,6 +725,13 @@ export default function OrdersPage() {
             )}
           >
             <FileSpreadsheet className="h-3.5 w-3.5" /> Export CSV
+          </button>
+          <button
+            onClick={handleExportXLSX}
+            title="Exporter Excel"
+            className="flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 transition-colors hover:bg-green-100"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" /> Excel
           </button>
           <button
             onClick={handleExportPDF}
