@@ -590,14 +590,47 @@ const EMPTY_FORM: RestaurantForm = {
   commission: '12', crmStatus: 'prospect',
 };
 
+const PACK_PRICES: Record<AbonnementType, number> = {
+  Starter: 99,
+  Pro: 299,
+  Business: 599,
+  Enterprise: 999,
+};
+
+const PACK_FEATURES: Record<AbonnementType, string[]> = {
+  Starter:    ['Jusqu\'à 100 commandes/mois', 'Borne 1 device', 'Support email'],
+  Pro:        ['Commandes illimitées', '3 bornes + POS', 'Analytics avancés', 'Support prioritaire'],
+  Business:   ['Multi-établissements', 'Bornes illimitées', 'API publique', 'Account manager dédié'],
+  Enterprise: ['Tout Business', 'SLA 99.99%', 'Intégration sur-mesure', 'Onboarding équipe'],
+};
+
 function AddRestaurantModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r: Restaurant) => void }) {
   const [form, setForm] = useState<RestaurantForm>(EMPTY_FORM);
-  const [section, setSection] = useState<'basic' | 'contacts' | 'contrat'>('basic');
+  const [section, setSection] = useState<'basic' | 'contacts' | 'contrat' | 'paiement'>('basic');
+  const [paid, setPaid] = useState(false);
+  const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [processing, setProcessing] = useState(false);
+
+  const packPrice = PACK_PRICES[form.abonnement];
+
+  const generatePaymentLink = () => {
+    const token = Math.random().toString(36).slice(2, 14) + Math.random().toString(36).slice(2, 14);
+    setPaymentLink(`https://checkout.stripe.com/c/pay/cs_test_${token}`);
+  };
+
+  const simulatePayment = () => {
+    setProcessing(true);
+    setTimeout(() => {
+      setPaid(true);
+      setProcessing(false);
+    }, 1500);
+  };
 
   const set = (k: keyof RestaurantForm, v: string) => setForm(prev => ({ ...prev, [k]: v }));
 
   const handleSubmit = () => {
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || !paid) return;
     const initials = form.name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
     const colors = ['from-pink-400 to-rose-500', 'from-cyan-400 to-blue-500', 'from-violet-400 to-purple-500'];
     const newR: Restaurant = {
@@ -616,7 +649,10 @@ function AddRestaurantModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r
       abonnement: form.abonnement,
       abonnementMontant: parseFloat(form.abonnementMontant) || 99,
       commission: parseFloat(form.commission) || 12,
-      history: [{ id: 'h0', date: new Date().toISOString().slice(0, 10), action: 'Création', note: 'Restaurant créé sur la plateforme.', author: 'Vous' }],
+      history: [
+        { id: 'h-pay', date: new Date().toISOString().slice(0, 10), action: 'Paiement', note: `Pack ${form.abonnement} payé via Stripe (${packPrice}€).`, author: 'Stripe' },
+        { id: 'h0', date: new Date().toISOString().slice(0, 10), action: 'Création', note: 'Restaurant créé sur la plateforme.', author: 'Vous' },
+      ],
       documents: [
         { name: 'Kbis', status: 'manquant' },
         { name: 'RIB', status: 'manquant' },
@@ -631,7 +667,18 @@ function AddRestaurantModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r
     { key: 'basic',    label: 'Établissement' },
     { key: 'contacts', label: 'Contacts'       },
     { key: 'contrat',  label: 'Contrat'        },
+    { key: 'paiement', label: 'Paiement'       },
   ] as const;
+
+  const canAdvanceFromBasic = !!form.name.trim();
+  const canAdvanceFromContacts = !!form.dirigeantEmail.trim();
+  const sectionOrder: typeof SECTIONS[number]['key'][] = ['basic', 'contacts', 'contrat', 'paiement'];
+  const currentIdx = sectionOrder.indexOf(section);
+  const isLast = section === 'paiement';
+  const canGoNext =
+    section === 'basic' ? canAdvanceFromBasic :
+    section === 'contacts' ? canAdvanceFromContacts :
+    true;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-900/60 backdrop-blur-sm p-4">
@@ -707,34 +754,138 @@ function AddRestaurantModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-surface-600">Plan abonnement</label>
-                <select
-                  value={form.abonnement}
-                  onChange={e => set('abonnement', e.target.value)}
-                  className="w-full rounded-xl border border-surface-200 px-3 py-2.5 text-sm focus:border-brand-400 focus:outline-none"
-                >
-                  {ABONNEMENT_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  {ABONNEMENT_OPTIONS.map(s => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        setForm(prev => ({ ...prev, abonnement: s, abonnementMontant: String(PACK_PRICES[s]) }));
+                        setPaid(false);
+                        setPaymentLink(null);
+                      }}
+                      className={`rounded-xl border-2 px-3 py-2.5 text-left transition-all ${
+                        form.abonnement === s
+                          ? 'border-brand-500 bg-brand-50'
+                          : 'border-surface-200 hover:border-surface-300'
+                      }`}
+                    >
+                      <p className="text-sm font-bold text-surface-900">{s}</p>
+                      <p className="text-xs text-surface-500">{PACK_PRICES[s]}€ /mois</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <FormField label="Montant abonnement (€/mois)" value={form.abonnementMontant} onChange={v => set('abonnementMontant', v)} placeholder="299" type="number" />
               <FormField label="Commission (%)" value={form.commission} onChange={v => set('commission', v)} placeholder="12" type="number" />
+            </>
+          )}
+
+          {section === 'paiement' && (
+            <>
+              {/* Pack summary */}
+              <div className="rounded-2xl border-2 border-brand-200 bg-brand-50/50 p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-brand-700">Pack sélectionné</p>
+                    <p className="mt-1 text-2xl font-black text-surface-900">{form.abonnement}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black text-brand-700">{packPrice}€</p>
+                    <p className="text-xs text-surface-500">/ mois</p>
+                  </div>
+                </div>
+                <ul className="mt-3 space-y-1.5">
+                  {PACK_FEATURES[form.abonnement].map(f => (
+                    <li key={f} className="flex items-center gap-2 text-sm text-surface-700">
+                      <span className="text-brand-500">✓</span> {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Payment state */}
+              {!paid ? (
+                <>
+                  {!paymentLink ? (
+                    <button
+                      onClick={generatePaymentLink}
+                      className="w-full rounded-xl bg-[#635BFF] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#5048d6]"
+                    >
+                      Générer le lien Stripe — {packPrice}€
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="rounded-xl border border-surface-200 bg-surface-50 p-3">
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-wider text-surface-500">Lien Stripe envoyé au dirigeant</p>
+                        <div className="flex items-center gap-2">
+                          <code className="flex-1 truncate rounded-lg bg-white px-2 py-1.5 text-[11px] text-surface-700 border border-surface-200">
+                            {paymentLink}
+                          </code>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(paymentLink);
+                              setLinkCopied(true);
+                              setTimeout(() => setLinkCopied(false), 1500);
+                            }}
+                            className="rounded-lg bg-surface-900 px-2.5 py-1.5 text-[11px] font-semibold text-white hover:bg-surface-800"
+                          >
+                            {linkCopied ? 'Copié' : 'Copier'}
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[11px] text-surface-500">
+                          Envoyé à <span className="font-semibold">{form.dirigeantEmail || 'l\'email du dirigeant'}</span>.
+                          Le restaurant sera créé automatiquement dès le paiement confirmé.
+                        </p>
+                      </div>
+                      <button
+                        onClick={simulatePayment}
+                        disabled={processing}
+                        className="w-full rounded-xl border-2 border-dashed border-brand-300 bg-white py-2.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-50"
+                      >
+                        {processing ? 'Traitement Stripe…' : '⚡ Simuler paiement réussi (démo)'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-center gap-3 rounded-2xl border-2 border-green-300 bg-green-50 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500 text-white">
+                    ✓
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-green-900">Paiement confirmé</p>
+                    <p className="text-xs text-green-700">{packPrice}€ encaissés via Stripe. Restaurant prêt à être créé.</p>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
 
         <div className="flex gap-3 border-t border-surface-100 px-6 py-4">
           <button
-            onClick={onClose}
-            className="flex-1 rounded-xl border border-surface-200 py-2.5 text-sm font-semibold text-surface-600 transition-colors hover:bg-surface-50"
+            onClick={currentIdx > 0 ? () => setSection(sectionOrder[currentIdx - 1]) : onClose}
+            className="rounded-xl border border-surface-200 px-4 py-2.5 text-sm font-semibold text-surface-600 transition-colors hover:bg-surface-50"
           >
-            Annuler
+            {currentIdx > 0 ? 'Précédent' : 'Annuler'}
           </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!form.name.trim()}
-            className="flex-1 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
-          >
-            Créer le restaurant
-          </button>
+          {!isLast ? (
+            <button
+              onClick={() => setSection(sectionOrder[currentIdx + 1])}
+              disabled={!canGoNext}
+              className="flex-1 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
+            >
+              Suivant
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!form.name.trim() || !paid}
+              className="flex-1 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-40"
+            >
+              {paid ? 'Créer le restaurant' : 'En attente du paiement'}
+            </button>
+          )}
         </div>
       </motion.div>
     </div>

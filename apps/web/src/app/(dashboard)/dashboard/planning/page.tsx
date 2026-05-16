@@ -1,15 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronLeft, ChevronRight, Plus, X, Clock, Users,
+  ChevronLeft, ChevronRight, Plus, Clock, Users,
   CalendarDays, Sun, Sunset, Moon, Copy, Trash2,
-  Download, Check, ImagePlus, Trash,
+  Check, ImagePlus, Trash,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 
