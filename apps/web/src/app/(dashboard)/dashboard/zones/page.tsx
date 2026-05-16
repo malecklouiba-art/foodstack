@@ -1,17 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Plus,
   MapPin,
   Clock,
   Euro,
   ShoppingBag,
-  Activity,
   Target,
   Percent,
   Pencil,
-  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
@@ -21,6 +20,15 @@ import { StatCard } from '@/components/ui/StatCard';
 import { Modal } from '@/components/ui/Modal';
 import { motion } from 'framer-motion';
 import { clsx } from 'clsx';
+
+const ZonesMap = dynamic(() => import('@/components/zones/ZonesMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full min-h-[340px] items-center justify-center text-surface-400 text-sm">
+      Chargement de la carte…
+    </div>
+  ),
+});
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,115 +116,6 @@ const INITIAL_ZONES: Zone[] = [
     cancellationRate: 6.5,
   },
 ];
-
-// Zone brand color at different opacities for SVG rings
-const ZONE_COLORS = [
-  { fill: '#1EFF6A', fillOpacity: 0.18, stroke: '#1EFF6A', strokeOpacity: 0.7 },
-  { fill: '#1EFF6A', fillOpacity: 0.11, stroke: '#1EFF6A', strokeOpacity: 0.5 },
-  { fill: '#1EFF6A', fillOpacity: 0.07, stroke: '#1EFF6A', strokeOpacity: 0.35 },
-  { fill: '#1EFF6A', fillOpacity: 0.04, stroke: '#1EFF6A', strokeOpacity: 0.2 },
-];
-
-// ─── SVG Concentric Zones Diagram ─────────────────────────────────────────────
-
-function ZonesDiagram({ zones }: { zones: Zone[] }) {
-  const cx = 160;
-  const cy = 160;
-  const maxRadius = zones[zones.length - 1]?.radiusKm ?? 8;
-  const scale = 120 / maxRadius; // px per km, max ring fits in 120px radius
-
-  return (
-    <svg viewBox="0 0 320 320" className="w-full max-w-xs mx-auto" aria-label="Carte des zones de livraison">
-      {/* Dark background circle */}
-      <circle cx={cx} cy={cy} r={145} fill="#0f172a" fillOpacity={0.06} />
-
-      {/* Zones — outermost first so inner layers paint on top */}
-      {[...zones].reverse().map((zone, revIdx) => {
-        const idx = zones.length - 1 - revIdx;
-        const color = ZONE_COLORS[idx] ?? ZONE_COLORS[3];
-        const r = zone.radiusKm * scale;
-        return (
-          <g key={zone.id}>
-            <circle
-              cx={cx}
-              cy={cy}
-              r={r}
-              fill={color.fill}
-              fillOpacity={color.fillOpacity}
-              stroke={color.stroke}
-              strokeOpacity={color.strokeOpacity}
-              strokeWidth={1.5}
-            />
-          </g>
-        );
-      })}
-
-      {/* Labels on the right side of each ring */}
-      {zones.map((zone) => {
-        const r = zone.radiusKm * scale;
-        const labelX = cx + r * 0.72;
-        const labelY = cy - r * 0.72;
-        return (
-          <g key={`label-${zone.id}`}>
-            <line
-              x1={cx + r * 0.65}
-              y1={cy - r * 0.65}
-              x2={cx + r * 0.58}
-              y2={cy - r * 0.58}
-              stroke="#1EFF6A"
-              strokeOpacity={0.5}
-              strokeWidth={1}
-            />
-            <text
-              x={labelX}
-              y={labelY - 4}
-              fontSize={9}
-              fontWeight={600}
-              fill="#1EFF6A"
-              fillOpacity={0.9}
-              textAnchor="middle"
-              className="select-none"
-            >
-              {zone.name}
-            </text>
-            <text
-              x={labelX}
-              y={labelY + 7}
-              fontSize={8}
-              fill="#94a3b8"
-              textAnchor="middle"
-              className="select-none"
-            >
-              {zone.radiusKm}km
-            </text>
-          </g>
-        );
-      })}
-
-      {/* Centre pin */}
-      <circle cx={cx} cy={cy} r={5} fill="#1EFF6A" fillOpacity={0.9} />
-      <circle cx={cx} cy={cy} r={2.5} fill="#fff" />
-
-      {/* Compass lines (decorative) */}
-      {[0, 90, 180, 270].map((deg) => {
-        const rad = (deg * Math.PI) / 180;
-        return (
-          <line
-            key={deg}
-            x1={cx + Math.cos(rad) * 8}
-            y1={cy + Math.sin(rad) * 8}
-            x2={cx + Math.cos(rad) * 130}
-            y2={cy + Math.sin(rad) * 130}
-            stroke="#1EFF6A"
-            strokeOpacity={0.08}
-            strokeWidth={1}
-            strokeDasharray="3 4"
-          />
-        );
-      })}
-    </svg>
-  );
-}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -327,8 +226,8 @@ export default function ZonesPage() {
               Carte des zones
             </h2>
           </div>
-          <div className="flex-1 flex items-center justify-center p-6">
-            <ZonesDiagram zones={sortedZones} />
+          <div className="flex-1 p-3" style={{ minHeight: 340 }}>
+            <ZonesMap zones={sortedZones} />
           </div>
         </div>
 
