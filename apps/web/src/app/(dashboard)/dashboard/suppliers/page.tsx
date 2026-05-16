@@ -22,6 +22,7 @@ import {
   Image as ImageIcon,
   Mail,
   Truck,
+  Download,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -335,6 +336,27 @@ export default function SuppliersPage() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
+  const handleExportXLSX = async () => {
+    const XLSX = await import('xlsx');
+    const wb = XLSX.utils.book_new();
+
+    const supplierSheet = XLSX.utils.aoa_to_sheet([
+      ['Nom', 'Catégorie', 'Statut', 'Téléphone', 'Email', 'Délai livraison (j)', 'Dépenses/mois (€)'],
+      ...suppliers.map((s) => [s.name, s.category, s.status, s.phone, s.email, s.deliveryDelay, s.monthlySpend]),
+    ]);
+    supplierSheet['!cols'] = [{ wch: 20 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 26 }, { wch: 18 }, { wch: 18 }];
+
+    const ordersSheet = XLSX.utils.aoa_to_sheet([
+      ['N° commande', 'Fournisseur', 'Articles', 'Total (€)', 'Date attendue', 'Statut'],
+      ...orders.map((o) => [o.id, o.supplierName, o.items, o.total, o.expectedDate, o.status]),
+    ]);
+    ordersSheet['!cols'] = [{ wch: 14 }, { wch: 20 }, { wch: 28 }, { wch: 10 }, { wch: 14 }, { wch: 12 }];
+
+    XLSX.utils.book_append_sheet(wb, supplierSheet, 'Fournisseurs');
+    XLSX.utils.book_append_sheet(wb, ordersSheet, 'Commandes fournisseurs');
+    XLSX.writeFile(wb, `fournisseurs-foodstack-${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
   return (
     <div className="p-6 space-y-6">
 
@@ -344,7 +366,15 @@ export default function SuppliersPage() {
           <h1 className="text-2xl font-bold text-surface-900">Gestion des fournisseurs</h1>
           <p className="mt-1 text-sm text-surface-500">{suppliers.length} fournisseurs · {activeCount} actifs</p>
         </div>
-        <Button icon={<Plus className="h-4 w-4" />} onClick={openAddSupplierModal}>Ajouter un fournisseur</Button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportXLSX}
+            className="flex items-center gap-1.5 rounded-xl border border-green-200 bg-green-50 px-3 py-1.5 text-sm font-medium text-green-700 transition-colors hover:bg-green-100"
+          >
+            <Download className="h-3.5 w-3.5" /> Excel
+          </button>
+          <Button icon={<Plus className="h-4 w-4" />} onClick={openAddSupplierModal}>Ajouter un fournisseur</Button>
+        </div>
       </div>
 
       {/* ── Stats ── */}
