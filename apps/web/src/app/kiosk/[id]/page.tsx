@@ -265,17 +265,6 @@ export default function KioskPage() {
     }
   }, []);
 
-  // Auto-reset countdown on confirm screen
-  useEffect(() => {
-    if (screen !== 'confirm') return;
-    const t = setInterval(() => setCountdown((c) => c - 1), 1000);
-    return () => clearInterval(t);
-  }, [screen]);
-
-  useEffect(() => {
-    if (countdown <= 0) resetKiosk();
-  }, [countdown, resetKiosk]);
-
   const resetKiosk = useCallback(() => {
     setScreen('welcome');
     setOrderMode(null);
@@ -288,6 +277,17 @@ export default function KioskPage() {
     setPaymentMethod(null);
     setCountdown(30);
   }, []);
+
+  // Auto-reset countdown on confirm screen
+  useEffect(() => {
+    if (screen !== 'confirm') return;
+    const t = setInterval(() => setCountdown((c) => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [screen]);
+
+  useEffect(() => {
+    if (countdown <= 0) resetKiosk();
+  }, [countdown, resetKiosk]);
 
   const cartTotal = cart.reduce((s, i) => s + i.subtotal, 0);
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
