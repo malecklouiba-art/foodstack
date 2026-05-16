@@ -29,11 +29,22 @@ jobs:
       - name: Generate Prisma client
         run: npm run --workspace=@foodstack/database generate
 
-      - name: Type check
-        run: npm run type-check
+      - name: Type check (shared)
+        run: npx tsc --noEmit -p packages/shared/tsconfig.json
 
-      - name: Lint
-        run: npm run lint
+      - name: Type check (api)
+        run: npx tsc --noEmit -p apps/api/tsconfig.json
+
+      - name: Type check (web)
+        run: npx tsc --noEmit -p apps/web/tsconfig.json
+
+      - name: Lint (api)
+        run: npx eslint src --ext .ts
+        working-directory: apps/api
+
+      - name: Lint (web)
+        run: npx next lint
+        working-directory: apps/web
 
   test:
     name: Tests
