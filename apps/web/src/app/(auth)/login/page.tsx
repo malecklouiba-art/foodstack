@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase';
 
 // Demo accounts — bypass Supabase when these credentials are used
 const DEMO_ACCOUNTS = [
-  { email: 'admin@foodstack.app',  password: 'Admin1234!',    role: 'admin',    label: '👑 Super Admin',       redirect: '/admin' },
+  { email: 'admin@foodstack.app',  password: 'Admin1234!',    role: 'admin',    label: '👑 Super Admin',       redirect: '/dashboard' },
   { email: 'owner@lecomptoir.fr',  password: 'Owner1234!',    role: 'owner',    label: '🍽️ Restaurateur',     redirect: '/dashboard' },
   { email: 'staff@lecomptoir.fr',  password: 'Staff1234!',    role: 'staff',    label: '👷 Staff',             redirect: '/dashboard' },
   { email: 'driver@foodstack.app', password: 'Driver1234!',   role: 'driver',   label: '🛵 Livreur',           redirect: '/dashboard' },
@@ -17,7 +17,7 @@ const DEMO_ACCOUNTS = [
 ] as const;
 
 const DEMO_QUICK = [
-  { role: 'admin',    label: '👑 Super Admin',   redirect: '/admin',     color: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200' },
+  { role: 'admin',    label: '👑 Super Admin',   redirect: '/dashboard', color: 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200' },
   { role: 'owner',    label: '🍽️ Restaurateur',  redirect: '/dashboard', color: 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200' },
   { role: 'staff',    label: '👷 Staff',          redirect: '/dashboard', color: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200' },
   { role: 'driver',   label: '🛵 Livreur',        redirect: '/dashboard', color: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200' },
