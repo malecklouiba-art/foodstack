@@ -28,6 +28,8 @@ import {
   Globe,
   Tag,
   TableIcon,
+  Package,
+  Boxes,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -50,6 +52,8 @@ const navItems: NavItem[] = [
   { href: '/dashboard/delivery', label: 'Livraisons', icon: Truck, badge: 2, section: 'Gestion', roles: ['admin', 'owner', 'staff', 'driver'] },
   { href: '/dashboard/drivers', label: 'Livreurs', icon: Bike, section: 'Gestion', roles: ['admin', 'owner', 'driver'] },
   { href: '/dashboard/zones', label: 'Zones livraison', icon: MapPin, section: 'Gestion', roles: ['admin', 'owner'] },
+  { href: '/dashboard/inventory', label: 'Inventaire', icon: Boxes, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
+  { href: '/dashboard/suppliers', label: 'Fournisseurs', icon: Package, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/staff', label: 'Employés', icon: UserCog, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/coupons', label: 'Codes Promo', icon: Tag, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/tables', label: 'Tables', icon: TableIcon, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },

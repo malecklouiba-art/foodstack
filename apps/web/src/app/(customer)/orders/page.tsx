@@ -7,7 +7,7 @@ import {
   ShoppingBag, ChevronRight, Search, Filter,
   MapPin, Clock, Star, RotateCcw, Eye,
   CheckCircle2, Truck, XCircle, AlertCircle,
-  CreditCard, Smartphone, Coins,
+  CreditCard, Smartphone, Coins, Calendar, X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -83,6 +83,44 @@ const ORDERS: Order[] = [
   },
 ];
 
+// ── Scheduled orders mock data ──────────────────────────────────────────────
+interface ScheduledOrder {
+  id: string;
+  orderNumber: string;
+  scheduledFor: Date;
+  type: 'delivery' | 'pickup';
+  items: { name: string; quantity: number; price: number }[];
+  total: number;
+  address?: string;
+  status: 'scheduled' | 'cancelled';
+}
+
+const SCHEDULED_ORDERS: ScheduledOrder[] = [
+  {
+    id: 's1', orderNumber: 'ORD-8900',
+    scheduledFor: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000),
+    type: 'delivery',
+    items: [
+      { name: 'Classic Burger', quantity: 2, price: 14.90 },
+      { name: 'Frites maison', quantity: 2, price: 4.50 },
+    ],
+    total: 47.58,
+    address: '12 rue de la Paix, 75001 Paris',
+    status: 'scheduled',
+  },
+  {
+    id: 's2', orderNumber: 'ORD-8895',
+    scheduledFor: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 19 * 60 * 60 * 1000),
+    type: 'pickup',
+    items: [
+      { name: 'Margherita', quantity: 1, price: 13.90 },
+      { name: 'Tiramisu', quantity: 2, price: 7.50 },
+    ],
+    total: 31.79,
+    status: 'scheduled',
+  },
+];
+
 const STATUS_CONFIG: Record<OrderStatus, { label: string; variant: 'success' | 'warning' | 'brand' | 'info' | 'danger' | 'default'; icon: React.ElementType }> = {
   pending:    { label: 'En attente',      variant: 'default',  icon: Clock },
   confirmed:  { label: 'Confirmée',       variant: 'info',     icon: CheckCircle2 },
@@ -111,14 +149,17 @@ function formatTime(d: Date) {
 }
 
 type FilterStatus = OrderStatus | 'all';
+type TabView = 'historique' | 'programmees';
 
 export default function OrdersPage() {
   const router = useRouter();
   const { addItem, clearCart } = useCartStore();
+  const [tab, setTab] = useState<TabView>('historique');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [selected, setSelected] = useState<Order | null>(null);
   const [rated, setRated] = useState<Record<string, number>>({});
+  const [scheduled, setScheduled] = useState<ScheduledOrder[]>(SCHEDULED_ORDERS);
 
   const filtered = ORDERS.filter((o) => {
     const matchSearch = !search || o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
@@ -129,6 +170,11 @@ export default function OrdersPage() {
 
   const total = ORDERS.reduce((sum, o) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
   const points = ORDERS.reduce((sum, o) => sum + o.loyaltyPointsEarned, 0);
+
+  function cancelScheduled(id: string) {
+    setScheduled((prev) => prev.map((s) => s.id === id ? { ...s, status: 'cancelled' as const } : s));
+    toast.success('Commande programmée annulée');
+  }
 
   function reorder(order: Order) {
     clearCart();
@@ -171,6 +217,132 @@ export default function OrdersPage() {
       </div>
 
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-4">
+        {/* Tab switcher */}
+        <div className="flex rounded-2xl border border-surface-200 bg-surface-50 p-1">
+          {([['historique', 'Historique', ShoppingBag], ['programmees', 'Programmées', Calendar]] as const).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all ${
+                tab === id ? 'bg-white text-surface-900 shadow-sm' : 'text-surface-500 hover:text-surface-700'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+              {id === 'programmees' && scheduled.filter((s) => s.status === 'scheduled').length > 0 && (
+                <span className="rounded-full bg-brand-500 px-1.5 py-0.5 text-[10px] font-bold text-black">
+                  {scheduled.filter((s) => s.status === 'scheduled').length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'programmees' ? (
+          /* ── Scheduled orders view ── */
+          <div className="space-y-4">
+            {scheduled.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+                <Calendar className="h-12 w-12 text-gray-200" />
+                <p className="font-medium text-gray-500">Aucune commande programmée</p>
+                <Button variant="primary" onClick={() => router.push('/menu')}>Commander maintenant</Button>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {scheduled.map((order, idx) => {
+                  const isCancelled = order.status === 'cancelled';
+                  const scheduledDate = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(order.scheduledFor);
+                  const scheduledTime = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(order.scheduledFor);
+                  return (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.97 }}
+                      transition={{ delay: idx * 0.05 }}
+                    >
+                      <Card padding="none" className={`overflow-hidden ${isCancelled ? 'opacity-50' : ''}`}>
+                        {/* Top bar */}
+                        <div className={`flex items-center justify-between px-5 py-3 border-b border-gray-100 ${isCancelled ? '' : 'bg-brand-50'}`}>
+                          <div className="flex items-center gap-2">
+                            <Calendar className={`h-4 w-4 ${isCancelled ? 'text-gray-400' : 'text-brand-500'}`} />
+                            <span className="text-sm font-semibold capitalize text-surface-900">{scheduledDate} à {scheduledTime}</span>
+                          </div>
+                          {isCancelled ? (
+                            <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-600">Annulée</span>
+                          ) : (
+                            <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-700">Programmée</span>
+                          )}
+                        </div>
+
+                        <div className="px-5 py-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="font-mono text-xs font-semibold text-gray-500">{order.orderNumber}</span>
+                            <span className="text-xs text-gray-400">{order.type === 'delivery' ? '🛵 Livraison' : '🏪 À emporter'}</span>
+                          </div>
+
+                          <p className="text-sm text-gray-700">
+                            {order.items.map((i) => `${i.name} ×${i.quantity}`).join(' · ')}
+                          </p>
+
+                          {order.address && (
+                            <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-400">
+                              <MapPin className="h-3 w-3" />
+                              <span>{order.address}</span>
+                            </div>
+                          )}
+
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="font-bold text-gray-900">{order.total.toFixed(2)}€</span>
+                            {!isCancelled && (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  icon={<RotateCcw className="h-3.5 w-3.5" />}
+                                  onClick={() => {
+                                    clearCart();
+                                    order.items.forEach((item, i) => {
+                                      for (let q = 0; q < item.quantity; q++) {
+                                        addItem({ id: `reorder-${order.id}-${i}-${q}`, menuItemId: `m${i}`, restaurantId: 'r1', name: item.name, price: item.price });
+                                      }
+                                    });
+                                    toast.success('Panier rempli !');
+                                    router.push('/checkout');
+                                  }}
+                                >
+                                  Modifier
+                                </Button>
+                                <button
+                                  onClick={() => cancelScheduled(order.id)}
+                                  className="flex items-center gap-1 rounded-xl border border-red-200 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+                                >
+                                  <X className="h-3 w-3" />
+                                  Annuler
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            )}
+
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="ghost"
+                icon={<Calendar className="h-4 w-4" />}
+                onClick={() => router.push('/checkout')}
+              >
+                Programmer une nouvelle commande
+              </Button>
+            </div>
+          </div>
+        ) : (
+        <>
         {/* Filters */}
         <div className="flex gap-3">
           <Input
@@ -285,6 +457,8 @@ export default function OrdersPage() {
               );
             })}
           </AnimatePresence>
+        )}
+        </>
         )}
       </div>
 
