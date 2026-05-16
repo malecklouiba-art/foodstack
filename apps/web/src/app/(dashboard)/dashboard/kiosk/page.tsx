@@ -558,7 +558,7 @@ function PreviewAccueil({ theme }: { theme: KioskTheme }) {
   return (
     <div
       className="flex h-full w-full flex-col items-center justify-center gap-5 p-6"
-      style={{ background: bgStyle.background }}
+      style={bgStyle}
     >
       <div
         className="flex h-16 w-16 items-center justify-center rounded-2xl"
@@ -591,7 +591,7 @@ function PreviewMenu({ theme }: { theme: KioskTheme }) {
   const primaryStyle = applyTheme(theme.primaryButton);
 
   return (
-    <div className="flex h-full w-full flex-col" style={{ background: bgStyle.background }}>
+    <div className="flex h-full w-full flex-col" style={bgStyle}>
       {/* Nav */}
       <div className="flex items-center justify-between px-3 py-2 text-xs" style={{ ...navStyle, borderRadius: 0 }}>
         <span className="font-bold">FoodStack</span>
@@ -654,7 +654,7 @@ function PreviewPanier({ theme }: { theme: KioskTheme }) {
   const headStyle = applyTheme(theme.heading);
 
   return (
-    <div className="flex h-full w-full flex-col" style={{ background: bgStyle.background }}>
+    <div className="flex h-full w-full flex-col" style={bgStyle}>
       <div className="flex items-center justify-between px-3 py-2" style={{ ...navStyle, borderRadius: 0 }}>
         <span className="text-xs font-bold">Votre commande</span>
         <ShoppingCart size={14} />
