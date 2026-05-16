@@ -9,6 +9,7 @@ import {
   ArrowUpRight, TrendingUp, Clock, Zap,
   Building2, BarChart3, Percent,
   Bike, MapPin, Navigation, CheckCircle2, XCircle, Package, AlertCircle,
+  ChefHat, Utensils, Timer, ThumbsUp,
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -754,6 +755,246 @@ function parseCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+// ── Staff Dashboard ───────────────────────────────────────────────────────────
+
+type KitchenOrderStatus = 'pending' | 'preparing' | 'ready';
+
+interface KitchenOrder {
+  id: string;
+  number: string;
+  customer: string;
+  items: { name: string; qty: number; note?: string }[];
+  type: 'dine-in' | 'takeaway' | 'delivery';
+  table?: string;
+  receivedAt: string;
+  status: KitchenOrderStatus;
+  prepMin: number;
+}
+
+const KITCHEN_ORDERS_INIT: KitchenOrder[] = [
+  {
+    id: 'ko1', number: 'ORD-8830', customer: 'Table 4', type: 'dine-in', table: '4',
+    receivedAt: '13:02', prepMin: 12, status: 'preparing',
+    items: [{ name: 'Burger Classique', qty: 2 }, { name: 'Frites', qty: 2 }, { name: 'Coca-Cola', qty: 2, note: 'Sans glace' }],
+  },
+  {
+    id: 'ko2', number: 'ORD-8831', customer: 'Marie L.', type: 'delivery',
+    receivedAt: '13:08', prepMin: 8, status: 'pending',
+    items: [{ name: 'Pizza Margherita', qty: 1 }, { name: 'Tiramisu', qty: 1 }],
+  },
+  {
+    id: 'ko3', number: 'ORD-8832', customer: 'Table 2', type: 'dine-in', table: '2',
+    receivedAt: '13:11', prepMin: 5, status: 'pending',
+    items: [{ name: 'Salade César', qty: 1, note: 'Sans anchois' }, { name: 'Eau gazeuse', qty: 1 }],
+  },
+  {
+    id: 'ko4', number: 'ORD-8829', customer: 'Pierre D.', type: 'takeaway',
+    receivedAt: '12:58', prepMin: 15, status: 'ready',
+    items: [{ name: 'Poulet Rôti', qty: 1 }, { name: 'Pommes de terre', qty: 1 }],
+  },
+];
+
+const STATUS_CFG_KITCHEN: Record<KitchenOrderStatus, { label: string; color: string; bg: string; next: KitchenOrderStatus | null; nextLabel: string }> = {
+  pending:   { label: 'En attente',    color: 'text-amber-700',   bg: 'bg-amber-50 border-amber-200',  next: 'preparing', nextLabel: 'Commencer' },
+  preparing: { label: 'En préparation',color: 'text-blue-700',    bg: 'bg-blue-50 border-blue-200',    next: 'ready',     nextLabel: 'Prêt !' },
+  ready:     { label: 'Prête',         color: 'text-green-700',   bg: 'bg-green-50 border-green-200',  next: null,        nextLabel: '' },
+};
+
+const TYPE_CFG: Record<KitchenOrder['type'], { label: string; icon: React.ElementType; color: string }> = {
+  'dine-in':  { label: 'Sur place', icon: Utensils, color: 'text-brand-600'  },
+  'takeaway': { label: 'À emporter',icon: ShoppingBag, color: 'text-blue-600'   },
+  'delivery': { label: 'Livraison', icon: Truck,    color: 'text-purple-600' },
+};
+
+function useElapsed(receivedAt: string): string {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const [h, m] = receivedAt.split(':').map(Number);
+  const base = new Date(now);
+  base.setHours(h, m, 0, 0);
+  const diff = Math.max(0, Math.floor((now.getTime() - base.getTime()) / 60000));
+  return diff < 60 ? `${diff} min` : `${Math.floor(diff / 60)}h${diff % 60}`;
+}
+
+function KitchenOrderCard({ order, onAdvance, onDone }: {
+  order: KitchenOrder;
+  onAdvance: (id: string) => void;
+  onDone: (id: string) => void;
+}) {
+  const elapsed = useElapsed(order.receivedAt);
+  const cfg = STATUS_CFG_KITCHEN[order.status];
+  const typeCfg = TYPE_CFG[order.type];
+  const TypeIcon = typeCfg.icon;
+  const overdue = parseInt(elapsed) > order.prepMin;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={`rounded-2xl border-2 p-4 ${cfg.bg} flex flex-col gap-3`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-surface-500">{order.number}</span>
+            <span className={`flex items-center gap-1 text-xs font-medium ${typeCfg.color}`}>
+              <TypeIcon className="h-3 w-3" />
+              {order.table ? `Table ${order.table}` : typeCfg.label}
+            </span>
+          </div>
+          <p className="mt-0.5 text-sm font-semibold text-surface-900">{order.customer}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className={`flex items-center gap-1 text-xs font-bold ${overdue && order.status !== 'ready' ? 'text-red-600' : 'text-surface-500'}`}>
+            <Timer className="h-3 w-3" />
+            {elapsed}
+          </div>
+          <p className="text-[10px] text-surface-400">reçu {order.receivedAt}</p>
+        </div>
+      </div>
+
+      <ul className="space-y-1">
+        {order.items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-xs text-surface-700">
+            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface-200 text-[10px] font-bold text-surface-600">
+              {item.qty}
+            </span>
+            <span>{item.name}{item.note && <span className="ml-1 italic text-surface-400">({item.note})</span>}</span>
+          </li>
+        ))}
+      </ul>
+
+      {order.status !== 'ready' ? (
+        <button
+          onClick={() => onAdvance(order.id)}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold transition-colors ${
+            order.status === 'pending'
+              ? 'bg-amber-500 text-white hover:bg-amber-600'
+              : 'bg-brand-500 text-black hover:bg-brand-400'
+          }`}
+        >
+          <ChefHat className="h-3.5 w-3.5" />
+          {cfg.nextLabel}
+        </button>
+      ) : (
+        <button
+          onClick={() => onDone(order.id)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-2 text-sm font-semibold text-white hover:bg-green-600 transition-colors"
+        >
+          <ThumbsUp className="h-3.5 w-3.5" />
+          Servir / Prêt à emporter
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
+function StaffDashboard() {
+  const [orders, setOrders] = useState<KitchenOrder[]>(KITCHEN_ORDERS_INIT);
+  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const pending   = orders.filter((o) => o.status === 'pending').length;
+  const preparing = orders.filter((o) => o.status === 'preparing').length;
+  const ready     = orders.filter((o) => o.status === 'ready').length;
+  const done      = 14; // completed this shift (static for demo)
+
+  function advanceOrder(id: string) {
+    setOrders((prev) => prev.map((o) => {
+      if (o.id !== id) return o;
+      const next = STATUS_CFG_KITCHEN[o.status].next;
+      return next ? { ...o, status: next } : o;
+    }));
+  }
+
+  function doneOrder(id: string) {
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+  }
+
+  const kpis = [
+    { label: 'En attente',     value: String(pending),   icon: Clock,         bg: 'bg-amber-50',  color: 'text-amber-600'  },
+    { label: 'En préparation', value: String(preparing), icon: ChefHat,       bg: 'bg-blue-50',   color: 'text-blue-600'   },
+    { label: 'Prêtes',         value: String(ready),     icon: CheckCircle2,  bg: 'bg-green-50',  color: 'text-green-600'  },
+    { label: 'Traitées (shift)',value: String(done),      icon: ThumbsUp,      bg: 'bg-brand-50',  color: 'text-brand-600'  },
+  ];
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-white">Espace équipe</h1>
+          <p className="mt-1 text-sm text-surface-500 capitalize">{today}</p>
+        </div>
+        <Badge variant="success" dot>Service en cours</Badge>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{kpi.label}</p>
+                    <p className="mt-2 text-3xl font-bold text-surface-900 dark:text-white">{kpi.value}</p>
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${kpi.bg}`}>
+                    <Icon className={`h-5 w-5 ${kpi.color}`} />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Kitchen board */}
+      <div>
+        <h2 className="mb-4 text-base font-semibold text-surface-800 dark:text-surface-200">Commandes en cuisine</h2>
+        {orders.length === 0 ? (
+          <Card padding="lg" className="flex flex-col items-center justify-center py-12 text-surface-400">
+            <CheckCircle2 className="mb-3 h-10 w-10 text-green-400" />
+            <p className="text-sm font-medium">Toutes les commandes ont été traitées !</p>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {orders.map((order) => (
+              <KitchenOrderCard key={order.id} order={order} onAdvance={advanceOrder} onDone={doneOrder} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick links */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { label: 'Toutes les commandes', href: '/dashboard/orders', icon: ShoppingBag, color: 'text-brand-600', bg: 'bg-brand-50' },
+          { label: 'Menu du jour',          href: '/dashboard/menu',   icon: Utensils,    color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Tables',                href: '/dashboard/tables', icon: Users,       color: 'text-blue-600',  bg: 'bg-blue-50' },
+        ].map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link key={link.href} href={link.href} className="flex items-center gap-3 rounded-2xl border border-surface-200 bg-white p-4 hover:shadow-md transition-all dark:border-surface-700 dark:bg-surface-800">
+              <div className={`rounded-xl p-2.5 ${link.bg}`}>
+                <Icon className={`h-5 w-5 ${link.color}`} />
+              </div>
+              <span className="text-sm font-medium text-surface-700 dark:text-surface-200">{link.label}</span>
+              <ArrowUpRight className="ml-auto h-4 w-4 text-surface-400" />
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -775,6 +1016,10 @@ export default function DashboardPage() {
 
   if (role === 'driver') {
     return <DriverDashboard />;
+  }
+
+  if (role === 'staff') {
+    return <StaffDashboard />;
   }
 
   return <RestaurantDashboard />;
