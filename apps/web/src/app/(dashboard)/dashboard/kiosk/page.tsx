@@ -6,6 +6,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import {
   Monitor, Save, Play, ChevronRight, Check,
   ShoppingCart, ChevronLeft, Star, Zap, Moon, Leaf,
+  ImagePlus, X,
 } from 'lucide-react';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ interface BorderConfig {
 export interface ElementTheme {
   bgColor: string;
   bgGradient: GradientConfig;
+  bgImage?: string;
   textColor: string;
   fontFamily: string;
   fontSize: number;
@@ -186,9 +188,16 @@ function buildGradient(g: GradientConfig): string {
 }
 
 function applyTheme(el: ElementTheme): React.CSSProperties {
-  const bg = el.bgGradient.enabled ? buildGradient(el.bgGradient) : el.bgColor;
+  const colorBg = el.bgGradient.enabled ? buildGradient(el.bgGradient) : el.bgColor;
+  const bgStyles: React.CSSProperties = el.bgImage
+    ? {
+        backgroundImage: `linear-gradient(${colorBg === 'transparent' ? 'rgba(255,255,255,0.15)' : colorBg + '33'}, ${colorBg === 'transparent' ? 'rgba(255,255,255,0.15)' : colorBg + '33'}), url(${el.bgImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : { background: colorBg };
   return {
-    background: bg,
+    ...bgStyles,
     color: el.textColor,
     fontFamily: `'${el.fontFamily}', sans-serif`,
     fontSize: el.fontSize,
@@ -285,6 +294,42 @@ function ElementEditor({
 
   return (
     <div className="space-y-5">
+      {/* Background image — only for background element */}
+      {elementKey === 'background' && (
+        <div>
+          <SectionLabel>Image de fond</SectionLabel>
+          {el.bgImage ? (
+            <div className="relative overflow-hidden rounded-xl border border-surface-200" style={{ height: 80 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={el.bgImage} alt="fond" className="h-full w-full object-cover" />
+              <button
+                onClick={() => update({ bgImage: undefined })}
+                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 py-3 text-sm font-medium text-surface-500 transition-colors hover:border-brand-400 hover:text-brand-600">
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => update({ bgImage: ev.target?.result as string });
+                  reader.readAsDataURL(file);
+                  e.target.value = '';
+                }}
+              />
+              <ImagePlus className="h-4 w-4" />
+              Importer une image
+            </label>
+          )}
+        </div>
+      )}
       {/* Background color */}
       <div>
         <SectionLabel>Couleur d&apos;arrière-plan</SectionLabel>
