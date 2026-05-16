@@ -274,8 +274,7 @@ export default function KioskPage() {
 
   useEffect(() => {
     if (countdown <= 0) resetKiosk();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countdown]);
+  }, [countdown, resetKiosk]);
 
   const resetKiosk = useCallback(() => {
     setScreen('welcome');
