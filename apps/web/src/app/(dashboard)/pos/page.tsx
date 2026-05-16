@@ -896,7 +896,7 @@ export default function POSPage() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 thin-scrollbar">
+              <div className="min-h-0 flex-1 overflow-y-auto p-4 thin-scrollbar">
                 {cart.length === 0 ? (
                   <div className="flex h-full flex-col items-center justify-center text-center">
                     <div className="mb-3 text-5xl">🛒</div>
@@ -977,7 +977,7 @@ export default function POSPage() {
                 )}
               </div>
 
-              <div className="border-t border-gray-200 p-4">
+              <div className="flex-shrink-0 border-t border-gray-200 p-4">
                 <div className="mb-4 space-y-1.5">
                   <div className="flex justify-between text-sm text-gray-500">
                     <span>HT</span><span>{(subtotal - tvaAmount).toFixed(2)}€</span>
@@ -1034,7 +1034,7 @@ export default function POSPage() {
                 </div>
               </div>
 
-              <div className="flex-1 p-6">
+              <div className="flex-1 overflow-y-auto p-6 thin-scrollbar">
                 <div className="mb-6 text-center">
                   <p className="text-sm text-gray-500">Montant à encaisser</p>
                   <p className="mt-1 text-5xl font-black text-brand-600">{total.toFixed(2)}€</p>
@@ -1160,7 +1160,7 @@ export default function POSPage() {
                 )}
               </div>
 
-              <div className="border-t border-gray-200 p-4">
+              <div className="flex-shrink-0 border-t border-gray-200 p-4">
                 <Button fullWidth size="lg" onClick={handleValidatePayment}
                   disabled={payMethod === 'cash' && (!cashGiven || cashChange < 0)}
                   icon={<Check className="h-5 w-5" />}>
