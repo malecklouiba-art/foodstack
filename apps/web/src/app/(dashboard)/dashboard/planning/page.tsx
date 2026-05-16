@@ -137,15 +137,42 @@ function getWeekDates(weekOffset: number): Date[] {
   });
 }
 
+function getDayDate(dayOffset: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  return d;
+}
+
+// 0=Mon … 6=Sun (matches DAYS index)
+function dowIndex(d: Date): number {
+  return (d.getDay() + 6) % 7;
+}
+
+function getMonthGrid(monthOffset: number): { date: Date; inMonth: boolean }[] {
+  const today = new Date();
+  const first = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+  const start = new Date(first);
+  start.setDate(first.getDate() - dowIndex(first));
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return { date: d, inMonth: d.getMonth() === first.getMonth() };
+  });
+}
+
+const MONTHS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function PlanningPage() {
   const [shifts, setShifts] = useState<Shift[]>(INIT_SHIFTS);
+  const [scope, setScope] = useState<'day' | 'week' | 'month'>('week');
   const [weekOffset, setWeekOffset] = useState(0);
+  const [dayOffset, setDayOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<ShiftFormState>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [view, setView] = useState<'grid' | 'list'>('grid');
   const [copied, setCopied] = useState(false);
   const [bgImage, setBgImage] = useState<string | null>(null);
 
@@ -294,22 +321,73 @@ export default function PlanningPage() {
         })}
       </div>
 
-      {/* Week navigator */}
-      <div className="flex items-center justify-between">
+      {/* Scope tabs + navigator */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={() => setWeekOffset((w) => w - 1)} className="rounded-xl border border-surface-200 p-2 hover:bg-surface-50 transition-colors dark:border-surface-700 dark:hover:bg-surface-700">
+          {/* Scope switcher */}
+          <div className="flex rounded-xl border border-surface-200 bg-white p-0.5 dark:border-surface-700 dark:bg-surface-800">
+            {(['day', 'week', 'month'] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setScope(s)}
+                className={clsx(
+                  'rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                  scope === s
+                    ? 'bg-brand-500 text-black'
+                    : 'text-surface-600 hover:bg-surface-50 dark:text-surface-300 dark:hover:bg-surface-700',
+                )}
+              >
+                {s === 'day' ? 'Jour' : s === 'week' ? 'Semaine' : 'Mois'}
+              </button>
+            ))}
+          </div>
+
+          {/* Navigator */}
+          <button
+            onClick={() => {
+              if (scope === 'day') setDayOffset((d) => d - 1);
+              else if (scope === 'week') setWeekOffset((w) => w - 1);
+              else setMonthOffset((m) => m - 1);
+            }}
+            className="rounded-xl border border-surface-200 p-2 hover:bg-surface-50 transition-colors dark:border-surface-700 dark:hover:bg-surface-700"
+          >
             <ChevronLeft className="h-4 w-4 text-surface-600 dark:text-surface-300" />
           </button>
           <span className="text-sm font-semibold text-surface-700 dark:text-surface-200">
-            {weekOffset === 0 ? 'Cette semaine' : weekOffset === 1 ? 'Semaine prochaine' : weekOffset === -1 ? 'Semaine dernière' : `Semaine ${weekOffset > 0 ? '+' : ''}${weekOffset}`}
-            {' · '}
-            {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {scope === 'day' && (
+              <>
+                {dayOffset === 0 ? "Aujourd'hui" : dayOffset === 1 ? 'Demain' : dayOffset === -1 ? 'Hier' : ''}
+                {dayOffset === 0 || dayOffset === 1 || dayOffset === -1 ? ' · ' : ''}
+                {getDayDate(dayOffset).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </>
+            )}
+            {scope === 'week' && (
+              <>
+                {weekOffset === 0 ? 'Cette semaine' : weekOffset === 1 ? 'Semaine prochaine' : weekOffset === -1 ? 'Semaine dernière' : `Semaine ${weekOffset > 0 ? '+' : ''}${weekOffset}`}
+                {' · '}
+                {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+              </>
+            )}
+            {scope === 'month' && (() => {
+              const first = new Date(new Date().getFullYear(), new Date().getMonth() + monthOffset, 1);
+              return `${MONTHS_FR[first.getMonth()]} ${first.getFullYear()}`;
+            })()}
           </span>
-          <button onClick={() => setWeekOffset((w) => w + 1)} className="rounded-xl border border-surface-200 p-2 hover:bg-surface-50 transition-colors dark:border-surface-700 dark:hover:bg-surface-700">
+          <button
+            onClick={() => {
+              if (scope === 'day') setDayOffset((d) => d + 1);
+              else if (scope === 'week') setWeekOffset((w) => w + 1);
+              else setMonthOffset((m) => m + 1);
+            }}
+            className="rounded-xl border border-surface-200 p-2 hover:bg-surface-50 transition-colors dark:border-surface-700 dark:hover:bg-surface-700"
+          >
             <ChevronRight className="h-4 w-4 text-surface-600 dark:text-surface-300" />
           </button>
-          {weekOffset !== 0 && (
-            <button onClick={() => setWeekOffset(0)} className="rounded-xl border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-600 hover:bg-surface-50 transition-colors dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-700">
+          {((scope === 'day' && dayOffset !== 0) || (scope === 'week' && weekOffset !== 0) || (scope === 'month' && monthOffset !== 0)) && (
+            <button
+              onClick={() => { setDayOffset(0); setWeekOffset(0); setMonthOffset(0); }}
+              className="rounded-xl border border-surface-200 px-3 py-1.5 text-xs font-medium text-surface-600 hover:bg-surface-50 transition-colors dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-700"
+            >
               Aujourd&apos;hui
             </button>
           )}
@@ -328,103 +406,236 @@ export default function PlanningPage() {
         </div>
       </div>
 
-      {/* Grid */}
-      <Card padding="none" className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[900px]">
-            <thead>
-              <tr className="border-b border-surface-100 dark:border-surface-700">
-                <th className="w-40 py-3 pl-4 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">
-                  Employé
-                </th>
-                {DAYS.map((day, i) => {
-                  const date = weekDates[i];
-                  const isToday = date.toDateString() === new Date().toDateString();
+      {/* Grid — week */}
+      {scope === 'week' && (
+        <Card padding="none" className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px]">
+              <thead>
+                <tr className="border-b border-surface-100 dark:border-surface-700">
+                  <th className="w-40 py-3 pl-4 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">
+                    Employé
+                  </th>
+                  {DAYS.map((day, i) => {
+                    const date = weekDates[i];
+                    const isToday = date.toDateString() === new Date().toDateString();
+                    return (
+                      <th key={day} className={clsx('py-3 px-2 text-center text-xs font-semibold uppercase tracking-wider', isToday ? 'text-brand-600' : 'text-surface-500')}>
+                        <div>{day}</div>
+                        <div className={clsx('mt-0.5 text-sm font-bold', isToday ? 'text-brand-600' : 'text-surface-700 dark:text-surface-200')}>
+                          {date.getDate()}
+                        </div>
+                      </th>
+                    );
+                  })}
+                  <th className="w-16 py-3 pr-4 text-right text-xs font-semibold uppercase tracking-wider text-surface-500">Hrs</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-50 dark:divide-surface-800">
+                {EMPLOYEES.map((emp) => {
+                  const empShifts = shifts.filter((s) => s.employeeId === emp.id);
+                  const hrs = totalHours(empShifts);
                   return (
-                    <th key={day} className={clsx('py-3 px-2 text-center text-xs font-semibold uppercase tracking-wider', isToday ? 'text-brand-600' : 'text-surface-500')}>
-                      <div>{day}</div>
-                      <div className={clsx('mt-0.5 text-sm font-bold', isToday ? 'text-brand-600' : 'text-surface-700 dark:text-surface-200')}>
-                        {date.getDate()}
-                      </div>
-                    </th>
+                    <tr key={emp.id} className="group hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors">
+                      <td className="py-3 pl-4">
+                        <div className="flex items-center gap-2">
+                          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${emp.color} text-xs font-bold text-white`}>
+                            {emp.name.split(' ').map((n) => n[0]).join('')}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-surface-900 dark:text-surface-100">{emp.name}</p>
+                            <span className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${ROLE_COLOR[emp.role]}`}>{emp.role}</span>
+                          </div>
+                        </div>
+                      </td>
+                      {DAYS.map((_, dayIdx) => {
+                        const dayShifts = empShifts.filter((s) => s.day === dayIdx);
+                        const date = weekDates[dayIdx];
+                        const isToday = date.toDateString() === new Date().toDateString();
+                        return (
+                          <td
+                            key={dayIdx}
+                            className={clsx('px-1.5 py-2 text-center align-top', isToday && 'bg-brand-50/30 dark:bg-brand-500/5')}
+                          >
+                            <div className="space-y-1 min-h-[40px]">
+                              {dayShifts.map((shift) => {
+                                const cfg = SHIFT_CFG[shift.type];
+                                const Icon = cfg.icon;
+                                return (
+                                  <button
+                                    key={shift.id}
+                                    onClick={() => openEdit(shift)}
+                                    className={clsx(
+                                      'w-full rounded-lg border px-1.5 py-1 text-left transition-all hover:opacity-80',
+                                      cfg.bg, cfg.border
+                                    )}
+                                  >
+                                    <div className={`flex items-center gap-1 text-[10px] font-semibold ${cfg.text}`}>
+                                      <Icon className="h-2.5 w-2.5 shrink-0" />
+                                      {shift.startTime}–{shift.endTime}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                              <button
+                                onClick={() => openAdd(dayIdx, emp.id)}
+                                className="w-full rounded-lg border border-dashed border-surface-200 py-1 text-[10px] text-surface-300 opacity-0 transition-opacity group-hover:opacity-100 hover:border-brand-300 hover:text-brand-400 dark:border-surface-700"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+                        );
+                      })}
+                      <td className="py-3 pr-4 text-right">
+                        <span className={clsx('text-sm font-bold', hrs >= 35 ? 'text-green-600' : hrs >= 20 ? 'text-surface-700 dark:text-surface-200' : 'text-amber-600')}>
+                          {hrs.toFixed(0)}h
+                        </span>
+                      </td>
+                    </tr>
                   );
                 })}
-                <th className="w-16 py-3 pr-4 text-right text-xs font-semibold uppercase tracking-wider text-surface-500">Hrs</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-50 dark:divide-surface-800">
-              {EMPLOYEES.map((emp) => {
-                const empShifts = shifts.filter((s) => s.employeeId === emp.id);
-                const hrs = totalHours(empShifts);
-                return (
-                  <tr key={emp.id} className="group hover:bg-surface-50 dark:hover:bg-surface-800/50 transition-colors">
-                    {/* Employee name */}
-                    <td className="py-3 pl-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${emp.color} text-xs font-bold text-white`}>
-                          {emp.name.split(' ').map((n) => n[0]).join('')}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-surface-900 dark:text-surface-100">{emp.name}</p>
-                          <span className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${ROLE_COLOR[emp.role]}`}>{emp.role}</span>
-                        </div>
-                      </div>
-                    </td>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
-                    {/* Day cells */}
-                    {DAYS.map((_, dayIdx) => {
-                      const dayShifts = empShifts.filter((s) => s.day === dayIdx);
-                      const date = weekDates[dayIdx];
-                      const isToday = date.toDateString() === new Date().toDateString();
-                      return (
-                        <td
-                          key={dayIdx}
-                          className={clsx('px-1.5 py-2 text-center align-top', isToday && 'bg-brand-50/30 dark:bg-brand-500/5')}
-                        >
-                          <div className="space-y-1 min-h-[40px]">
-                            {dayShifts.map((shift) => {
-                              const cfg = SHIFT_CFG[shift.type];
-                              const Icon = cfg.icon;
-                              return (
-                                <button
-                                  key={shift.id}
-                                  onClick={() => openEdit(shift)}
-                                  className={clsx(
-                                    'w-full rounded-lg border px-1.5 py-1 text-left transition-all hover:opacity-80',
-                                    cfg.bg, cfg.border
-                                  )}
-                                >
-                                  <div className={`flex items-center gap-1 text-[10px] font-semibold ${cfg.text}`}>
-                                    <Icon className="h-2.5 w-2.5 shrink-0" />
-                                    {shift.startTime}–{shift.endTime}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                            <button
-                              onClick={() => openAdd(dayIdx, emp.id)}
-                              className="w-full rounded-lg border border-dashed border-surface-200 py-1 text-[10px] text-surface-300 opacity-0 transition-opacity group-hover:opacity-100 hover:border-brand-300 hover:text-brand-400 dark:border-surface-700"
-                            >
-                              +
-                            </button>
+      {/* Grid — day */}
+      {scope === 'day' && (() => {
+        const date = getDayDate(dayOffset);
+        const dIdx = dowIndex(date);
+        return (
+          <Card padding="none" className="overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-surface-100 dark:border-surface-700">
+                  <th className="w-56 py-3 pl-4 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">Employé</th>
+                  <th className="py-3 px-2 text-left text-xs font-semibold uppercase tracking-wider text-surface-500">Shifts du jour</th>
+                  <th className="w-24 py-3 pr-4 text-right text-xs font-semibold uppercase tracking-wider text-surface-500">Hrs</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-50 dark:divide-surface-800">
+                {EMPLOYEES.map((emp) => {
+                  const dayShifts = shifts.filter((s) => s.employeeId === emp.id && s.day === dIdx);
+                  const hrs = totalHours(dayShifts);
+                  return (
+                    <tr key={emp.id} className="group hover:bg-surface-50 dark:hover:bg-surface-800/50">
+                      <td className="py-3 pl-4">
+                        <div className="flex items-center gap-2">
+                          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${emp.color} text-xs font-bold text-white`}>
+                            {emp.name.split(' ').map((n) => n[0]).join('')}
                           </div>
-                        </td>
-                      );
-                    })}
+                          <div>
+                            <p className="text-sm font-medium text-surface-900 dark:text-surface-100">{emp.name}</p>
+                            <span className={`text-[10px] font-medium rounded-full px-1.5 py-0.5 ${ROLE_COLOR[emp.role]}`}>{emp.role}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {dayShifts.length === 0 && (
+                            <span className="text-xs text-surface-400">Repos</span>
+                          )}
+                          {dayShifts.map((shift) => {
+                            const cfg = SHIFT_CFG[shift.type];
+                            const Icon = cfg.icon;
+                            return (
+                              <button
+                                key={shift.id}
+                                onClick={() => openEdit(shift)}
+                                className={clsx('flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-all hover:opacity-80', cfg.bg, cfg.border, cfg.text)}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {shift.startTime}–{shift.endTime}
+                                <span className="ml-1 opacity-60">· {cfg.label}</span>
+                              </button>
+                            );
+                          })}
+                          <button
+                            onClick={() => openAdd(dIdx, emp.id)}
+                            className="rounded-lg border border-dashed border-surface-200 px-2 py-1 text-[11px] text-surface-400 opacity-0 transition-opacity group-hover:opacity-100 hover:border-brand-300 hover:text-brand-500 dark:border-surface-700"
+                          >
+                            + Shift
+                          </button>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4 text-right">
+                        <span className={clsx('text-sm font-bold', hrs >= 8 ? 'text-green-600' : hrs > 0 ? 'text-surface-700 dark:text-surface-200' : 'text-surface-300')}>
+                          {hrs.toFixed(0)}h
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Card>
+        );
+      })()}
 
-                    {/* Hours */}
-                    <td className="py-3 pr-4 text-right">
-                      <span className={clsx('text-sm font-bold', hrs >= 35 ? 'text-green-600' : hrs >= 20 ? 'text-surface-700 dark:text-surface-200' : 'text-amber-600')}>
-                        {hrs.toFixed(0)}h
+      {/* Grid — month */}
+      {scope === 'month' && (() => {
+        const grid = getMonthGrid(monthOffset);
+        return (
+          <Card padding="none" className="overflow-hidden">
+            <div className="grid grid-cols-7 border-b border-surface-100 dark:border-surface-700">
+              {DAYS.map((d) => (
+                <div key={d} className="py-2 text-center text-[11px] font-semibold uppercase tracking-wider text-surface-500">{d}</div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7">
+              {grid.map((cell, i) => {
+                const dIdx = dowIndex(cell.date);
+                const isToday = cell.date.toDateString() === new Date().toDateString();
+                // Note: shifts.day represents recurring DOW so each month-day reuses same set.
+                const dayShifts = shifts.filter((s) => s.day === dIdx);
+                const hrs = totalHours(dayShifts);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      // Switch to day view at this date
+                      const todayMid = new Date(); todayMid.setHours(0,0,0,0);
+                      const sel = new Date(cell.date); sel.setHours(0,0,0,0);
+                      const diff = Math.round((sel.getTime() - todayMid.getTime()) / 86400000);
+                      setDayOffset(diff);
+                      setScope('day');
+                    }}
+                    className={clsx(
+                      'group min-h-[88px] border-r border-b border-surface-100 p-2 text-left transition-colors dark:border-surface-700',
+                      cell.inMonth ? 'bg-white dark:bg-surface-800' : 'bg-surface-50/50 dark:bg-surface-900/40',
+                      isToday && 'ring-2 ring-inset ring-brand-500',
+                      'hover:bg-brand-50/40 dark:hover:bg-brand-500/5',
+                    )}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={clsx('text-xs font-bold', isToday ? 'text-brand-600' : cell.inMonth ? 'text-surface-700 dark:text-surface-200' : 'text-surface-300')}>
+                        {cell.date.getDate()}
                       </span>
-                    </td>
-                  </tr>
+                      {dayShifts.length > 0 && cell.inMonth && (
+                        <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-[9px] font-semibold text-brand-700">
+                          {dayShifts.length}
+                        </span>
+                      )}
+                    </div>
+                    {cell.inMonth && dayShifts.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        <div className="flex gap-0.5">
+                          {Array.from(new Set(dayShifts.map((s) => s.type))).slice(0, 4).map((t) => (
+                            <span key={t} className={clsx('h-1 flex-1 rounded-full', SHIFT_CFG[t].bg.replace('bg-', 'bg-').replace('-50', '-400'))} />
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-surface-500">{hrs.toFixed(0)}h · {new Set(dayShifts.map((s) => s.employeeId)).size} pers.</p>
+                      </div>
+                    )}
+                  </button>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* Add/Edit Modal */}
       <Modal
