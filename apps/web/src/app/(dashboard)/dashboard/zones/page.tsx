@@ -11,6 +11,8 @@ import {
   Target,
   Percent,
   Pencil,
+  Search,
+  Loader2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
@@ -123,6 +125,33 @@ export default function ZonesPage() {
   const [zones, setZones] = useState<Zone[]>(INITIAL_ZONES);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editZone, setEditZone] = useState<Zone | null>(null);
+  const [address, setAddress] = useState('42 rue de la Roquette, 75011 Paris');
+  const [center, setCenter] = useState<[number, number]>([48.8566, 2.3522]);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState('');
+
+  async function handleGeocode() {
+    if (!address.trim()) return;
+    setGeocoding(true);
+    setGeocodeError('');
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'fr' } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        setCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+      } else {
+        setGeocodeError('Adresse introuvable');
+      }
+    } catch {
+      setGeocodeError('Erreur réseau');
+    } finally {
+      setGeocoding(false);
+    }
+  }
+
   const [addForm, setAddForm] = useState<AddZoneForm>({
     name: '',
     radius: 5,
@@ -184,6 +213,43 @@ export default function ZonesPage() {
         </Button>
       </div>
 
+      {/* ── Address geocoder ── */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1">
+          <label className="mb-1.5 block text-xs font-medium text-surface-500">
+            Adresse de la boutique (centre de la carte)
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400 pointer-events-none" />
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => { setAddress(e.target.value); setGeocodeError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleGeocode()}
+                placeholder="42 rue de la Roquette, 75011 Paris"
+                className="w-full rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 pl-9 pr-3 py-2.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition"
+              />
+            </div>
+            <button
+              onClick={handleGeocode}
+              disabled={geocoding}
+              className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 transition-colors"
+            >
+              {geocoding ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              Localiser
+            </button>
+          </div>
+          {geocodeError && (
+            <p className="mt-1 text-xs text-red-500">{geocodeError}</p>
+          )}
+        </div>
+      </div>
+
       {/* ── Stats ── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
@@ -227,7 +293,7 @@ export default function ZonesPage() {
             </h2>
           </div>
           <div className="flex-1 p-3" style={{ minHeight: 340 }}>
-            <ZonesMap zones={sortedZones} />
+            <ZonesMap key={center.join(',')} zones={sortedZones} center={center} />
           </div>
         </div>
 
