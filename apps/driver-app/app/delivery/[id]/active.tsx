@@ -58,15 +58,19 @@ export default function ActiveDeliveryScreen() {
     Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(address)}`);
 
   const emitStatusUpdate = (status: string) => {
-    const socket = getSocket();
-    if (!socket.connected) socket.connect();
-    socket.emit('delivery:status_update', {
-      orderId: activeDelivery.orderId,
-      orderNumber: activeDelivery.orderNumber,
-      restaurantId: activeDelivery.restaurantId,
-      driverId,
-      status,
-    });
+    try {
+      const socket = getSocket();
+      if (!socket.connected) socket.connect();
+      socket.emit('delivery:status_update', {
+        orderId: activeDelivery.orderId,
+        orderNumber: activeDelivery.orderNumber,
+        restaurantId: activeDelivery.restaurantId,
+        driverId,
+        status,
+      });
+    } catch {
+      Alert.alert('Erreur', 'Impossible de mettre à jour le statut. Réessayez.');
+    }
   };
 
   const handleNextStep = () => {

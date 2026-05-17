@@ -73,6 +73,10 @@ export default function DriverLoginScreen() {
           </TouchableOpacity>
 
           <Text style={styles.hint}>Compte livreur fourni par le restaurant</Text>
+
+          <TouchableOpacity onPress={() => router.push('/(auth)/register')} activeOpacity={0.7} style={styles.registerLinkWrapper}>
+            <Text style={styles.registerLink}>Pas encore livreur ? <Text style={styles.registerLinkBold}>S'inscrire</Text></Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -101,4 +105,7 @@ const styles = StyleSheet.create({
   },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   hint: { marginTop: 20, fontSize: 12, color: Colors.surface[400], textAlign: 'center' },
+  registerLinkWrapper: { marginTop: 14 },
+  registerLink:        { fontSize: 13, color: Colors.surface[400], textAlign: 'center' },
+  registerLinkBold:    { color: Colors.brand[500], fontWeight: '700' },
 });

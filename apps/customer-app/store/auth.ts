@@ -21,6 +21,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   logout: () => void;
+  refreshAuth: () => Promise<void>;
   loadStoredAuth: () => Promise<void>;
 }
 
@@ -119,6 +120,35 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 
+  refreshAuth: async () => {
+    const { refreshToken, logout } = useAuthStore.getState();
+    if (!refreshToken) {
+      logout();
+      return;
+    }
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (!response.ok) {
+        logout();
+        return;
+      }
+      const data = (await response.json()) as { accessToken: string; refreshToken: string; user: User };
+      await persistAuth(data.accessToken, data.refreshToken, data.user);
+      set({
+        user: data.user,
+        token: data.accessToken,
+        refreshToken: data.refreshToken,
+        isAuthenticated: true,
+      });
+    } catch {
+      logout();
+    }
+  },
+
   loadStoredAuth: async () => {
     set({ isLoading: true });
     try {
@@ -129,7 +159,21 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (token && refreshToken && userRaw) {
         const user = JSON.parse(userRaw) as User;
+        // Restore state optimistically so the app is usable immediately
         set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
+
+        // Validate token against server
+        try {
+          const res = await fetch(`${API_URL}/api/v1/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!res.ok) {
+            // Token invalid — attempt refresh before forcing logout
+            await useAuthStore.getState().refreshAuth();
+          }
+        } catch {
+          // Network unavailable — keep stored session, app will work offline
+        }
       } else {
         set({ isLoading: false });
       }

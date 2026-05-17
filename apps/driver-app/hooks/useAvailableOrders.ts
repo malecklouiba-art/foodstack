@@ -26,6 +26,8 @@ export function useAvailableOrders(driverId: string) {
   const isOnline = useDriverStore((s) => s.isOnline);
 
   const connect = useCallback(() => {
+    if (!driverId) return;
+
     const socket = getSocket();
     if (!socket.connected) socket.connect();
 

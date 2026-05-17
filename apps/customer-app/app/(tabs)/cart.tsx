@@ -6,10 +6,10 @@ import { router } from 'expo-router';
 import { useStripePayment } from '@/hooks/useStripePayment';
 
 export default function CartScreen() {
-  const { items, increment, decrement, remove, clear, total } = useCartStore();
+  const { items, increment, decrement, remove, clear, total, deliveryFee: storedDeliveryFee } = useCartStore();
   const { pay, loading: payLoading } = useStripePayment();
   const subtotal = total();
-  const deliveryFee = items.length > 0 ? 2.90 : 0;
+  const deliveryFee = items.length > 0 ? storedDeliveryFee : 0;
   const grandTotal = subtotal + deliveryFee;
 
   const handleCheckout = async () => {

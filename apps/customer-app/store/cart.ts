@@ -27,6 +27,8 @@ interface Order {
 interface CartStore {
   items: CartItem[];
   restaurantId: string | null;
+  deliveryFee: number;
+  setDeliveryFee: (fee: number) => void;
   add: (item: Omit<CartItem, 'quantity'>, restaurantId: string) => void;
   remove: (id: string) => void;
   increment: (id: string) => void;
@@ -49,6 +51,9 @@ async function getToken(): Promise<string | null> {
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
   restaurantId: null,
+  deliveryFee: 2.90,
+
+  setDeliveryFee: (fee) => set({ deliveryFee: fee }),
 
   add: (item, restaurantId) => {
     set((state) => {
@@ -78,10 +83,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
         .filter((i) => i.quantity > 0),
     })),
 
-  clear: () => set({ items: [], restaurantId: null }),
+  clear: () => set({ items: [], restaurantId: null, deliveryFee: 2.90 }),
 
   // Alias for clear — explicit name for checkout flows
-  clearCart: () => set({ items: [], restaurantId: null }),
+  clearCart: () => set({ items: [], restaurantId: null, deliveryFee: 2.90 }),
 
   total: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
 
@@ -127,7 +132,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
     const order = (await response.json()) as Order;
 
     // Clear cart after successful checkout
-    set({ items: [], restaurantId: null });
+    set({ items: [], restaurantId: null, deliveryFee: 2.90 });
 
     return order;
   },

@@ -138,13 +138,26 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         driver: Driver;
       };
 
-      // Verify the stored token is still valid
-      const response = await fetch(`${API_URL}/api/v1/auth/me`, {
-        headers: { Authorization: `Bearer ${parsed.token}` },
-      });
+      let meResponse: Response;
+      try {
+        // Verify the stored token is still valid
+        meResponse = await fetch(`${API_URL}/api/v1/auth/me`, {
+          headers: { Authorization: `Bearer ${parsed.token}` },
+        });
+      } catch {
+        // Network unavailable — keep stored token and work offline
+        set({
+          token: parsed.token,
+          refreshToken: parsed.refreshToken,
+          driver: parsed.driver,
+          isAuthenticated: true,
+          isLoading: false,
+        });
+        return;
+      }
 
-      if (response.ok) {
-        const user = (await response.json()) as Driver;
+      if (meResponse.ok) {
+        const user = (await meResponse.json()) as Driver;
         set({
           token: parsed.token,
           refreshToken: parsed.refreshToken,

@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useStripe } from '@stripe/stripe-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 
@@ -11,9 +12,13 @@ export function useStripePayment() {
     setLoading(true);
     try {
       // 1. Fetch payment intent from API
-      const res = await fetch(`${API_URL}/payments/intent`, {
+      const token = await AsyncStorage.getItem('auth_token');
+      const res = await fetch(`${API_URL}/api/v1/payments/intent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ amount: amountCents, currency: 'eur', orderId }),
       });
       if (!res.ok) throw new Error('Erreur création paiement');
