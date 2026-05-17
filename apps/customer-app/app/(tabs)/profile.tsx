@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Alert, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Alert, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -44,6 +44,7 @@ export default function ProfileScreen() {
   const [points, setPoints] = useState(0);
   const [userName, setUserName] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   const loadProfile = useCallback(async () => {
     try {
@@ -80,6 +81,20 @@ export default function ProfileScreen() {
     loadProfile();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const currentTier = getTier(points);
+  const nextTier = TIERS[TIERS.indexOf(currentTier) + 1];
+  const tierProgress = nextTier
+    ? (points - currentTier.min) / (nextTier.min - currentTier.min)
+    : 1;
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: tierProgress,
+      duration: 800,
+      useNativeDriver: false,
+    }).start();
+  }, [tierProgress]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSignOut = () => {
     Alert.alert('Déconnexion', 'Vous serez déconnecté.', [
       { text: 'Annuler', style: 'cancel' },
@@ -93,12 +108,6 @@ export default function ProfileScreen() {
       },
     ]);
   };
-
-  const currentTier = getTier(points);
-  const nextTier = TIERS[TIERS.indexOf(currentTier) + 1];
-  const tierProgress = nextTier
-    ? (points - currentTier.min) / (nextTier.min - currentTier.min)
-    : 1;
 
   if (section === 'addresses') {
     return (
@@ -191,7 +200,18 @@ export default function ProfileScreen() {
           {nextTier && (
             <>
               <View style={styles.progressBg}>
-                <View style={[styles.progressFill, { width: `${tierProgress * 100}%` }]} />
+                <Animated.View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: progressAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0%', '100%'],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ]}
+                />
               </View>
               <Text style={styles.progressLabel}>
                 {nextTier.min - points} pts avant {nextTier.emoji} {nextTier.name}

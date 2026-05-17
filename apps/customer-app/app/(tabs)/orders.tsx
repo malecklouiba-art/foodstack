@@ -128,7 +128,6 @@ export default function OrdersScreen() {
   const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
   const [ratingOrder, setRatingOrder] = useState<Order | null>(null);
   const [selectedRating, setSelectedRating] = useState(0);
-  const [ratingComment, setRatingComment] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
 
   const loadOrders = useCallback(async (isRefresh = false) => {
@@ -165,13 +164,11 @@ export default function OrdersScreen() {
   const openRatingModal = (order: Order) => {
     setRatingOrder(order);
     setSelectedRating(0);
-    setRatingComment('');
   };
 
   const closeRatingModal = () => {
     setRatingOrder(null);
     setSelectedRating(0);
-    setRatingComment('');
   };
 
   const handleSendRating = async () => {
@@ -181,7 +178,6 @@ export default function OrdersScreen() {
       // Try POST /api/v1/orders/:id/review — fallback to local state on any error
       await api.post(`/api/v1/orders/${ratingOrder.id}/review`, {
         rating: selectedRating,
-        comment: ratingComment.trim() || undefined,
         orderId: ratingOrder.id,
       }).catch(() => {
         // Endpoint may not exist — silently swallow and mark locally
@@ -286,9 +282,81 @@ export default function OrdersScreen() {
               <Text style={styles.orderDate}>{order.createdAt}</Text>
               <Text style={styles.orderTotal}>{(order.total ?? 0).toFixed(2)}€</Text>
             </View>
+            {order.status === 'delivered' && !ratedOrders.has(order.id) && (
+              <TouchableOpacity
+                style={styles.rateBtn}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  openRatingModal(order);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.rateBtnText}>⭐ Évaluer</Text>
+              </TouchableOpacity>
+            )}
+            {order.status === 'delivered' && ratedOrders.has(order.id) && (
+              <Text style={styles.ratedLabel}>✅ Évaluation envoyée</Text>
+            )}
           </TouchableOpacity>
         )}
       />
+
+      {/* Rating Modal */}
+      <Modal
+        visible={!!ratingOrder}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeRatingModal}
+      >
+        {ratingOrder && (
+          <SafeAreaView style={styles.modalSafe} edges={['top']}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Évaluer la commande</Text>
+              <TouchableOpacity onPress={closeRatingModal}>
+                <Text style={styles.modalClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.ratingModalContent}>
+              <Text style={styles.ratingOrderNum}>{ratingOrder.number}</Text>
+              <Text style={styles.ratingSubtitle}>Comment était votre commande ?</Text>
+
+              {/* Star selector */}
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <TouchableOpacity
+                    key={star}
+                    onPress={() => setSelectedRating(star)}
+                    activeOpacity={0.7}
+                    style={styles.starBtn}
+                  >
+                    <Text style={[styles.starEmoji, selectedRating >= star && styles.starActive]}>
+                      ★
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {selectedRating > 0 && (
+                <Text style={styles.ratingHint}>
+                  {['', 'Très mauvais', 'Mauvais', 'Correct', 'Bien', 'Excellent !'][selectedRating]}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={[styles.sendRatingBtn, (selectedRating === 0 || submittingRating) && styles.sendRatingBtnDisabled]}
+                onPress={handleSendRating}
+                disabled={selectedRating === 0 || submittingRating}
+                activeOpacity={0.85}
+              >
+                {submittingRating ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.sendRatingBtnText}>Envoyer</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        )}
+      </Modal>
 
       {/* Order Detail Modal */}
       <Modal
@@ -413,4 +481,28 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center',
   },
   reorderBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  rateBtn: {
+    marginTop: 10, backgroundColor: Colors.brand[50], borderRadius: 10,
+    paddingVertical: 8, alignItems: 'center',
+    borderWidth: 1, borderColor: Colors.brand[300],
+  },
+  rateBtnText: { color: Colors.brand[600], fontWeight: '700', fontSize: 13 },
+  ratedLabel:  { marginTop: 10, fontSize: 13, color: Colors.surface[400], fontWeight: '500', textAlign: 'center' },
+
+  ratingModalContent: { flex: 1, padding: 24, alignItems: 'center' },
+  ratingOrderNum:     { fontSize: 16, fontWeight: '700', color: Colors.surface[500], marginBottom: 6 },
+  ratingSubtitle:     { fontSize: 20, fontWeight: '800', color: Colors.surface[900], marginBottom: 28, textAlign: 'center' },
+  starsRow:           { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  starBtn:            { padding: 6 },
+  starEmoji:          { fontSize: 40, color: Colors.surface[200] },
+  starActive:         { color: '#f59e0b' },
+  ratingHint:         { fontSize: 15, color: Colors.surface[500], fontWeight: '600', marginBottom: 32 },
+  sendRatingBtn: {
+    width: '100%', backgroundColor: Colors.brand[500], borderRadius: 16,
+    paddingVertical: 15, alignItems: 'center',
+    shadowColor: Colors.brand[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4,
+  },
+  sendRatingBtnDisabled: { opacity: 0.5 },
+  sendRatingBtnText:     { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
