@@ -82,22 +82,75 @@ const INIT_NOTIFS: NotifSetting[] = [
 
 // ── Sub-tab components ─────────────────────────────────────────────────────────
 
-function GeneralTab() {
+function GeneralTab({ restaurantId, accessToken }: TabProps) {
   const [form, setForm] = useState({
-    name:    'FoodStack Bastille',
-    desc:    'Restaurant burgers & pizzas artisanaux, au cœur du 11ème arrondissement.',
-    email:   'contact@foodstack-bastille.fr',
-    phone:   '01 43 55 78 92',
-    address: '42 rue de la Roquette, 75011 Paris',
+    name:    '',
+    desc:    '',
+    email:   '',
+    phone:   '',
+    address: '',
   });
-  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  useEffect(() => {
+    if (!restaurantId || !accessToken) { setLoading(false); return; }
+    fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<RestaurantData>;
+      })
+      .then((data) => {
+        setForm({
+          name:    data.name    ?? '',
+          desc:    data.description ?? '',
+          email:   data.email   ?? '',
+          phone:   data.phone   ?? '',
+          address: data.address ?? '',
+        });
+      })
+      .catch(() => toast.error('Impossible de charger les informations du restaurant'))
+      .finally(() => setLoading(false));
+  }, [restaurantId, accessToken]);
+
+  const setField = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  async function handleSave() {
+    if (!restaurantId || !accessToken) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name:        form.name,
+          description: form.desc,
+          email:       form.email,
+          phone:       form.phone,
+          address:     form.address,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success('Informations enregistrées !');
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <RefreshCw className="h-6 w-6 animate-spin text-brand-400" />
+      </div>
+    );
   }
 
   return (
@@ -107,7 +160,7 @@ function GeneralTab() {
           <label className="mb-1.5 block text-sm font-medium text-surface-700">Nom du restaurant</label>
           <input
             value={form.name}
-            onChange={set('name')}
+            onChange={setField('name')}
             className="w-full rounded-xl border border-surface-200 bg-white px-3.5 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
         </div>
@@ -116,7 +169,7 @@ function GeneralTab() {
           <input
             type="email"
             value={form.email}
-            onChange={set('email')}
+            onChange={setField('email')}
             className="w-full rounded-xl border border-surface-200 bg-white px-3.5 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
         </div>
@@ -125,7 +178,7 @@ function GeneralTab() {
           <input
             type="tel"
             value={form.phone}
-            onChange={set('phone')}
+            onChange={setField('phone')}
             className="w-full rounded-xl border border-surface-200 bg-white px-3.5 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
         </div>
@@ -133,7 +186,7 @@ function GeneralTab() {
           <label className="mb-1.5 block text-sm font-medium text-surface-700">Adresse</label>
           <input
             value={form.address}
-            onChange={set('address')}
+            onChange={setField('address')}
             className="w-full rounded-xl border border-surface-200 bg-white px-3.5 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
           />
         </div>
@@ -142,7 +195,7 @@ function GeneralTab() {
         <label className="mb-1.5 block text-sm font-medium text-surface-700">Description</label>
         <textarea
           value={form.desc}
-          onChange={set('desc')}
+          onChange={setField('desc')}
           rows={3}
           className="w-full rounded-xl border border-surface-200 bg-white px-3.5 py-2.5 text-sm text-surface-900 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 resize-none"
         />
@@ -166,18 +219,39 @@ function GeneralTab() {
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 active:scale-95"
+          disabled={saving}
+          className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 active:scale-95 disabled:opacity-60"
         >
-          {saved ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
-          {saved ? 'Enregistré !' : 'Enregistrer'}
+          {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </div>
     </div>
   );
 }
 
-function HorairesTab() {
+function HorairesTab({ restaurantId, accessToken }: TabProps) {
   const [schedule, setSchedule] = useState(INIT_SCHEDULE);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!restaurantId || !accessToken) { setLoading(false); return; }
+    fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<RestaurantData>;
+      })
+      .then((data) => {
+        if (data.openingHours && Object.keys(data.openingHours).length > 0) {
+          setSchedule(data.openingHours as Record<string, DaySchedule>);
+        }
+      })
+      .catch(() => toast.error('Impossible de charger les horaires'))
+      .finally(() => setLoading(false));
+  }, [restaurantId, accessToken]);
 
   const setDay = (day: string, field: keyof DaySchedule, value: boolean | string) =>
     setSchedule((prev) => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
@@ -186,6 +260,35 @@ function HorairesTab() {
     const ref = schedule['Lun'];
     setSchedule((prev) =>
       Object.fromEntries(Object.keys(prev).map((d) => [d, { ...ref }]))
+    );
+  }
+
+  async function handleSave() {
+    if (!restaurantId || !accessToken) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ openingHours: schedule }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast.success('Horaires enregistrés !');
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <RefreshCw className="h-6 w-6 animate-spin text-brand-400" />
+      </div>
     );
   }
 
@@ -242,9 +345,13 @@ function HorairesTab() {
         >
           Appliquer à tous les jours
         </button>
-        <button className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600">
-          <Save className="h-4 w-4" />
-          Enregistrer
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 disabled:opacity-60"
+        >
+          {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </div>
     </div>
@@ -905,12 +1012,15 @@ function PeripheriquesTab() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const { accessToken, user } = useAuthStore();
+  const restaurantId = user?.restaurantIds?.[0] ?? '';
+
   const [activeTab, setActiveTab] = useState<TabId>('general');
 
   function renderContent() {
     switch (activeTab) {
-      case 'general':       return <GeneralTab />;
-      case 'horaires':      return <HorairesTab />;
+      case 'general':       return <GeneralTab restaurantId={restaurantId} accessToken={accessToken ?? ''} />;
+      case 'horaires':      return <HorairesTab restaurantId={restaurantId} accessToken={accessToken ?? ''} />;
       case 'notifications': return <NotificationsTab />;
       case 'livraison':     return <LivraisonTab />;
       case 'paiements':     return <PaiementsTab />;
