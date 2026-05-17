@@ -5,10 +5,9 @@ import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useDriverStore, DeliveryStatus } from '@/store/driver';
+import { useAuthStore } from '@/store/auth';
 import { useLocationTracking, DriverCoords } from '@/hooks/useLocationTracking';
 import { getSocket } from '@/lib/socket';
-
-const DRIVER_ID = 'driver-001';
 
 const STEPS: { status: DeliveryStatus; label: string; emoji: string; action: string }[] = [
   { status: 'heading_to_restaurant', label: 'En route vers le restaurant', emoji: '🛵', action: 'Je suis arrivé au restaurant' },
@@ -25,6 +24,7 @@ const NEXT_STATUS: Partial<Record<DeliveryStatus, DeliveryStatus>> = {
 
 export default function ActiveDeliveryScreen() {
   const { activeDelivery, updateDeliveryStatus, completeDelivery } = useDriverStore();
+  const driverId = useAuthStore((s) => s.driver?.id ?? '');
   const mapRef = useRef<MapView>(null);
   const [driverCoords, setDriverCoords] = useState<DriverCoords | null>(null);
 
@@ -39,7 +39,7 @@ export default function ActiveDeliveryScreen() {
   }, []);
 
   useLocationTracking({
-    driverId: DRIVER_ID,
+    driverId,
     orderId: activeDelivery?.orderId ?? null,
     active: isActive,
     onLocation: handleLocation,
@@ -63,8 +63,8 @@ export default function ActiveDeliveryScreen() {
     socket.emit('delivery:status_update', {
       orderId: activeDelivery.orderId,
       orderNumber: activeDelivery.orderNumber,
-      restaurantId: 'r1',
-      driverId: DRIVER_ID,
+      restaurantId: activeDelivery.restaurantId,
+      driverId,
       status,
     });
   };

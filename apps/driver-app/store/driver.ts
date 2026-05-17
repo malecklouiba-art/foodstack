@@ -5,6 +5,7 @@ export type DeliveryStatus = 'idle' | 'heading_to_restaurant' | 'picked_up' | 'd
 export interface ActiveDelivery {
   orderId: string;
   orderNumber: string;
+  restaurantId: string;
   restaurantName: string;
   restaurantAddress: string;
   restaurantLat: number;
@@ -30,14 +31,15 @@ interface DriverStore {
   acceptDelivery: (delivery: Omit<ActiveDelivery, 'status'>) => void;
   updateDeliveryStatus: (status: DeliveryStatus) => void;
   completeDelivery: () => void;
+  setDriverStats: (stats: { rating?: number; todayEarnings?: number; todayDeliveries?: number }) => void;
 }
 
 export const useDriverStore = create<DriverStore>((set) => ({
   isOnline: false,
   activeDelivery: null,
-  todayEarnings: 34.50,
-  todayDeliveries: 4,
-  rating: 4.9,
+  todayEarnings: 0,
+  todayDeliveries: 0,
+  rating: 0,
 
   setOnline: (v) => set({ isOnline: v }),
 
@@ -54,5 +56,12 @@ export const useDriverStore = create<DriverStore>((set) => ({
       activeDelivery: null,
       todayEarnings: s.todayEarnings + (s.activeDelivery?.earnings ?? 0),
       todayDeliveries: s.todayDeliveries + 1,
+    })),
+
+  setDriverStats: (stats) =>
+    set((s) => ({
+      rating: stats.rating ?? s.rating,
+      todayEarnings: stats.todayEarnings ?? s.todayEarnings,
+      todayDeliveries: stats.todayDeliveries ?? s.todayDeliveries,
     })),
 }));

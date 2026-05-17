@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   primary:   { backgroundColor: Colors.brand[500] },
   secondary: { backgroundColor: Colors.surface[900] },
   ghost:     { backgroundColor: 'transparent', borderWidth: 1, borderColor: Colors.surface[200] },
-  danger:    { backgroundColor: Colors.danger },
+  danger:    { backgroundColor: '#ef4444' },
 
   sm: { height: 36, paddingHorizontal: 14 },
   md: { height: 48, paddingHorizontal: 20 },

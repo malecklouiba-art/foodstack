@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import { useAuthStore } from '@/store/auth';
 
 export default function RegisterScreen() {
   const [firstName, setFirstName] = useState('');
@@ -10,7 +11,9 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { register, isLoading } = useAuthStore();
 
   const passwordStrength = () => {
     let score = 0;
@@ -24,20 +27,22 @@ export default function RegisterScreen() {
   const strengthLabels = ['Faible', 'Moyen', 'Fort'];
   const strength = passwordStrength();
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password) {
-      Alert.alert('Erreur', 'Tous les champs sont requis.');
+      setError('Tous les champs sont requis.');
       return;
     }
     if (password.length < 8) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 8 caractères.');
+      setError('Le mot de passe doit contenir au moins 8 caractères.');
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+    try {
+      await register(`${firstName} ${lastName}`, email, password);
       router.replace('/(tabs)');
-    }, 1400);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    }
   };
 
   return (
@@ -122,13 +127,15 @@ export default function RegisterScreen() {
             </View>
           </View>
 
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
           <TouchableOpacity
-            style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
+            style={[styles.registerBtn, isLoading && styles.registerBtnDisabled]}
             onPress={handleRegister}
             activeOpacity={0.88}
-            disabled={loading}
+            disabled={isLoading}
           >
-            <Text style={styles.registerBtnText}>{loading ? 'Création…' : 'Créer mon compte'}</Text>
+            <Text style={styles.registerBtnText}>{isLoading ? 'Création…' : 'Créer mon compte'}</Text>
           </TouchableOpacity>
 
           <View style={styles.loginRow}>
@@ -181,6 +188,8 @@ const styles = StyleSheet.create({
   strengthRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   strengthBar: { flex: 1, height: 4, borderRadius: 2 },
   strengthLabel: { fontSize: 12, fontWeight: '600', minWidth: 36, textAlign: 'right' },
+
+  errorText: { color: '#ef4444', fontSize: 13, fontWeight: '500', marginBottom: 8, textAlign: 'center' },
 
   registerBtn: {
     backgroundColor: Colors.brand[500], borderRadius: 16,

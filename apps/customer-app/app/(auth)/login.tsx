@@ -1,26 +1,31 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import { useAuthStore } from '@/store/auth';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { login, isLoading } = useAuthStore();
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+      setError('Veuillez remplir tous les champs.');
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    setError(null);
+    try {
+      await login(email, password);
       router.replace('/(tabs)');
-    }, 1200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    }
   };
 
   return (
@@ -80,13 +85,15 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
           <TouchableOpacity
-            style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+            style={[styles.loginBtn, isLoading && styles.loginBtnDisabled]}
             onPress={handleLogin}
             activeOpacity={0.88}
-            disabled={loading}
+            disabled={isLoading}
           >
-            <Text style={styles.loginBtnText}>{loading ? 'Connexion…' : 'Se connecter'}</Text>
+            <Text style={styles.loginBtnText}>{isLoading ? 'Connexion…' : 'Se connecter'}</Text>
           </TouchableOpacity>
 
           <View style={styles.dividerRow}>
@@ -140,6 +147,8 @@ const styles = StyleSheet.create({
   forgotLink:{ alignSelf: 'flex-end' },
   forgotText:{ fontSize: 13, color: Colors.brand[500], fontWeight: '600' },
 
+  errorText: { color: '#ef4444', fontSize: 13, fontWeight: '500', width: '100%', marginBottom: 8, textAlign: 'center' },
+
   loginBtn: {
     width: '100%', backgroundColor: Colors.brand[500], borderRadius: 16,
     paddingVertical: 15, alignItems: 'center',
@@ -158,7 +167,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.surface[200],
   },
   socialIcon: { fontSize: 18, fontWeight: '800', width: 24, textAlign: 'center' },
-  socialText: { fontSize: 14, fontWeight: '600', color: Colors.surface[800] },
+  socialText: { fontSize: 14, fontWeight: '600', color: Colors.surface[700] },
 
   registerRow:  { flexDirection: 'row', marginTop: 10 },
   registerText: { fontSize: 14, color: Colors.surface[400] },

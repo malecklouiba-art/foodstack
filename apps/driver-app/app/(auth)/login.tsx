@@ -1,22 +1,26 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import { useAuthStore } from '@/store/auth';
 
 export default function DriverLoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { login, isLoading } = useAuthStore();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await login(email, password);
       router.replace('/(tabs)');
-    }, 1000);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Une erreur est survenue. Vérifiez votre connexion.';
+      Alert.alert('Erreur de connexion', message);
+    }
   };
 
   return (
@@ -60,12 +64,12 @@ export default function DriverLoginScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.loginBtn, loading && { opacity: 0.7 }]}
+            style={[styles.loginBtn, isLoading && { opacity: 0.7 }]}
             onPress={handleLogin}
             activeOpacity={0.88}
-            disabled={loading}
+            disabled={isLoading}
           >
-            <Text style={styles.loginBtnText}>{loading ? 'Connexion…' : 'Se connecter'}</Text>
+            <Text style={styles.loginBtnText}>{isLoading ? 'Connexion…' : 'Se connecter'}</Text>
           </TouchableOpacity>
 
           <Text style={styles.hint}>Compte livreur fourni par le restaurant</Text>

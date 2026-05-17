@@ -4,13 +4,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useDriverStore } from '@/store/driver';
+import { useAuthStore } from '@/store/auth';
 import { useAvailableOrders } from '@/hooks/useAvailableOrders';
-
-const DRIVER_ID = 'driver-001';
 
 export default function HomeScreen() {
   const { isOnline, setOnline, activeDelivery, todayEarnings, todayDeliveries, rating } = useDriverStore();
-  const { orders: liveOrders, connected, removeOrder } = useAvailableOrders(DRIVER_ID);
+  const driver = useAuthStore((s) => s.driver);
+  const driverId = driver?.id ?? '';
+  const { orders: liveOrders, connected, removeOrder } = useAvailableOrders(driverId);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -19,7 +20,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Bonjour 👋</Text>
-            <Text style={styles.name}>Mohammed Alami</Text>
+            <Text style={styles.name}>{driver?.name ?? ''}</Text>
           </View>
           <View style={styles.onlineRow}>
             <Text style={[styles.onlineLabel, isOnline && styles.onlineLabelActive]}>
@@ -134,6 +135,7 @@ export default function HomeScreen() {
                     useDriverStore.getState().acceptDelivery({
                       orderId: order.orderId,
                       orderNumber: order.orderNumber,
+                      restaurantId: order.restaurantId ?? '',
                       restaurantName: order.restaurantName ?? 'Restaurant',
                       restaurantAddress: order.restaurantAddress ?? '',
                       restaurantLat: order.restaurantLat ?? 48.8566,
