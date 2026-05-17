@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
@@ -25,6 +26,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
     private readonly notifications: NotificationsService,
+    private readonly audit: AuditService,
   ) {}
 
   async createOrder(dto: CreateOrderDto) {
@@ -83,6 +85,14 @@ export class OrdersService {
           this.logger.error(`Failed to send order confirmation email for ${order.orderNumber}`, err);
         });
     }
+
+    // Audit log — fire-and-forget, never block order creation
+    this.audit.log({
+      userId: order.customerId,
+      action: 'order.created',
+      entityType: 'Order',
+      entityId: order.id,
+    }).catch(() => { /* audit failures must never surface */ });
 
     // Strip the customer relation before returning to avoid leaking data
     const { customer: _customer, ...orderWithoutCustomer } = order as any;
@@ -175,13 +185,22 @@ export class OrdersService {
     if (order.status === 'delivered') {
       throw new BadRequestException('Impossible d\'annuler une commande déjà livrée');
     }
-    return this.prisma.order.update({
+    const cancelled = await this.prisma.order.update({
       where: { id },
       data: {
         status: 'cancelled',
         cancelReason: reason,
       },
     });
+
+    // Audit log — fire-and-forget
+    this.audit.log({
+      action: 'order.cancelled',
+      entityType: 'Order',
+      entityId: id,
+    }).catch(() => { /* audit failures must never surface */ });
+
+    return cancelled;
   }
 
   async assignDriver(orderId: string, driverId: string) {

@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { AuditService } from '../audit/audit.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async findAll() {
     // TODO: Add pagination, filtering by role, sorting
@@ -73,6 +77,15 @@ export class UsersService {
   async remove(id: string) {
     await this.findById(id);
     // TODO: Soft delete instead of hard delete
-    return this.prisma.user.delete({ where: { id } });
+    const deleted = await this.prisma.user.delete({ where: { id } });
+
+    // Audit log — fire-and-forget
+    this.audit.log({
+      action: 'user.deleted',
+      entityType: 'User',
+      entityId: id,
+    }).catch(() => { /* audit failures must never surface */ });
+
+    return deleted;
   }
 }

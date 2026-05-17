@@ -1,9 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class SuperAdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditService: AuditService,
+  ) {}
 
   async getPlatformStats() {
     const now = new Date();
@@ -156,17 +160,35 @@ export class SuperAdminService {
   }
 
   async suspendRestaurant(id: string) {
-    return this.prisma.restaurant.update({
+    const restaurant = await this.prisma.restaurant.update({
       where: { id },
       data: { isActive: false },
     });
+
+    // Audit log — fire-and-forget
+    this.auditService.log({
+      action: 'restaurant.suspended',
+      entityType: 'Restaurant',
+      entityId: id,
+    }).catch(() => { /* audit failures must never surface */ });
+
+    return restaurant;
   }
 
   async activateRestaurant(id: string) {
-    return this.prisma.restaurant.update({
+    const restaurant = await this.prisma.restaurant.update({
       where: { id },
       data: { isActive: true },
     });
+
+    // Audit log — fire-and-forget
+    this.auditService.log({
+      action: 'restaurant.activated',
+      entityType: 'Restaurant',
+      entityId: id,
+    }).catch(() => { /* audit failures must never surface */ });
+
+    return restaurant;
   }
 
   async getUsers(page = 1, limit = 20) {
@@ -198,30 +220,11 @@ export class SuperAdminService {
     limit = 50,
     filters?: { userId?: string; action?: string },
   ) {
-    const skip = (page - 1) * limit;
-
-    const where: {
-      userId?: string;
-      action?: { contains: string; mode: 'insensitive' };
-    } = {};
-
-    if (filters?.userId) {
-      where.userId = filters.userId;
-    }
-    if (filters?.action) {
-      where.action = { contains: filters.action, mode: 'insensitive' };
-    }
-
-    const [data, total] = await Promise.all([
-      this.prisma.auditLog.findMany({
-        skip,
-        take: limit,
-        where,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.auditLog.count({ where }),
-    ]);
-
-    return { data, total, page, limit };
+    return this.auditService.query({
+      userId: filters?.userId,
+      action: filters?.action,
+      page,
+      limit,
+    });
   }
 }

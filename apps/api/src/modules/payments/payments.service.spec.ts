@@ -5,6 +5,7 @@ import { PaymentsService } from './payments.service';
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 
 // ---------------------------------------------------------------------------
 // Stripe mock — must be declared before any import that resolves Stripe
@@ -60,6 +61,10 @@ const mockNotifications = {
   sendOrderStatusUpdate: jest.fn().mockResolvedValue(undefined),
 };
 
+const mockAudit = {
+  log: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('PaymentsService', () => {
   let service: PaymentsService;
 
@@ -71,6 +76,7 @@ describe('PaymentsService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: RealtimeGateway, useValue: mockRealtime },
         { provide: NotificationsService, useValue: mockNotifications },
+        { provide: AuditService, useValue: mockAudit },
       ],
     }).compile();
 

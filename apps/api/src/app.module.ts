@@ -17,12 +17,14 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { CouponsModule } from './modules/coupons/coupons.module';
 import { DriversModule } from './modules/drivers/drivers.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     DatabaseModule,
+    AuditModule,
     RealtimeModule,
     AuthModule,
     UsersModule,

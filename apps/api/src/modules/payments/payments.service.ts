@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class PaymentsService {
     private prisma: PrismaService,
     private realtime: RealtimeGateway,
     private notifications: NotificationsService,
+    private audit: AuditService,
   ) {
     this.stripe = new Stripe(
       this.configService.get<string>('STRIPE_SECRET_KEY') ?? 'sk_test_placeholder',
@@ -57,6 +59,13 @@ export class PaymentsService {
       payment_intent: paymentIntentId,
       ...(amount ? { amount: Math.round(amount * 100) } : {}),
     });
+
+    // Audit log — fire-and-forget
+    this.audit.log({
+      action: 'payment.refunded',
+      entityId: paymentIntentId,
+    }).catch(() => { /* audit failures must never surface */ });
+
     return { refundId: refund.id, status: refund.status };
   }
 
@@ -95,6 +104,14 @@ export class PaymentsService {
           where: { id: orderId },
           data: { paymentStatus: 'paid', status: 'confirmed' },
         });
+
+        // Audit log — fire-and-forget
+        this.audit.log({
+          action: 'payment.processed',
+          entityType: 'Order',
+          entityId: orderId,
+          metadata: { amount: intent.amount },
+        }).catch(() => { /* audit failures must never surface */ });
 
         // Emit socket event to customers tracking this order
         this.realtime.server
@@ -180,6 +197,12 @@ export class PaymentsService {
           where: { id: orderId },
           data: { paymentStatus: 'refunded', status: 'refunded' },
         });
+
+        // Audit log — fire-and-forget
+        this.audit.log({
+          action: 'payment.refunded',
+          entityId: charge.payment_intent as string | undefined,
+        }).catch(() => { /* audit failures must never surface */ });
 
         this.logger.log(`Order ${orderId} refunded via webhook`);
         break;
