@@ -14,10 +14,12 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('orders')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('orders')
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
@@ -35,6 +37,7 @@ export class OrdersController {
   }
 
   @Get('restaurant/:restaurantId')
+  @Roles('super_admin', 'restaurant_owner')
   @ApiOperation({ summary: 'Get all orders for a restaurant' })
   findByRestaurant(
     @Param('restaurantId') restaurantId: string,
@@ -50,6 +53,7 @@ export class OrdersController {
   }
 
   @Patch(':id/status')
+  @Roles('super_admin', 'restaurant_owner', 'staff')
   @ApiOperation({ summary: 'Update order status' })
   updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
     return this.ordersService.updateStatus(id, dto);
@@ -62,6 +66,7 @@ export class OrdersController {
   }
 
   @Patch(':id/assign-driver')
+  @Roles('super_admin', 'restaurant_owner')
   @ApiOperation({ summary: 'Assign a driver to an order' })
   assignDriver(@Param('id') id: string, @Body('driverId') driverId: string) {
     return this.ordersService.assignDriver(id, driverId);

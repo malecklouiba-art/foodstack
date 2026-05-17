@@ -3,6 +3,8 @@ import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../../database/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // ---------------------------------------------------------------------------
 // Stripe mock — must be declared before any import that resolves Stripe
@@ -36,6 +38,7 @@ jest.mock('stripe', () => {
 // ---------------------------------------------------------------------------
 const mockPrisma = {
   order: {
+    findUnique: jest.fn(),
     update: jest.fn(),
   },
 };
@@ -47,6 +50,16 @@ const mockConfigService = {
   get: jest.fn().mockReturnValue('sk_test_placeholder'),
 };
 
+const mockRealtime = {
+  server: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
+  emitOrderStatusUpdated: jest.fn(),
+};
+
+const mockNotifications = {
+  sendOrderConfirmation: jest.fn().mockResolvedValue(undefined),
+  sendOrderStatusUpdate: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('PaymentsService', () => {
   let service: PaymentsService;
 
@@ -56,6 +69,8 @@ describe('PaymentsService', () => {
         PaymentsService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: RealtimeGateway, useValue: mockRealtime },
+        { provide: NotificationsService, useValue: mockNotifications },
       ],
     }).compile();
 
@@ -300,6 +315,7 @@ describe('PaymentsService', () => {
           },
         },
       });
+      mockPrisma.order.findUnique.mockResolvedValue({ id: 'order_pay', paymentStatus: 'pending', status: 'pending', customerId: 'cust_1', total: 29.99, items: [{ name: 'Burger', quantity: 1, price: 29.99 }], customer: { email: 'test@example.com' } });
       mockPrisma.order.update.mockResolvedValue({});
 
       await service.handleWebhook(rawBody, signature);
@@ -317,6 +333,7 @@ describe('PaymentsService', () => {
           object: { metadata: { orderId: 'order_fail' } },
         },
       });
+      mockPrisma.order.findUnique.mockResolvedValue({ id: 'order_fail', paymentStatus: 'pending', customer: { email: 'fail@example.com' } });
       mockPrisma.order.update.mockResolvedValue({});
 
       await service.handleWebhook(rawBody, signature);
@@ -334,6 +351,7 @@ describe('PaymentsService', () => {
           object: { metadata: { orderId: 'order_refund' } },
         },
       });
+      mockPrisma.order.findUnique.mockResolvedValue({ id: 'order_refund', paymentStatus: 'paid' });
       mockPrisma.order.update.mockResolvedValue({});
 
       await service.handleWebhook(rawBody, signature);

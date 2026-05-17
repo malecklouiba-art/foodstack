@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -16,6 +17,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Navbar } from '@/components/layout/Navbar';
+import type { DeliveryMapProps } from '@/components/map/DeliveryMap';
+
+// Leaflet does not support SSR — load only on client
+const DeliveryMap = dynamic<DeliveryMapProps>(
+  () => import('@/components/map/DeliveryMap').then((m) => m.DeliveryMap),
+  { ssr: false }
+);
 
 const ORDER_STEPS = [
   { id: 'confirmed', label: 'Confirmée', icon: CheckCircle2, description: 'Votre commande a été reçue' },
@@ -27,6 +35,11 @@ const ORDER_STEPS = [
 
 const STEP_DURATIONS = [0, 8000, 12000, 18000, 25000];
 
+// Placeholder coordinates — in production these come from the order object
+// fetched via API (order.restaurant.lat/lng and order.deliveryAddress.lat/lng)
+const DEFAULT_RESTAURANT_POS: [number, number] = [48.8566, 2.3522]; // Paris centre
+const DEFAULT_CUSTOMER_POS: [number, number] = [48.8606, 2.3376];
+
 export default function OrderTrackingPage() {
   const params = useParams();
   const orderId = params.id as string;
@@ -34,8 +47,11 @@ export default function OrderTrackingPage() {
   const [eta, setEta] = useState(28);
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(0);
-  const [driverPosition, setDriverPosition] = useState({ x: 20, y: 60 });
 
+  // Real GPS coordinates for the driver, updated via WebSocket 'driver:location_update'
+  const [driverPosition, setDriverPosition] = useState<[number, number] | undefined>(undefined);
+
+  // Simulate order progression
   useEffect(() => {
     const timers: NodeJS.Timeout[] = [];
 
@@ -54,19 +70,49 @@ export default function OrderTrackingPage() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
+  // WebSocket: subscribe to driver location updates
   useEffect(() => {
-    if (currentStep === 3) {
-      const interval = setInterval(() => {
-        setDriverPosition((prev) => ({
-          x: Math.min(80, prev.x + Math.random() * 5),
-          y: Math.max(20, prev.y - Math.random() * 3),
-        }));
-      }, 2000);
-      return () => clearInterval(interval);
+    if (typeof window === 'undefined') return;
+
+    // Only connect when the order is in delivery phase
+    let socket: WebSocket | null = null;
+
+    const connect = () => {
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001';
+      socket = new WebSocket(`${wsUrl}/orders/${orderId}/track`);
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data as string) as {
+            type: string;
+            lat?: number;
+            lng?: number;
+          };
+          if (data.type === 'driver:location_update' && data.lat !== undefined && data.lng !== undefined) {
+            setDriverPosition([data.lat, data.lng]);
+          }
+        } catch {
+          // ignore malformed messages
+        }
+      };
+
+      socket.onerror = () => {
+        // Silently ignore — the map still renders with restaurant/customer positions
+      };
+    };
+
+    // Connect when entering delivery step
+    if (currentStep >= 3) {
+      connect();
     }
-  }, [currentStep]);
+
+    return () => {
+      socket?.close();
+    };
+  }, [orderId, currentStep]);
 
   const isDelivered = currentStep === ORDER_STEPS.length - 1;
+  const currentStatusLabel = ORDER_STEPS[currentStep]?.label ?? '';
 
   return (
     <>
@@ -87,53 +133,18 @@ export default function OrderTrackingPage() {
             )}
           </div>
 
-          {/* Map placeholder */}
-          <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-700 to-slate-900 shadow-glass-lg" style={{ height: '240px' }}>
-            {/* Fake map grid */}
-            <div className="absolute inset-0 opacity-20"
-              style={{
-                backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-                backgroundSize: '30px 30px',
-              }}
+          {/* Real Leaflet map */}
+          <div
+            className="relative mb-6 overflow-hidden rounded-2xl shadow-glass-lg"
+            style={{ height: '240px' }}
+          >
+            <DeliveryMap
+              restaurantPosition={DEFAULT_RESTAURANT_POS}
+              customerPosition={DEFAULT_CUSTOMER_POS}
+              driverPosition={currentStep >= 3 ? driverPosition : undefined}
+              status={currentStatusLabel}
             />
-
-            {/* Route line */}
-            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <path d="M 20 60 Q 50 40 80 20" stroke="rgba(249,115,22,0.6)" strokeWidth="2" fill="none" strokeDasharray="4 2" />
-            </svg>
-
-            {/* Restaurant marker */}
-            <div className="absolute flex flex-col items-center" style={{ left: '20%', top: '60%', transform: 'translate(-50%, -100%)' }}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-900 shadow-lg">
-                <UtensilsCrossed className="h-4 w-4 text-white" />
-              </div>
-              <div className="mt-1 rounded bg-surface-900/80 px-1.5 py-0.5 text-xs text-white">Restaurant</div>
-            </div>
-
-            {/* Driver marker (animated) */}
-            {currentStep >= 3 && (
-              <motion.div
-                animate={{ left: `${driverPosition.x}%`, top: `${driverPosition.y}%` }}
-                transition={{ duration: 2, ease: 'linear' }}
-                className="absolute flex flex-col items-center"
-                style={{ transform: 'translate(-50%, -100%)' }}
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-500 shadow-brand ring-2 ring-white">
-                  <Bike className="h-5 w-5 text-white" />
-                </div>
-                <div className="mt-1 rounded bg-brand-500/90 px-1.5 py-0.5 text-xs text-white">Livreur</div>
-              </motion.div>
-            )}
-
-            {/* Destination marker */}
-            <div className="absolute flex flex-col items-center" style={{ left: '80%', top: '20%', transform: 'translate(-50%, -100%)' }}>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 shadow-lg">
-                <MapPin className="h-4 w-4 text-white" />
-              </div>
-              <div className="mt-1 rounded bg-green-600/80 px-1.5 py-0.5 text-xs text-white">Vous</div>
-            </div>
-
-            <div className="absolute bottom-3 left-3 rounded-lg bg-surface-900/70 px-2 py-1 text-xs text-white backdrop-blur-sm">
+            <div className="absolute bottom-3 left-3 z-[1000] rounded-lg bg-surface-900/70 px-2 py-1 text-xs text-white backdrop-blur-sm pointer-events-none">
               Carte en direct
             </div>
           </div>

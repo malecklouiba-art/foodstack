@@ -1,10 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true, rawBody: true });
+
+  // Raw body for Stripe webhook signature verification — must be registered before NestJS body parsers
+  app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json' }));
 
   app.useGlobalPipes(
     new ValidationPipe({

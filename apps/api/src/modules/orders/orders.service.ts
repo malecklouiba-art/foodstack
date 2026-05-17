@@ -1,15 +1,30 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'En attente',
+  confirmed: 'Confirmée',
+  preparing: 'En préparation',
+  ready: 'Prête',
+  delivering: 'En livraison',
+  delivered: 'Livrée',
+  cancelled: 'Annulée',
+  refunded: 'Remboursée',
+};
+
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async createOrder(dto: CreateOrderDto) {
@@ -34,7 +49,7 @@ export class OrdersService {
           })),
         },
       } as any,
-      include: { items: true },
+      include: { items: true, customer: true },
     });
 
     this.realtime.emitOrderCreated({
@@ -47,7 +62,31 @@ export class OrdersService {
       itemCount: (order.items as unknown[]).length,
     });
 
-    return order;
+    // Send order confirmation email — fire-and-forget, never block order creation
+    const customerEmail = (order as any).customer?.email as string | undefined;
+    if (customerEmail) {
+      const orderItems = (order.items as Array<{ name: string; quantity: number; price: number }>).map(
+        (item) => ({
+          name: item.name || 'Article',
+          quantity: item.quantity,
+          price: item.price,
+        }),
+      );
+      this.notifications
+        .sendOrderConfirmation(customerEmail, {
+          orderNumber: order.orderNumber,
+          items: orderItems,
+          total: order.total,
+          estimatedTime: 30,
+        })
+        .catch((err: unknown) => {
+          this.logger.error(`Failed to send order confirmation email for ${order.orderNumber}`, err);
+        });
+    }
+
+    // Strip the customer relation before returning to avoid leaking data
+    const { customer: _customer, ...orderWithoutCustomer } = order as any;
+    return orderWithoutCustomer;
   }
 
   async findById(id: string) {
@@ -108,6 +147,24 @@ export class OrdersService {
 
     if (updated.status === 'ready') {
       this.realtime.emitOrderReady(payload);
+    }
+
+    // Send status update email to customer — fire-and-forget
+    if (updated.customerId) {
+      this.prisma.user
+        .findUnique({ where: { id: updated.customerId }, select: { email: true } })
+        .then((user) => {
+          if (!user?.email) return;
+          const statusLabel = STATUS_LABELS[updated.status] ?? updated.status;
+          return this.notifications.sendOrderStatusUpdate(user.email, {
+            orderNumber: updated.orderNumber,
+            status: updated.status,
+            statusLabel,
+          });
+        })
+        .catch((err: unknown) => {
+          this.logger.error(`Failed to send status update email for order ${id}`, err);
+        });
     }
 
     return updated;

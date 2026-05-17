@@ -51,7 +51,8 @@ export class PaymentsController {
   async webhook(
     @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') signature: string,
-  ) {
-    return this.paymentsService.handleWebhook(req.rawBody, signature);
+  ): Promise<{ received: boolean }> {
+    const rawBody = req.rawBody ?? Buffer.alloc(0);
+    return this.paymentsService.handleWebhook(rawBody, signature);
   }
 }

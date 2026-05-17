@@ -2,6 +2,25 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 
+interface OrderConfirmationData {
+  orderNumber: string;
+  items: { name: string; quantity: number; price: number }[];
+  total: number;
+  estimatedTime: number;
+}
+
+interface OrderStatusUpdateData {
+  orderNumber: string;
+  status: string;
+  statusLabel: string;
+}
+
+interface DeliveryCompletedData {
+  orderNumber: string;
+  total: number;
+  driverName: string;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -9,21 +28,97 @@ export class NotificationsService {
 
   constructor(private config: ConfigService) {
     const apiKey = this.config.get<string>('RESEND_API_KEY');
+    if (!apiKey) {
+      this.logger.warn('RESEND_API_KEY is not configured — emails will be skipped');
+    }
     this.resend = apiKey ? new Resend(apiKey) : null;
   }
 
-  async sendOrderConfirmation(to: string, orderNumber: string, total: number) {
-    return this.send({
+  async sendOrderConfirmation(to: string, orderData: OrderConfirmationData): Promise<void> {
+    const itemRows = orderData.items
+      .map(
+        (item) =>
+          `<tr>
+            <td style="padding:6px 0;border-bottom:1px solid #f3f4f6">${item.quantity}x ${item.name}</td>
+            <td style="padding:6px 0;border-bottom:1px solid #f3f4f6;text-align:right">${(item.price * item.quantity).toFixed(2)}€</td>
+          </tr>`,
+      )
+      .join('');
+
+    await this.send({
       to,
-      subject: `Commande ${orderNumber} confirmée — FoodStack`,
+      subject: `Commande ${orderData.orderNumber} confirmée — FoodStack`,
       html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-          <h2 style="color:#111">Votre commande est confirmée ! 🎉</h2>
-          <p>Merci pour votre commande <strong>${orderNumber}</strong>.</p>
-          <p>Total : <strong>${total.toFixed(2)}€</strong></p>
-          <p>Vous recevrez une notification dès qu'elle sera prête.</p>
-          <hr/>
-          <p style="color:#666;font-size:12px">FoodStack — Plateforme de restauration</p>
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden">
+          <div style="background:#f97316;padding:24px 32px">
+            <h1 style="color:#fff;margin:0;font-size:22px">FoodStack</h1>
+          </div>
+          <div style="padding:32px">
+            <h2 style="color:#111;margin-top:0">Commande confirmée !</h2>
+            <p>Merci pour votre commande <strong>${orderData.orderNumber}</strong>.</p>
+            <table style="width:100%;border-collapse:collapse;margin:16px 0">
+              <tbody>${itemRows}</tbody>
+              <tfoot>
+                <tr>
+                  <td style="padding-top:12px;font-weight:700">Total</td>
+                  <td style="padding-top:12px;font-weight:700;text-align:right;color:#f97316">${orderData.total.toFixed(2)}€</td>
+                </tr>
+              </tfoot>
+            </table>
+            <p style="background:#fff7ed;border-left:4px solid #f97316;padding:12px 16px;border-radius:4px;color:#7c2d12">
+              Temps de preparation estimé : <strong>${orderData.estimatedTime} min</strong>
+            </p>
+          </div>
+          <div style="background:#f9fafb;padding:16px 32px;text-align:center">
+            <p style="color:#9ca3af;font-size:12px;margin:0">FoodStack — Plateforme de restauration</p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
+  async sendOrderStatusUpdate(to: string, data: OrderStatusUpdateData): Promise<void> {
+    await this.send({
+      to,
+      subject: `Commande ${data.orderNumber} — ${data.statusLabel}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden">
+          <div style="background:#f97316;padding:24px 32px">
+            <h1 style="color:#fff;margin:0;font-size:22px">FoodStack</h1>
+          </div>
+          <div style="padding:32px">
+            <h2 style="color:#111;margin-top:0">Mise à jour de votre commande</h2>
+            <p>Votre commande <strong>${data.orderNumber}</strong> est maintenant :</p>
+            <div style="background:#fff7ed;border:2px solid #f97316;border-radius:8px;padding:16px;text-align:center;margin:16px 0">
+              <span style="font-size:20px;font-weight:700;color:#f97316">${data.statusLabel}</span>
+            </div>
+          </div>
+          <div style="background:#f9fafb;padding:16px 32px;text-align:center">
+            <p style="color:#9ca3af;font-size:12px;margin:0">FoodStack — Plateforme de restauration</p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
+  async sendDeliveryCompleted(to: string, data: DeliveryCompletedData): Promise<void> {
+    await this.send({
+      to,
+      subject: `Votre commande ${data.orderNumber} a été livrée — FoodStack`,
+      html: `
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden">
+          <div style="background:#f97316;padding:24px 32px">
+            <h1 style="color:#fff;margin:0;font-size:22px">FoodStack</h1>
+          </div>
+          <div style="padding:32px">
+            <h2 style="color:#111;margin-top:0">Commande livrée !</h2>
+            <p>Votre commande <strong>${data.orderNumber}</strong> a été livrée par <strong>${data.driverName}</strong>.</p>
+            <p>Montant total : <strong style="color:#f97316">${data.total.toFixed(2)}€</strong></p>
+            <p>Bon appétit ! N'oubliez pas de laisser un avis sur votre expérience.</p>
+          </div>
+          <div style="background:#f9fafb;padding:16px 32px;text-align:center">
+            <p style="color:#9ca3af;font-size:12px;margin:0">FoodStack — Plateforme de restauration</p>
+          </div>
         </div>
       `,
     });
