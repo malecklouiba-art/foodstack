@@ -13,6 +13,10 @@ import {
   Pencil,
   Search,
   Loader2,
+  RefreshCw,
+  CheckCircle2,
+  Smartphone,
+  Globe,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/Button';
@@ -124,6 +128,16 @@ const INITIAL_ZONES: Zone[] = [
 export default function ZonesPage() {
   const [zones, setZones] = useState<Zone[]>(INITIAL_ZONES);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing'>('synced');
+  const [lastSyncAt, setLastSyncAt] = useState<string>(() => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+
+  function syncToApps() {
+    setSyncStatus('syncing');
+    setTimeout(() => {
+      setSyncStatus('synced');
+      setLastSyncAt(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+    }, 1800);
+  }
   const [editZone, setEditZone] = useState<Zone | null>(null);
   const [editForm, setEditForm] = useState<{ name: string; feeEuros: string; radiusKm: string }>({
     name: '', feeEuros: '', radiusKm: '',
@@ -207,6 +221,7 @@ export default function ZonesPage() {
     setZones((prev) =>
       prev.map((z) => (z.id === id ? { ...z, active: !z.active } : z))
     );
+    setSyncStatus('pending');
   }
 
   function handleAddZone() {
@@ -227,6 +242,7 @@ export default function ZonesPage() {
     setZones((prev) => [...prev, newZone]);
     setShowAddModal(false);
     setAddForm({ name: '', radius: 5, fee: '', minOrder: '', deliveryMin: '', deliveryMax: '' });
+    setSyncStatus('pending');
   }
 
   function openAddModal() {
@@ -244,9 +260,66 @@ export default function ZonesPage() {
           <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-100">Zones de livraison</h1>
           <p className="mt-1 text-sm text-surface-500">{zones.filter((z) => z.active).length} zones actives · rayon max {maxRadius}km</p>
         </div>
-        <Button icon={<Plus className="h-4 w-4" />} onClick={openAddModal}>
-          Ajouter une zone
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            icon={<RefreshCw className={clsx('h-4 w-4', syncStatus === 'syncing' && 'animate-spin')} />}
+            variant={syncStatus === 'pending' ? 'primary' : 'secondary'}
+            onClick={syncToApps}
+            disabled={syncStatus === 'syncing' || syncStatus === 'synced'}
+          >
+            {syncStatus === 'syncing' ? 'Synchronisation…' : syncStatus === 'pending' ? 'Synchroniser' : 'Synchronisé'}
+          </Button>
+          <Button icon={<Plus className="h-4 w-4" />} onClick={openAddModal}>
+            Ajouter une zone
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Sync status bar ── */}
+      <div className={clsx(
+        'flex items-center gap-4 rounded-2xl border px-4 py-3 text-sm transition-colors',
+        syncStatus === 'synced'
+          ? 'border-green-200 bg-green-50 dark:border-green-800/40 dark:bg-green-900/10'
+          : syncStatus === 'pending'
+          ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800/40 dark:bg-yellow-900/10'
+          : 'border-blue-200 bg-blue-50 dark:border-blue-800/40 dark:bg-blue-900/10'
+      )}>
+        {syncStatus === 'syncing' ? (
+          <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+        ) : syncStatus === 'synced' ? (
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        ) : (
+          <RefreshCw className="h-4 w-4 text-yellow-500" />
+        )}
+        <span className={clsx(
+          'font-medium',
+          syncStatus === 'synced' ? 'text-green-700 dark:text-green-400'
+          : syncStatus === 'pending' ? 'text-yellow-700 dark:text-yellow-400'
+          : 'text-blue-700 dark:text-blue-400'
+        )}>
+          {syncStatus === 'synced'
+            ? `Zones synchronisées · dernière sync à ${lastSyncAt}`
+            : syncStatus === 'pending'
+            ? 'Modifications en attente de synchronisation'
+            : 'Synchronisation en cours…'}
+        </span>
+        <div className="ml-auto flex items-center gap-3 text-xs text-surface-500">
+          <span className="flex items-center gap-1">
+            <Smartphone className="h-3.5 w-3.5" />
+            iOS
+            {syncStatus === 'synced' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+          </span>
+          <span className="flex items-center gap-1">
+            <Smartphone className="h-3.5 w-3.5" />
+            Android
+            {syncStatus === 'synced' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+          </span>
+          <span className="flex items-center gap-1">
+            <Globe className="h-3.5 w-3.5" />
+            Web
+            {syncStatus === 'synced' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+          </span>
+        </div>
       </div>
 
       {/* ── Address geocoder ── */}

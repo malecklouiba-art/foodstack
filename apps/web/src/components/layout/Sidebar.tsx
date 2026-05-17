@@ -59,7 +59,6 @@ const navItems: NavItem[] = [
   { href: '/dashboard/tables', label: 'Tables', icon: TableIcon, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration', roles: ['admin', 'owner'] },
   { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration', roles: ['admin', 'owner'] },
-  { href: '/dashboard/loyalty', label: 'Fidélité', icon: Star, section: 'Administration', roles: ['owner'] },
   { href: '/dashboard/payments', label: 'Paiements', icon: CreditCard, section: 'Administration', roles: ['admin', 'owner'] },
   { href: '/pos', label: 'Caisse POS', icon: ShoppingCart, section: 'Gestion', roles: ['owner', 'staff'] },
   { href: '/dashboard/kiosk', label: 'Borne de commande', icon: Monitor, section: 'Gestion', roles: ['admin', 'owner'] },
@@ -71,7 +70,7 @@ const navItems: NavItem[] = [
 
 const DEMO_ACCOUNTS = [
   { role: 'admin',    label: 'Super Admin',      emoji: '👑', redirect: '/dashboard' },
-  { role: 'owner',    label: 'Restaurant Owner', emoji: '🍽️', redirect: '/dashboard' },
+  { role: 'owner',    label: 'Restaurateur', emoji: '🍽️', redirect: '/dashboard' },
   { role: 'staff',    label: 'Staff',            emoji: '👷', redirect: '/dashboard' },
   { role: 'driver',   label: 'Livreur',          emoji: '🛵', redirect: '/dashboard' },
   { role: 'customer', label: 'Client',           emoji: '🛒', redirect: '/menu' },
@@ -131,7 +130,10 @@ export function Sidebar() {
     router.refresh();
   }
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+  const isActive = (href: string) =>
+    href === '/dashboard' || href === '/pos'
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + '/');
 
   const role = (currentRole ?? 'owner') as Role;
   const visibleItems = navItems.filter((i) => i.roles.includes(role));

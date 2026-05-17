@@ -25,7 +25,9 @@ import { useCartStore } from '@/store/cart';
 import { StripeCardForm } from '@/components/checkout/StripeCardForm';
 import api from '@/lib/api';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? 'pk_test_placeholder');
+const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ?? 'pk_test_51TY6WvJk77DdlLmcDeNnWRkFfR4Hvwa7uW6WWCa8BQxgWsDkjQwiQoy02WB5jsUcCL0NeN1P11KOVJorbNysYK5800UsDP4oev';
+const stripePromise = loadStripe(STRIPE_PK);
 
 type PaymentMethod = 'card' | 'apple_pay' | 'google_pay' | 'cash';
 

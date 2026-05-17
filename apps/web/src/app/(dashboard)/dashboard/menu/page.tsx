@@ -259,7 +259,7 @@ export default function MenuPage() {
                 )}
               </motion.div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                 <AnimatePresence>
                   {visibleItems.map((item, idx) => (
                     <motion.div
@@ -284,7 +284,7 @@ export default function MenuPage() {
                 <motion.button
                   layout
                   onClick={() => { setEditingItem(null); setItemModalOpen(true); }}
-                  className="flex h-full min-h-[140px] items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-surface-200 text-sm font-medium text-surface-400 transition-all duration-200 hover:border-brand-300 hover:bg-brand-50/30 hover:text-brand-500"
+                  className="flex aspect-square items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-surface-200 text-sm font-medium text-surface-400 transition-all duration-200 hover:border-brand-300 hover:bg-brand-50/30 hover:text-brand-500"
                 >
                   <Plus className="h-5 w-5" />
                   Ajouter un article
@@ -653,7 +653,7 @@ function ItemCard({ item, onEdit, onDelete, onToggleActive }: ItemCardProps) {
   return (
     <Card padding="none" hover className="group overflow-hidden">
       {/* Image area */}
-      <div className="relative h-32 bg-gradient-to-br from-surface-100 to-surface-200">
+      <div className="relative aspect-square bg-gradient-to-br from-surface-100 to-surface-200">
         {item.image ? (
           <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
         ) : (
