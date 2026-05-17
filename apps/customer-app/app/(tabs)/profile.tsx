@@ -1,42 +1,104 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Alert } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
+import { useApi } from '@/hooks/useApi';
 import { router } from 'expo-router';
 
 const TIERS = [
-  { name: 'Bronze', min: 0, max: 500, emoji: '🥉', color: '#cd7f32' },
-  { name: 'Silver', min: 500, max: 1500, emoji: '🥈', color: '#94a3b8' },
-  { name: 'Gold', min: 1500, max: 3000, emoji: '🥇', color: '#f59e0b' },
-  { name: 'Platinum', min: 3000, max: Infinity, emoji: '💎', color: '#8b5cf6' },
+  { name: 'Bronze',   min: 0,    max: 500,      emoji: '🥉', color: '#cd7f32' },
+  { name: 'Silver',   min: 500,  max: 1500,     emoji: '🥈', color: '#94a3b8' },
+  { name: 'Gold',     min: 1500, max: 3000,     emoji: '🥇', color: '#f59e0b' },
+  { name: 'Platinum', min: 3000, max: Infinity,  emoji: '💎', color: '#8b5cf6' },
 ];
 
-const USER_POINTS = 820;
-const CURRENT_TIER = TIERS.find((t) => USER_POINTS >= t.min && USER_POINTS < t.max) ?? TIERS[0];
-const NEXT_TIER = TIERS[TIERS.indexOf(CURRENT_TIER) + 1];
-const TIER_PROGRESS = NEXT_TIER
-  ? (USER_POINTS - CURRENT_TIER.min) / (NEXT_TIER.min - CURRENT_TIER.min)
-  : 1;
+function getTier(points: number) {
+  return TIERS.find((t) => points >= t.min && points < t.max) ?? TIERS[0];
+}
+
+interface LoyaltyData {
+  loyaltyPoints: number;
+  loyaltyTier?: string;
+}
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
 
 const MOCK_ADDRESSES = [
   { id: 'a1', label: 'Maison', address: '12 rue de la Paix, 75001 Paris', isDefault: true },
   { id: 'a2', label: 'Bureau', address: '45 avenue des Champs, 75008 Paris', isDefault: false },
 ];
 
-const MENU_ITEMS = [
-  { icon: '📦', label: 'Mes commandes', action: () => {} },
-  { icon: '🎁', label: 'Mes avantages', action: () => {} },
-  { icon: '💳', label: 'Moyens de paiement', action: () => {} },
-  { icon: '🔔', label: 'Notifications', action: () => {} },
-  { icon: '🛡️', label: 'Confidentialité', action: () => {} },
-  { icon: '❓', label: 'Aide & Support', action: () => {} },
-];
-
 export default function ProfileScreen() {
+  const api = useApi();
   const [notifOrders, setNotifOrders] = useState(true);
   const [notifPromo, setNotifPromo] = useState(true);
   const [section, setSection] = useState<'main' | 'addresses' | 'notifications'>('main');
+
+  const [points, setPoints] = useState(0);
+  const [userName, setUserName] = useState('');
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoadingProfile(true);
+
+      // Get userId from stored auth
+      const userRaw = await AsyncStorage.getItem('auth_user');
+      const storedUser = userRaw ? (JSON.parse(userRaw) as { id: string; name?: string }) : null;
+
+      // Fetch loyalty data and user profile in parallel
+      const [loyaltyData, userProfile] = await Promise.allSettled([
+        api.get<LoyaltyData>('/api/v1/loyalty/me'),
+        storedUser ? api.get<UserProfile>(`/api/v1/users/${storedUser.id}`) : Promise.reject(new Error('no user')),
+      ]);
+
+      if (loyaltyData.status === 'fulfilled') {
+        setPoints(loyaltyData.value.loyaltyPoints ?? 0);
+      }
+
+      if (userProfile.status === 'fulfilled') {
+        setUserName(userProfile.value.name);
+      } else if (storedUser?.name) {
+        // Fallback to locally stored name
+        setUserName(storedUser.name);
+      }
+    } catch {
+      // Non-fatal: keep defaults
+    } finally {
+      setLoadingProfile(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    loadProfile();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSignOut = () => {
+    Alert.alert('Déconnexion', 'Vous serez déconnecté.', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Se déconnecter',
+        style: 'destructive',
+        onPress: async () => {
+          await AsyncStorage.multiRemove(['auth_token', 'auth_refresh_token', 'auth_user']).catch(() => {});
+          router.replace('/(auth)/login');
+        },
+      },
+    ]);
+  };
+
+  const currentTier = getTier(points);
+  const nextTier = TIERS[TIERS.indexOf(currentTier) + 1];
+  const tierProgress = nextTier
+    ? (points - currentTier.min) / (nextTier.min - currentTier.min)
+    : 1;
 
   if (section === 'addresses') {
     return (
@@ -107,28 +169,32 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Loyalty hero */}
         <LinearGradient
-          colors={[CURRENT_TIER.color + 'cc', Colors.brand[600]]}
+          colors={[currentTier.color + 'cc', Colors.brand[600]]}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={styles.loyaltyCard}
         >
           <View style={styles.loyaltyTop}>
             <View>
               <Text style={styles.loyaltyGreeting}>Bonjour</Text>
-              <Text style={styles.loyaltyName}>Alexandre Dupont</Text>
+              {loadingProfile ? (
+                <ActivityIndicator color="#fff" style={{ marginTop: 4 }} />
+              ) : (
+                <Text style={styles.loyaltyName}>{userName || 'Mon profil'}</Text>
+              )}
             </View>
-            <Text style={styles.tierEmoji}>{CURRENT_TIER.emoji}</Text>
+            <Text style={styles.tierEmoji}>{currentTier.emoji}</Text>
           </View>
           <View style={styles.loyaltyPoints}>
-            <Text style={styles.pointsValue}>{USER_POINTS}</Text>
+            <Text style={styles.pointsValue}>{points}</Text>
             <Text style={styles.pointsLabel}>points</Text>
           </View>
-          {NEXT_TIER && (
+          {nextTier && (
             <>
               <View style={styles.progressBg}>
-                <View style={[styles.progressFill, { width: `${TIER_PROGRESS * 100}%` }]} />
+                <View style={[styles.progressFill, { width: `${tierProgress * 100}%` }]} />
               </View>
               <Text style={styles.progressLabel}>
-                {NEXT_TIER.min - USER_POINTS} pts avant {NEXT_TIER.emoji} {NEXT_TIER.name}
+                {nextTier.min - points} pts avant {nextTier.emoji} {nextTier.name}
               </Text>
             </>
           )}
@@ -178,12 +244,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.signOutBtn}
             activeOpacity={0.85}
-            onPress={() =>
-              Alert.alert('Déconnexion', 'Vous serez déconnecté.', [
-                { text: 'Annuler', style: 'cancel' },
-                { text: 'Se déconnecter', style: 'destructive', onPress: () => router.replace('/(auth)/login') },
-              ])
-            }
+            onPress={handleSignOut}
           >
             <Text style={styles.signOutText}>Se déconnecter</Text>
           </TouchableOpacity>

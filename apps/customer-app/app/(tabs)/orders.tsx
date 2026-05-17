@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
+import { useApi } from '@/hooks/useApi';
 
 type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivering' | 'delivered' | 'cancelled';
 
@@ -9,18 +11,60 @@ interface OrderItem {
   name: string;
   qty: number;
   price: number;
+  // API may also provide quantity/unitPrice
+  quantity?: number;
+  unitPrice?: number;
 }
 
 interface Order {
   id: string;
-  number: string;
+  number?: string;
+  orderNumber?: string;
   status: OrderStatus;
   items: OrderItem[];
-  subtotal: number;
-  deliveryFee: number;
-  total: number;
+  subtotal?: number;
+  deliveryFee?: number;
+  total?: number;
+  totalAmount?: number;
   createdAt: string;
   estimatedDelivery?: string;
+}
+
+// Normalise raw API order shape to our internal Order shape
+function normaliseOrder(raw: Record<string, unknown>): Order {
+  const items = (raw.items as Record<string, unknown>[] | undefined) ?? [];
+  const normalisedItems: OrderItem[] = items.map((i) => ({
+    name: (i.name as string | undefined) ?? (i.itemName as string | undefined) ?? 'Article',
+    qty: (i.qty as number | undefined) ?? (i.quantity as number | undefined) ?? 1,
+    price: (i.price as number | undefined) ?? (i.unitPrice as number | undefined) ?? 0,
+  }));
+
+  const total =
+    (raw.total as number | undefined) ??
+    (raw.totalAmount as number | undefined) ??
+    normalisedItems.reduce((s, i) => s + i.price * i.qty, 0);
+
+  const subtotal =
+    (raw.subtotal as number | undefined) ?? total - ((raw.deliveryFee as number | undefined) ?? 0);
+
+  const createdAt = raw.createdAt
+    ? new Date(raw.createdAt as string).toLocaleString('fr-FR', {
+        day: 'numeric', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      })
+    : '';
+
+  return {
+    id: raw.id as string,
+    number: (raw.number as string | undefined) ?? (raw.orderNumber as string | undefined) ?? `#${(raw.id as string).slice(-4).toUpperCase()}`,
+    status: (raw.status as OrderStatus) ?? 'pending',
+    items: normalisedItems,
+    subtotal,
+    deliveryFee: (raw.deliveryFee as number | undefined) ?? 0,
+    total,
+    createdAt,
+    estimatedDelivery: raw.estimatedDelivery as string | undefined,
+  };
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -53,45 +97,6 @@ const STATUS_EMOJI: Record<OrderStatus, string> = {
   cancelled: '❌',
 };
 
-const MOCK_ORDERS: Order[] = [
-  {
-    id: 'o-1', number: '#2847', status: 'delivering',
-    items: [
-      { name: 'Classic Burger', qty: 2, price: 14.90 },
-      { name: 'Truffle Burger', qty: 1, price: 22.50 },
-    ],
-    subtotal: 52.30, deliveryFee: 2.90, total: 55.20,
-    createdAt: '13 mai 2026, 12:34',
-    estimatedDelivery: '12:55',
-  },
-  {
-    id: 'o-2', number: '#2801', status: 'delivered',
-    items: [
-      { name: 'Margherita', qty: 1, price: 13.90 },
-      { name: 'Tiramisu', qty: 2, price: 7.50 },
-    ],
-    subtotal: 28.90, deliveryFee: 2.90, total: 31.80,
-    createdAt: '10 mai 2026, 19:12',
-  },
-  {
-    id: 'o-3', number: '#2754', status: 'delivered',
-    items: [
-      { name: 'Salade César', qty: 1, price: 12.50 },
-      { name: 'Chicken Burger', qty: 1, price: 12.90 },
-    ],
-    subtotal: 25.40, deliveryFee: 2.90, total: 28.30,
-    createdAt: '5 mai 2026, 13:01',
-  },
-  {
-    id: 'o-4', number: '#2700', status: 'cancelled',
-    items: [
-      { name: 'Diavola', qty: 2, price: 15.90 },
-    ],
-    subtotal: 31.80, deliveryFee: 2.90, total: 34.70,
-    createdAt: '1 mai 2026, 20:45',
-  },
-];
-
 function ActiveOrderBanner({ order }: { order: Order }) {
   return (
     <View style={styles.activeBanner}>
@@ -112,14 +117,81 @@ function ActiveOrderBanner({ order }: { order: Order }) {
 }
 
 export default function OrdersScreen() {
+  const api = useApi();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const activeOrders = MOCK_ORDERS.filter(
-    (o) => !['delivered', 'cancelled'].includes(o.status)
+  const loadOrders = useCallback(async (isRefresh = false) => {
+    try {
+      if (!isRefresh) setLoading(true);
+      setError(null);
+
+      // Retrieve userId from stored auth
+      const userRaw = await AsyncStorage.getItem('auth_user');
+      if (!userRaw) {
+        setError('Utilisateur non connecté.');
+        return;
+      }
+      const user = JSON.parse(userRaw) as { id: string };
+      const raw = await api.get<Record<string, unknown>[]>(`/api/v1/orders/customer/${user.id}`);
+      setOrders(raw.map(normaliseOrder));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Impossible de charger les commandes.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    loadOrders();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadOrders(true);
+  };
+
+  const activeOrders = orders.filter(
+    (o) => !['delivered', 'cancelled'].includes(o.status),
   );
-  const pastOrders = MOCK_ORDERS.filter(
-    (o) => ['delivered', 'cancelled'].includes(o.status)
+  const pastOrders = orders.filter(
+    (o) => ['delivered', 'cancelled'].includes(o.status),
   );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Mes commandes</Text>
+        </View>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={Colors.brand[500]} />
+          <Text style={styles.loadingText}>Chargement…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Mes commandes</Text>
+        </View>
+        <View style={styles.center}>
+          <Text style={styles.errorEmoji}>😕</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => loadOrders()} activeOpacity={0.8}>
+            <Text style={styles.retryBtnText}>Réessayer</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -132,6 +204,9 @@ export default function OrdersScreen() {
         keyExtractor={(o) => o.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.brand[500]} />
+        }
         ListHeaderComponent={
           <>
             {activeOrders.map((o) => (
@@ -143,10 +218,12 @@ export default function OrdersScreen() {
           </>
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>📦</Text>
-            <Text style={styles.emptyText}>Aucune commande passée</Text>
-          </View>
+          activeOrders.length === 0 ? (
+            <View style={styles.empty}>
+              <Text style={styles.emptyEmoji}>📦</Text>
+              <Text style={styles.emptyText}>Aucune commande passée</Text>
+            </View>
+          ) : null
         }
         renderItem={({ item: order }) => (
           <TouchableOpacity
@@ -167,7 +244,7 @@ export default function OrdersScreen() {
             </Text>
             <View style={styles.orderCardFooter}>
               <Text style={styles.orderDate}>{order.createdAt}</Text>
-              <Text style={styles.orderTotal}>{order.total.toFixed(2)}€</Text>
+              <Text style={styles.orderTotal}>{(order.total ?? 0).toFixed(2)}€</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -207,15 +284,15 @@ export default function OrdersScreen() {
               <View style={styles.divider} />
               <View style={styles.modalItemRow}>
                 <Text style={[styles.modalItemName, { color: Colors.surface[500] }]}>Sous-total</Text>
-                <Text style={styles.modalItemPrice}>{selectedOrder.subtotal.toFixed(2)}€</Text>
+                <Text style={styles.modalItemPrice}>{(selectedOrder.subtotal ?? 0).toFixed(2)}€</Text>
               </View>
               <View style={styles.modalItemRow}>
                 <Text style={[styles.modalItemName, { color: Colors.surface[500] }]}>Livraison</Text>
-                <Text style={styles.modalItemPrice}>{selectedOrder.deliveryFee.toFixed(2)}€</Text>
+                <Text style={styles.modalItemPrice}>{(selectedOrder.deliveryFee ?? 0).toFixed(2)}€</Text>
               </View>
               <View style={[styles.modalItemRow, { marginTop: 6 }]}>
                 <Text style={[styles.modalItemName, { fontWeight: '800', fontSize: 16, color: Colors.surface[900] }]}>Total</Text>
-                <Text style={[styles.modalItemPrice, { fontWeight: '800', fontSize: 16, color: Colors.brand[600] }]}>{selectedOrder.total.toFixed(2)}€</Text>
+                <Text style={[styles.modalItemPrice, { fontWeight: '800', fontSize: 16, color: Colors.brand[600] }]}>{(selectedOrder.total ?? 0).toFixed(2)}€</Text>
               </View>
 
               <View style={styles.divider} />
@@ -239,6 +316,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.surface[50] },
   header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 },
   headerTitle: { fontSize: 26, fontWeight: '800', color: Colors.surface[900] },
+
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  loadingText: { fontSize: 14, color: Colors.surface[400], marginTop: 8 },
+  errorEmoji:  { fontSize: 48 },
+  errorText:   { fontSize: 15, color: Colors.surface[500], textAlign: 'center', paddingHorizontal: 32 },
+  retryBtn:    { marginTop: 8, backgroundColor: Colors.brand[500], borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10 },
+  retryBtnText:{ color: '#fff', fontWeight: '700', fontSize: 14 },
 
   list: { paddingHorizontal: 16, paddingBottom: 100 },
   sectionLabel: { fontSize: 13, fontWeight: '600', color: Colors.surface[400], marginTop: 8, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
