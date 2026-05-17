@@ -81,7 +81,7 @@
 | OAuth Google / Apple (Passport) | ❌ | Côté web géré par Supabase, côté API non câblé |
 | 2FA (TOTP) | ✅ | |
 | Socket.io temps réel | ✅ | Synchronisation commandes/stocks en live |
-| `NotificationsModule` (push/email/SMS) | ❌ | Resend email, VAPID push, Twilio SMS |
+| `NotificationsModule` (push/email/SMS) | 🔄 | Email Resend ✅, VAPID push ✅, Twilio SMS ❌ |
 | `SuperAdminModule` | ❌ | Gestion abonnements SaaS, monitoring |
 | `DriversModule` (GPS livreurs) | ❌ | Positions GPS temps réel |
 | `CouponsModule` | ❌ | Génération, validation, quotas |
@@ -216,7 +216,7 @@
 | Tiers Bronze/Silver/Gold/Platinum | ✅ | Constants dans `@foodstack/shared` |
 | Attribution points à la commande | 🔄 | Logique backend partielle |
 | Interface consommateur fidélité | ✅ | Page `/loyalty` |
-| Coupons et codes promo | ❌ | |
+| Coupons et codes promo | ✅ | Validation API réelle au checkout (fallback demo si hors-ligne) |
 | Cashback | ❌ | |
 | Récompenses échangeables | ❌ | |
 | Promotions automatiques | ❌ | |
@@ -248,7 +248,7 @@
 |---|---|---|
 | Toast UI (react-hot-toast) | ✅ | |
 | Email transactionnel (Resend) | ❌ | Clé API en `.env.example`, pas câblée |
-| Notifications push Web (VAPID) | ❌ | |
+| Notifications push Web (VAPID) | ✅ | Service worker + hook usePushNotifications + PushNotificationBanner |
 | Notifications push Mobile (Expo/FCM) | ❌ | |
 | SMS (Twilio) | ❌ | |
 
