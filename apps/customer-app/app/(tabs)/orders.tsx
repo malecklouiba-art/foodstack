@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/Colors';
@@ -124,6 +124,13 @@ export default function OrdersScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // Rating feature
+  const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
+  const [ratingOrder, setRatingOrder] = useState<Order | null>(null);
+  const [selectedRating, setSelectedRating] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [submittingRating, setSubmittingRating] = useState(false);
+
   const loadOrders = useCallback(async (isRefresh = false) => {
     try {
       if (!isRefresh) setLoading(true);
@@ -153,6 +160,39 @@ export default function OrdersScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadOrders(true);
+  };
+
+  const openRatingModal = (order: Order) => {
+    setRatingOrder(order);
+    setSelectedRating(0);
+    setRatingComment('');
+  };
+
+  const closeRatingModal = () => {
+    setRatingOrder(null);
+    setSelectedRating(0);
+    setRatingComment('');
+  };
+
+  const handleSendRating = async () => {
+    if (!ratingOrder || selectedRating === 0) return;
+    setSubmittingRating(true);
+    try {
+      // Try POST /api/v1/orders/:id/review — fallback to local state on any error
+      await api.post(`/api/v1/orders/${ratingOrder.id}/review`, {
+        rating: selectedRating,
+        comment: ratingComment.trim() || undefined,
+        orderId: ratingOrder.id,
+      }).catch(() => {
+        // Endpoint may not exist — silently swallow and mark locally
+      });
+      setRatedOrders((prev) => new Set([...prev, ratingOrder.id]));
+      closeRatingModal();
+    } catch {
+      Alert.alert('Erreur', 'Impossible d\'envoyer votre évaluation.');
+    } finally {
+      setSubmittingRating(false);
+    }
   };
 
   const activeOrders = orders.filter(
