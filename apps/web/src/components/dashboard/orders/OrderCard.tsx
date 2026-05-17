@@ -68,8 +68,8 @@ export function OrderCard({ order, onAdvance, onSelect, kitchen }: OrderCardProp
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className={`relative rounded-2xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md ${
-        order.isNew ? 'ring-2 ring-brand-400 ring-offset-1' : 'border-surface-200'
+      className={`relative rounded-2xl border bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:bg-surface-800 ${
+        order.isNew ? 'ring-2 ring-brand-400 ring-offset-1' : 'border-surface-200 dark:border-surface-700'
       } ${age.urgent ? 'border-red-200' : ''} ${kitchen ? 'p-5' : ''}`}
     >
       {order.isNew && (
@@ -81,8 +81,8 @@ export function OrderCard({ order, onAdvance, onSelect, kitchen }: OrderCardProp
       {/* Header */}
       <div className="mb-3 flex items-start justify-between">
         <div>
-          <p className={`font-bold text-surface-900 ${kitchen ? 'text-lg' : 'text-sm'}`}>{order.id}</p>
-          <p className={`text-surface-500 ${kitchen ? 'text-base' : 'text-xs'}`}>{order.customer}</p>
+          <p className={`font-bold text-surface-900 dark:text-surface-100 ${kitchen ? 'text-lg' : 'text-sm'}`}>{order.id}</p>
+          <p className={`text-surface-500 dark:text-surface-400 ${kitchen ? 'text-base' : 'text-xs'}`}>{order.customer}</p>
         </div>
         <div className="flex flex-col items-end gap-1">
           <span className={`flex items-center gap-1 font-semibold ${age.color} ${kitchen ? 'text-base' : 'text-xs'}`}>
@@ -98,9 +98,9 @@ export function OrderCard({ order, onAdvance, onSelect, kitchen }: OrderCardProp
       {/* Items */}
       <div className={`mb-3 space-y-1 ${kitchen ? '' : ''}`}>
         {order.items.slice(0, kitchen ? 10 : 3).map((item) => (
-          <div key={item.name} className={`flex justify-between text-surface-700 ${kitchen ? 'text-base' : 'text-xs'}`}>
+          <div key={item.name} className={`flex justify-between text-surface-700 dark:text-surface-300 ${kitchen ? 'text-base' : 'text-xs'}`}>
             <span className="font-medium">{item.quantity}× {item.name}</span>
-            <span className="text-surface-400">{(item.price * item.quantity).toFixed(2)}€</span>
+            <span className="text-surface-400 dark:text-surface-500">{(item.price * item.quantity).toFixed(2)}€</span>
           </div>
         ))}
         {!kitchen && order.items.length > 3 && (
@@ -109,14 +109,14 @@ export function OrderCard({ order, onAdvance, onSelect, kitchen }: OrderCardProp
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-surface-100 pt-3">
-        <span className={`font-bold text-surface-900 ${kitchen ? 'text-xl' : 'text-sm'}`}>
+      <div className="flex items-center justify-between border-t border-surface-100 pt-3 dark:border-surface-700">
+        <span className={`font-bold text-surface-900 dark:text-white ${kitchen ? 'text-xl' : 'text-sm'}`}>
           {order.total.toFixed(2)}€
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onSelect(order)}
-            className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700"
+            className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:hover:bg-surface-700 dark:hover:text-surface-200"
           >
             <ChevronRight className={kitchen ? 'h-5 w-5' : 'h-4 w-4'} />
           </button>

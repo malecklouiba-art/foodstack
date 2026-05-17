@@ -126,13 +126,13 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
             onChange={(e) => set('name', e.target.value)}
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-surface-700">
+            <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
               Catégorie <span className="text-red-500">*</span>
             </label>
             <select
               value={form.categoryId ?? ''}
               onChange={(e) => set('categoryId', e.target.value)}
-              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100"
             >
               <option value="" disabled>Choisir une catégorie</option>
               {categories.map((c) => (
@@ -144,31 +144,31 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
 
         {/* Description */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-surface-700">Description</label>
+          <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Description</label>
           <textarea
             rows={2}
             placeholder="Décrivez l'article, ses ingrédients…"
             value={form.description ?? ''}
             onChange={(e) => set('description', e.target.value)}
-            className="w-full resize-none rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            className="w-full resize-none rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100 dark:placeholder:text-surface-500"
           />
         </div>
 
         {/* Prices + Prep + Calories */}
         <div className="grid grid-cols-4 gap-3">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-surface-700">Prix (€) <span className="text-red-500">*</span></label>
+            <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Prix (€) <span className="text-red-500">*</span></label>
             <input
               type="number"
               min="0"
               step="0.01"
               value={priceStr}
               onChange={(e) => setPriceStr(e.target.value)}
-              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-surface-700">Prix barré (€)</label>
+            <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Prix barré (€)</label>
             <input
               type="number"
               min="0"
@@ -176,35 +176,35 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
               placeholder="—"
               value={compareStr}
               onChange={(e) => setCompareStr(e.target.value)}
-              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100 dark:placeholder:text-surface-500"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-surface-700">Calories</label>
+            <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Calories</label>
             <input
               type="number"
               min="0"
               placeholder="kcal"
               value={form.calories ?? ''}
               onChange={(e) => set('calories', e.target.value ? parseInt(e.target.value) : undefined)}
-              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100 dark:placeholder:text-surface-500"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-surface-700">Préparation (min)</label>
+            <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Préparation (min)</label>
             <input
               type="number"
               min="1"
               value={form.prepTime ?? 10}
               onChange={(e) => set('prepTime', parseInt(e.target.value) || 10)}
-              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="h-10 w-full rounded-xl border border-surface-200 bg-white px-3 text-sm text-surface-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-100"
             />
           </div>
         </div>
 
         {/* Image upload */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-surface-700">Image de l'article</label>
+          <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Image de l'article</label>
           <input
             ref={fileInputRef}
             type="file"
@@ -242,7 +242,7 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
                 e.preventDefault();
                 handleFile(e.dataTransfer.files?.[0]);
               }}
-              className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 text-surface-500 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600"
+              className="flex h-40 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-surface-200 bg-surface-50 text-surface-500 transition-colors hover:border-brand-400 hover:bg-brand-50/40 hover:text-brand-600 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-400 dark:hover:border-brand-600"
             >
               {uploading ? (
                 <>
@@ -264,7 +264,7 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
 
         {/* Dietary tags */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-surface-700">Tags alimentaires</label>
+          <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Tags alimentaires</label>
           <div className="flex flex-wrap gap-2">
             {DIETARY_OPTIONS.map((opt) => {
               const active = (form.dietaryTags ?? []).includes(opt.value);
@@ -275,8 +275,8 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
                   onClick={() => toggleDietary(opt.value)}
                   className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150 ${
                     active
-                      ? 'border-brand-400 bg-brand-50 text-brand-700'
-                      : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300 hover:bg-surface-50'
+                      ? 'border-brand-400 bg-brand-50 text-brand-700 dark:bg-brand-950/30 dark:text-brand-400'
+                      : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300 hover:bg-surface-50 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-400 dark:hover:bg-surface-700'
                   }`}
                 >
                   <span>{opt.emoji}</span>
@@ -289,7 +289,7 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
 
         {/* Allergens */}
         <div className="flex flex-col gap-2">
-          <label className="text-sm font-medium text-surface-700">Allergènes</label>
+          <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Allergènes</label>
           <div className="flex flex-wrap gap-2">
             {ALLERGEN_OPTIONS.map((a) => {
               const active = (form.allergens ?? []).includes(a);
@@ -300,8 +300,8 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
                   onClick={() => toggleAllergen(a)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150 ${
                     active
-                      ? 'border-red-300 bg-red-50 text-red-700'
-                      : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300 hover:bg-surface-50'
+                      ? 'border-red-300 bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
+                      : 'border-surface-200 bg-white text-surface-600 hover:border-surface-300 hover:bg-surface-50 dark:border-surface-700 dark:bg-surface-800 dark:text-surface-400 dark:hover:bg-surface-700'
                   }`}
                 >
                   {a}
@@ -320,7 +320,7 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
             >
               <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${form.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
             </div>
-            <span className="text-sm font-medium text-surface-700">Article actif</span>
+            <span className="text-sm font-medium text-surface-700 dark:text-surface-300">Article actif</span>
           </label>
           <label className="flex cursor-pointer items-center gap-3">
             <div
@@ -329,7 +329,7 @@ export function ItemModal({ open, onClose, onSave, initial, categories }: ItemMo
             >
               <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${form.isFeatured ? 'translate-x-6' : 'translate-x-1'}`} />
             </div>
-            <span className="text-sm font-medium text-surface-700">Mis en avant ⭐</span>
+            <span className="text-sm font-medium text-surface-700 dark:text-surface-300">Mis en avant ⭐</span>
           </label>
         </div>
       </form>
