@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp, TrendingDown, Users, ShoppingBag, Euro,
@@ -13,7 +13,6 @@ import {
 } from 'recharts';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { AIInsights } from '@/components/analytics/AIInsights';
-import { createClient } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 import type {} from 'jspdf-autotable';
 
@@ -35,12 +34,6 @@ const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 const HOURS = ['8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h'];
 
 // ── Types ──────────────────────────────────────────────────────────────────────
-
-interface SalesData {
-  revenue: number;
-  orderCount: number;
-  avgOrderValue: number;
-}
 
 interface RevenuePoint {
   day: string;
@@ -65,6 +58,34 @@ interface KpiCard {
   icon: React.ElementType;
   iconBg: string;
   iconColor: string;
+}
+
+// ── API response types ─────────────────────────────────────────────────────────
+
+interface ApiSalesData {
+  revenue: number;
+  orderCount: number;
+  avgOrderValue: number;
+}
+
+interface ApiRevenuePoint {
+  date: string;
+  amount: number;
+}
+
+interface ApiTopItem {
+  id: string;
+  name: string;
+  soldCount: number;
+  price: number;
+  rating?: number;
+}
+
+interface ApiDeliveryStats {
+  totalDeliveries: number;
+  onTimeDeliveries: number;
+  onTimeRate: number;
+  avgDistance: number;
 }
 
 // ── Static data (kept for admin/platform view) ─────────────────────────────────
@@ -323,15 +344,99 @@ function AdminAnalytics({ onExportCSV, onExportPDF, onExportXLSX }: { onExportCS
   );
 }
 
-// ── Owner view (unchanged restaurant analytics) ────────────────────────────────
+// ── Owner view ────────────────────────────────────────────────────────────────
 
-function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportXLSX }: {
+function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportXLSX, salesData, revenueData, topItems, deliveryStats, loading }: {
   period: number;
   setPeriod: (i: number) => void;
   onExportCSV: () => void;
   onExportPDF: () => void;
   onExportXLSX: () => void;
+  salesData: ApiSalesData | null;
+  revenueData: ApiRevenuePoint[];
+  topItems: ApiTopItem[];
+  deliveryStats: ApiDeliveryStats | null;
+  loading: boolean;
 }) {
+  // Derive KPI cards from live API data
+  const kpiCards: KpiCard[] = [
+    {
+      title: 'Chiffre d\'affaires',
+      value: salesData ? `${salesData.revenue.toLocaleString('fr-FR')}€` : '—',
+      change: '—',
+      positive: true,
+      icon: Euro,
+      iconBg: 'bg-green-50',
+      iconColor: 'text-green-600',
+    },
+    {
+      title: 'Commandes',
+      value: salesData ? String(salesData.orderCount) : '—',
+      change: '—',
+      positive: true,
+      icon: ShoppingBag,
+      iconBg: 'bg-brand-50',
+      iconColor: 'text-brand-600',
+    },
+    {
+      title: 'Panier moyen',
+      value: salesData ? `${salesData.avgOrderValue.toFixed(2)}€` : '—',
+      change: '—',
+      positive: true,
+      icon: CreditCard,
+      iconBg: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+    },
+    {
+      title: 'Livraisons à l\'heure',
+      value: deliveryStats ? `${deliveryStats.onTimeRate.toFixed(0)}%` : '—',
+      change: '—',
+      positive: true,
+      icon: Users,
+      iconBg: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+    },
+  ];
+
+  // Map API revenue data to chart format (use date label as day)
+  const revenueChartData: RevenuePoint[] = revenueData.map((p) => ({
+    day: new Date(p.date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+    revenue: p.amount,
+    objectif: 2500,
+  }));
+
+  // Map API top items to display format
+  const topItemsDisplay: TopItem[] = topItems.map((item, i) => ({
+    rank: i + 1,
+    name: item.name,
+    sold: item.soldCount,
+    revenue: Math.round(item.soldCount * item.price),
+    change: 0,
+    up: true,
+  }));
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-surface-900">Analytiques</h1>
+            <p className="mt-1 text-sm text-surface-500">Chargement des données…</p>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse rounded-2xl bg-surface-100 h-28" />
+          ))}
+        </div>
+        <div className="grid gap-6 xl:grid-cols-2">
+          <div className="animate-pulse rounded-2xl bg-surface-100 h-80" />
+          <div className="animate-pulse rounded-2xl bg-surface-100 h-80" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -383,7 +488,7 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
 
       {/* KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {KPI_CARDS.map((kpi, i) => {
+        {kpiCards.map((kpi, i) => {
           const Icon = kpi.icon;
           return (
             <motion.div
@@ -417,9 +522,9 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
       <AIInsights
         scope="owner"
         period={PERIODS[period]}
-        kpis={KPI_CARDS.map((k) => ({ title: k.title, value: k.value, change: k.change }))}
-        topItems={TOP_ITEMS.map((t) => ({ name: t.name, sold: t.sold, revenue: t.revenue, change: t.change }))}
-        revenue={REVENUE_DATA}
+        kpis={kpiCards.map((k) => ({ title: k.title, value: k.value, change: k.change }))}
+        topItems={topItemsDisplay.map((t) => ({ name: t.name, sold: t.sold, revenue: t.revenue, change: t.change }))}
+        revenue={revenueChartData}
         categories={PIE_DATA}
       />
 
@@ -431,7 +536,7 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
             <CardTitle>Chiffre d&apos;affaires — 7 derniers jours</CardTitle>
           </CardHeader>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={REVENUE_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+            <AreaChart data={revenueChartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#1EFF6A" stopOpacity={0.2} />
@@ -572,7 +677,7 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
             </div>
           </CardHeader>
           <div className="divide-y divide-surface-100">
-            {TOP_ITEMS.map((item, i) => (
+            {topItemsDisplay.map((item, i) => (
               <motion.div
                 key={item.name}
                 initial={{ opacity: 0, x: -4 }}
@@ -647,10 +752,96 @@ export default function AnalyticsPage() {
   const [role, setRole] = useState<string>('owner');
   const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
 
+  // ── API state ──────────────────────────────────────────────────────────────
+  const [salesData, setSalesData] = useState<ApiSalesData | null>(null);
+  const [revenueData, setRevenueData] = useState<ApiRevenuePoint[]>([]);
+  const [topItems, setTopItems] = useState<ApiTopItem[]>([]);
+  const [deliveryStats, setDeliveryStats] = useState<ApiDeliveryStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+  const authUser = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const RESTAURANT_ID = authUser?.restaurantIds?.[0] ?? 'demo-restaurant-id';
+  const selectedPeriod = PERIOD_API_MAP[period] ?? 'week';
+
   // Detect role from cookie fs_demo
   useEffect(() => {
     setRole(parseCookieRole());
   }, []);
+
+  // ── Fetch analytics data ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (role === 'admin') {
+      setLoading(false);
+      return;
+    }
+
+    async function fetchAll() {
+      setLoading(true);
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+
+      try {
+        const [sales, revenue, items, delivery] = await Promise.allSettled([
+          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/sales`, { headers }).then((r) => r.json()),
+          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/revenue?period=${selectedPeriod}`, { headers }).then((r) => r.json()),
+          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/top-items?limit=5`, { headers }).then((r) => r.json()),
+          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/delivery-performance`, { headers }).then((r) => r.json()),
+        ]);
+
+        if (sales.status === 'fulfilled' && sales.value && !sales.value.error) {
+          setSalesData(sales.value as ApiSalesData);
+        }
+        if (revenue.status === 'fulfilled' && revenue.value && !revenue.value.error) {
+          const raw = revenue.value as { data?: Array<{ total: number; createdAt: string }> };
+          // Convert raw order list to aggregated daily revenue points
+          const dailyMap = new Map<string, number>();
+          (raw.data ?? []).forEach((o) => {
+            const day = new Date(o.createdAt).toISOString().slice(0, 10);
+            dailyMap.set(day, (dailyMap.get(day) ?? 0) + o.total);
+          });
+          const points: ApiRevenuePoint[] = Array.from(dailyMap.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([date, amount]) => ({ date, amount }));
+          setRevenueData(points);
+        }
+        if (items.status === 'fulfilled' && Array.isArray(items.value)) {
+          setTopItems(items.value as ApiTopItem[]);
+        }
+        if (delivery.status === 'fulfilled' && delivery.value && !delivery.value.error) {
+          setDeliveryStats(delivery.value as ApiDeliveryStats);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void fetchAll();
+  }, [selectedPeriod, RESTAURANT_ID, role, accessToken, API_BASE]);
+
+  // Derived data for export handlers (computed from live state)
+  const kpiCardsForExport = [
+    { title: 'Chiffre d\'affaires', value: salesData ? `${salesData.revenue.toLocaleString('fr-FR')}€` : '—', change: '—' },
+    { title: 'Commandes', value: salesData ? String(salesData.orderCount) : '—', change: '—' },
+    { title: 'Panier moyen', value: salesData ? `${salesData.avgOrderValue.toFixed(2)}€` : '—', change: '—' },
+    { title: 'Livraisons à l\'heure', value: deliveryStats ? `${deliveryStats.onTimeRate.toFixed(0)}%` : '—', change: '—' },
+  ];
+
+  const revenueDataForExport = revenueData.map((p) => ({
+    day: new Date(p.date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+    revenue: p.amount,
+    objectif: 2500,
+  }));
+
+  const topItemsForExport = topItems.map((item, i) => ({
+    rank: i + 1,
+    name: item.name,
+    sold: item.soldCount,
+    revenue: Math.round(item.soldCount * item.price),
+    change: 0,
+    up: true,
+  }));
 
   // ── Export handlers ──────────────────────────────────────────────────────────
 
@@ -715,7 +906,7 @@ export default function AnalyticsPage() {
       autoTable(doc, {
         startY: 57,
         head: [['Indicateur', 'Valeur', 'Évolution']],
-        body: KPI_CARDS.map((k) => [k.title, k.value, k.change]),
+        body: kpiCardsForExport.map((k) => [k.title, k.value, k.change]),
         styles: { fontSize: 10, cellPadding: 4 },
         headStyles: { fillColor: [30, 255, 106], textColor: [0, 0, 0], fontStyle: 'bold' },
         didParseCell: (data) => {
@@ -735,7 +926,7 @@ export default function AnalyticsPage() {
       autoTable(doc, {
         startY: afterKpi + 5,
         head: [['Jour', 'CA (€)', 'Objectif (€)', 'Atteint']],
-        body: REVENUE_DATA.map((d) => [
+        body: revenueDataForExport.map((d) => [
           d.day,
           d.revenue.toLocaleString('fr-FR'),
           d.objectif.toLocaleString('fr-FR'),
@@ -777,12 +968,12 @@ export default function AnalyticsPage() {
       const kpiSection = formatSection(
         `Analytics FoodStack — Période : ${periodLabel}`,
         ['Indicateur', 'Valeur', 'Évolution'],
-        KPI_CARDS.map((k) => [k.title, k.value, k.change]),
+        kpiCardsForExport.map((k) => [k.title, k.value, k.change]),
       );
       const revenueSection = formatSection(
         'CA par jour',
         ['Jour', 'CA (€)', 'Objectif (€)'],
-        REVENUE_DATA.map((d) => [d.day, String(d.revenue), String(d.objectif)]),
+        revenueDataForExport.map((d) => [d.day, String(d.revenue), String(d.objectif)]),
       );
       csv = [kpiSection, '', revenueSection].join('\n');
       filename = `analytics-foodstack-${periodLabel}.csv`;
@@ -817,15 +1008,15 @@ export default function AnalyticsPage() {
     } else {
       const kpiSheet = XLSX.utils.aoa_to_sheet([
         ['Indicateur', 'Valeur', 'Évolution'],
-        ...KPI_CARDS.map((k) => [k.title, k.value, k.change]),
+        ...kpiCardsForExport.map((k) => [k.title, k.value, k.change]),
       ]);
       const revenueSheet = XLSX.utils.aoa_to_sheet([
         ['Jour', 'CA (€)', 'Objectif (€)', 'Atteint'],
-        ...REVENUE_DATA.map((d) => [d.day, d.revenue, d.objectif, d.revenue >= d.objectif ? 'Oui' : 'Non']),
+        ...revenueDataForExport.map((d) => [d.day, d.revenue, d.objectif, d.revenue >= d.objectif ? 'Oui' : 'Non']),
       ]);
       const topSheet = XLSX.utils.aoa_to_sheet([
         ['Rang', 'Article', 'Vendus', 'CA (€)', 'Évolution (%)'],
-        ...TOP_ITEMS.map((t) => [t.rank, t.name, t.sold, t.revenue, `${t.up ? '+' : ''}${t.change}%`]),
+        ...topItemsForExport.map((t) => [t.rank, t.name, t.sold, t.revenue, `${t.up ? '+' : ''}${t.change}%`]),
       ]);
       XLSX.utils.book_append_sheet(wb, kpiSheet, 'KPIs');
       XLSX.utils.book_append_sheet(wb, revenueSheet, 'CA par jour');
@@ -845,6 +1036,11 @@ export default function AnalyticsPage() {
           onExportCSV={handleExportCSV}
           onExportPDF={handleExportPDF}
           onExportXLSX={handleExportXLSX}
+          salesData={salesData}
+          revenueData={revenueData}
+          topItems={topItems}
+          deliveryStats={deliveryStats}
+          loading={loading}
         />
       )}
     </div>

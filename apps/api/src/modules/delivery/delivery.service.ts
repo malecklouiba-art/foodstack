@@ -37,11 +37,31 @@ export class DeliveryService {
   async updateDeliveryStatus(orderId: string, dto: UpdateDeliveryStatusDto) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException(`Order #${orderId} not found`);
-    // TODO: Validate allowed status transitions
+
+    const currentStatus = order.status as string;
+    const newStatus = dto.status as string;
+
+    const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
+    if (!allowed.includes(newStatus)) {
+      throw new BadRequestException(
+        `Cannot transition from ${currentStatus} to ${newStatus}`,
+      );
+    }
+
     // TODO: Notify customer via push/SMS when status changes to EN_ROUTE or DELIVERED
+    const updateData: Record<string, unknown> = { status: newStatus };
+
+    if (newStatus === 'PICKED_UP') {
+      updateData.actualPickupAt = new Date();
+    }
+
+    if (newStatus === 'DELIVERED') {
+      updateData.actualDeliveryTime = new Date();
+    }
+
     return this.prisma.order.update({
       where: { id: orderId },
-      data: { status: dto.status as any },
+      data: updateData as any,
     });
   }
 

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { PrismaService } from '../../database/prisma.service';
 import { DeliveryStatus, UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
@@ -136,30 +136,17 @@ describe('DeliveryService', () => {
     // to be updated to expect BadRequestException for invalid transitions.
 
     it('[future] ASSIGNED → DELIVERED should be an invalid transition', async () => {
-      // When status-transition validation is added, this test should be updated
-      // to expect BadRequestException. For now we document the intent.
       mockPrisma.order.findUnique.mockResolvedValue(makeOrder('ASSIGNED'));
-      mockPrisma.order.update.mockResolvedValue({ ...makeOrder('ASSIGNED'), status: 'DELIVERED' });
 
-      // Current (no-guard) behaviour: update goes through.
-      // Future expectation after guard:
-      //   await expect(service.updateDeliveryStatus('order_1', { status: DeliveryStatus.DELIVERED }))
-      //     .rejects.toThrow(BadRequestException);
-      const result = await service.updateDeliveryStatus('order_1', {
-        status: DeliveryStatus.DELIVERED,
-      });
-      expect(mockPrisma.order.update).toHaveBeenCalled(); // guard not yet in place
-      // Suppress unused-result lint — intentional pending test
-      void result;
+      await expect(service.updateDeliveryStatus('order_1', { status: DeliveryStatus.DELIVERED }))
+        .rejects.toThrow(BadRequestException);
     });
 
     it('[future] DELIVERED → ASSIGNED should be an invalid transition', async () => {
       mockPrisma.order.findUnique.mockResolvedValue(makeOrder('DELIVERED'));
-      mockPrisma.order.update.mockResolvedValue({ ...makeOrder('DELIVERED'), status: 'ASSIGNED' });
 
-      // Current (no-guard) behaviour: update goes through.
-      await service.updateDeliveryStatus('order_1', { status: DeliveryStatus.ASSIGNED });
-      expect(mockPrisma.order.update).toHaveBeenCalled();
+      await expect(service.updateDeliveryStatus('order_1', { status: DeliveryStatus.ASSIGNED }))
+        .rejects.toThrow(BadRequestException);
     });
   });
 

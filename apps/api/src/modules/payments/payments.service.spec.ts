@@ -12,8 +12,11 @@ const mockPaymentIntentsRetrieve = jest.fn();
 const mockRefundsCreate = jest.fn();
 const mockWebhooksConstructEvent = jest.fn();
 
+// The factory must return an object with __esModule + default so that
+// TypeScript's compiled `import Stripe from 'stripe'` resolves correctly
+// under ts-jest (commonjs / allowSyntheticDefaultImports without esModuleInterop).
 jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
+  const mockConstructor = jest.fn().mockImplementation(() => ({
     paymentIntents: {
       create: mockPaymentIntentsCreate,
       retrieve: mockPaymentIntentsRetrieve,
@@ -25,6 +28,7 @@ jest.mock('stripe', () => {
       constructEvent: mockWebhooksConstructEvent,
     },
   }));
+  return { __esModule: true, default: mockConstructor };
 });
 
 // ---------------------------------------------------------------------------

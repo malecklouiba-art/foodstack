@@ -52,7 +52,7 @@ export function StripeCardForm({
             style: {
               base: {
                 fontSize: '16px',
-                color: '#18181b',
+                color: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#f4f4f5' : '#18181b',
                 '::placeholder': { color: '#a1a1aa' },
                 backgroundColor: 'transparent',
               },

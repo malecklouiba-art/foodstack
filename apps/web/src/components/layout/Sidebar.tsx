@@ -193,7 +193,7 @@ export function Sidebar() {
                       <>
                         <span className="flex-1">{item.label}</span>
                         {item.badge !== undefined && (
-                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 px-1.5 text-xs font-bold text-white">
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/20 dark:bg-surface-700 px-1.5 text-xs font-bold text-white dark:text-surface-100">
                             {item.badge}
                           </span>
                         )}
