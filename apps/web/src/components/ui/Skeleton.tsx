@@ -9,7 +9,7 @@ export function Skeleton({ className, rounded = 'md' }: SkeletonProps) {
   return (
     <div
       className={clsx(
-        'animate-pulse bg-surface-200',
+        'animate-pulse bg-surface-200 dark:bg-surface-700',
         {
           'rounded-sm': rounded === 'sm',
           'rounded-lg': rounded === 'md',
@@ -37,7 +37,7 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white p-6">
+    <div className="rounded-2xl border border-surface-200 bg-white p-6 dark:border-surface-700 dark:bg-surface-800">
       <Skeleton className="mb-4 h-6 w-1/2" />
       <SkeletonText lines={3} />
     </div>

@@ -13,10 +13,10 @@ export interface FeedEvent {
 }
 
 const TYPE_STYLE = {
-  order_new:     { bg: 'bg-brand-50',  dot: 'bg-brand-500',  text: 'text-brand-700' },
-  order_status:  { bg: 'bg-blue-50',   dot: 'bg-blue-500',   text: 'text-blue-700' },
-  inventory_low: { bg: 'bg-red-50',    dot: 'bg-red-500',    text: 'text-red-700' },
-  delivery:      { bg: 'bg-green-50',  dot: 'bg-green-500',  text: 'text-green-700' },
+  order_new:     { bg: 'bg-brand-50 dark:bg-brand-950/30',  dot: 'bg-brand-500',  text: 'text-brand-700 dark:text-brand-400' },
+  order_status:  { bg: 'bg-blue-50 dark:bg-blue-950/30',   dot: 'bg-blue-500',   text: 'text-blue-700 dark:text-blue-400' },
+  inventory_low: { bg: 'bg-red-50 dark:bg-red-950/30',    dot: 'bg-red-500',    text: 'text-red-700 dark:text-red-400' },
+  delivery:      { bg: 'bg-green-50 dark:bg-green-950/30',  dot: 'bg-green-500',  text: 'text-green-700 dark:text-green-400' },
 };
 
 const TYPE_EMOJI = {
@@ -48,12 +48,12 @@ export function LiveFeed({ events }: Props) {
 
   return (
     <Card padding="none" className="flex h-full flex-col">
-      <CardHeader className="border-b border-surface-100 px-6 py-5">
+      <CardHeader className="border-b border-surface-100 px-6 py-5 dark:border-surface-700">
         <div className="flex items-center justify-between">
           <CardTitle>Activité en direct</CardTitle>
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-            <span className="text-xs font-medium text-green-700">Live</span>
+            <span className="text-xs font-medium text-green-700 dark:text-green-400">Live</span>
           </div>
         </div>
       </CardHeader>
@@ -79,9 +79,9 @@ export function LiveFeed({ events }: Props) {
                 <span className="text-base leading-none">{TYPE_EMOJI[ev.type]}</span>
                 <div className="min-w-0 flex-1">
                   <p className={`text-xs font-semibold ${s.text}`}>{ev.message}</p>
-                  {ev.detail && <p className="mt-0.5 text-xs text-surface-500 truncate">{ev.detail}</p>}
+                  {ev.detail && <p className="mt-0.5 text-xs text-surface-500 dark:text-surface-400 truncate">{ev.detail}</p>}
                 </div>
-                <span className="shrink-0 text-xs text-surface-400">{timeAgo(ev.ts)}</span>
+                <span className="shrink-0 text-xs text-surface-400 dark:text-surface-500">{timeAgo(ev.ts)}</span>
               </motion.div>
             );
           })}

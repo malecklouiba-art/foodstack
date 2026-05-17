@@ -103,7 +103,7 @@
 | Navbar (desktop) | ✅ | Blanc, responsive |
 | Sidebar dashboard repliable | ✅ | |
 | Framer Motion animations | ✅ | Sur menu, cart, tracking |
-| Mode sombre (dark mode) | ❌ | Tailwind `dark:` classes à ajouter |
+| Mode sombre (dark mode) | 🔄 | ThemeProvider + toggle OK, classes dark: sur composants principaux |
 | Design system complet (Storybook) | ❌ | |
 
 ### Pages customer

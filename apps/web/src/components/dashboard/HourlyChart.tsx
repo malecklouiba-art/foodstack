@@ -41,10 +41,10 @@ export function HourlyChart({ liveOrderCount = 0 }: Props) {
 
   return (
     <Card padding="none">
-      <CardHeader className="border-b border-surface-100 px-6 py-5">
+      <CardHeader className="border-b border-surface-100 px-6 py-5 dark:border-surface-700">
         <div className="flex items-center justify-between">
           <CardTitle>Commandes par heure</CardTitle>
-          <span className="text-xs text-surface-400">Heure de pointe · {peak} cmd</span>
+          <span className="text-xs text-surface-400 dark:text-surface-500">Heure de pointe · {peak} cmd</span>
         </div>
       </CardHeader>
       <div className="px-6 pb-6 pt-4">

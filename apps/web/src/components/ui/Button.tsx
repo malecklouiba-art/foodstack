@@ -29,12 +29,16 @@ const variantClasses: Record<ButtonVariant, string> = {
     'hover:bg-surface-800',
     'active:bg-surface-700',
     'disabled:bg-surface-400',
+    'dark:bg-surface-700 dark:hover:bg-surface-600',
   ].join(' '),
   ghost: [
     'bg-transparent text-surface-700 border border-surface-200',
     'hover:bg-surface-100 hover:text-surface-900',
     'active:bg-surface-200',
     'disabled:text-surface-400',
+    'dark:text-surface-300 dark:border-surface-700',
+    'dark:hover:bg-surface-800 dark:hover:text-surface-100',
+    'dark:active:bg-surface-700',
   ].join(' '),
   danger: [
     'bg-red-500 text-white',

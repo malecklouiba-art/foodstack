@@ -77,19 +77,19 @@ export function RevenueChart({ extraRevenue = 0 }: Props) {
 
   return (
     <Card padding="none">
-      <CardHeader className="border-b border-surface-100 px-6 py-5">
+      <CardHeader className="border-b border-surface-100 px-6 py-5 dark:border-surface-700">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-4">
             <div>
-              <p className="text-2xl font-bold text-surface-900">
+              <p className="text-2xl font-bold text-surface-900 dark:text-white">
                 {Math.round(total).toLocaleString('fr-FR')}€
               </p>
-              <p className="text-xs text-surface-500">
+              <p className="text-xs text-surface-500 dark:text-surface-400">
                 {totalOrders} commandes · moy. {Math.round(avg).toLocaleString('fr-FR')}€
               </p>
             </div>
             <div className={`flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold ${
-              trend >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+              trend >= 0 ? 'bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400' : 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400'
             }`}>
               {trend >= 0
                 ? <TrendingUp className="h-3.5 w-3.5" />
@@ -98,15 +98,15 @@ export function RevenueChart({ extraRevenue = 0 }: Props) {
             </div>
           </div>
           {/* Period selector */}
-          <div className="flex rounded-xl border border-surface-200 bg-surface-50 p-0.5">
+          <div className="flex rounded-xl border border-surface-200 bg-surface-50 p-0.5 dark:border-surface-700 dark:bg-surface-800">
             {PERIODS.map((p) => (
               <button
                 key={p.key}
                 onClick={() => setPeriod(p.key)}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   period === p.key
-                    ? 'bg-white text-surface-900 shadow-sm'
-                    : 'text-surface-500 hover:text-surface-700'
+                    ? 'bg-white text-surface-900 shadow-sm dark:bg-surface-700 dark:text-white'
+                    : 'text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-surface-200'
                 }`}
               >
                 {p.label}
@@ -144,7 +144,7 @@ export function RevenueChart({ extraRevenue = 0 }: Props) {
               dot={false} activeDot={{ r: 3, fill: '#60a5fa' }} />
           </AreaChart>
         </ResponsiveContainer>
-        <div className="mt-3 flex items-center gap-5 text-xs text-surface-500">
+        <div className="mt-3 flex items-center gap-5 text-xs text-surface-500 dark:text-surface-400">
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-brand-500" />Revenus
           </span>
