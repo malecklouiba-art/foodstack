@@ -140,12 +140,12 @@ export function Sidebar() {
   return (
     <aside
       className={clsx(
-        'relative flex h-full flex-col bg-zinc-900 transition-all duration-300',
+        'relative flex h-full flex-col bg-zinc-900 dark:bg-surface-900 dark:border-r dark:border-surface-700 transition-all duration-300',
         collapsed ? 'w-16' : 'w-64'
       )}
     >
       {/* Logo */}
-      <div className={clsx('flex h-16 items-center border-b border-white/10 px-4', collapsed && 'justify-center')}>
+      <div className={clsx('flex h-16 items-center border-b border-white/10 dark:border-surface-700 px-4', collapsed && 'justify-center')}>
         {collapsed ? (
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20">
             <span className="text-sm font-bold text-white">F</span>
@@ -165,7 +165,7 @@ export function Sidebar() {
         {sections.map((section) => (
           <div key={section} className="mb-4">
             {!collapsed && (
-              <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-white/50">
+              <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wider text-white/50 dark:text-surface-500">
                 {section}
               </p>
             )}
@@ -179,8 +179,8 @@ export function Sidebar() {
                     className={clsx(
                       'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive(item.href)
-                        ? 'bg-brand-500/20 text-brand-400 font-semibold'
-                        : 'text-white/70 hover:bg-white/10 hover:text-white',
+                        ? 'bg-brand-500/20 text-brand-400 font-semibold dark:bg-brand-950 dark:text-brand-400'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100',
                       collapsed && 'justify-center px-2'
                     )}
                     title={collapsed ? item.label : undefined}
@@ -207,13 +207,13 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="border-t border-white/10 p-3 space-y-1">
+      <div className="border-t border-white/10 dark:border-surface-700 p-3 space-y-1">
         {/* Theme + Locale toggles */}
         <div className={`flex items-center gap-1 ${collapsed ? 'flex-col' : ''}`}>
-          <ThemeToggle className="flex-1 text-white/50 hover:bg-white/10 hover:text-white" />
+          <ThemeToggle className="flex-1 text-white/50 hover:bg-white/10 hover:text-white dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100" />
           <button
             onClick={toggleLocale}
-            className="flex flex-1 items-center gap-2 rounded-xl px-3 py-1.5 text-white/50 hover:bg-white/10 hover:text-white transition-colors text-xs font-medium"
+            className="flex flex-1 items-center gap-2 rounded-xl px-3 py-1.5 text-white/50 hover:bg-white/10 hover:text-white dark:text-surface-400 dark:hover:bg-surface-800 dark:hover:text-surface-100 transition-colors text-xs font-medium"
             title="Switch language"
           >
             <Globe className="h-3.5 w-3.5 flex-shrink-0" />
@@ -222,16 +222,16 @@ export function Sidebar() {
         </div>
         {/* Account switcher dropdown */}
         {showSwitcher && !collapsed && (
-          <div className="mb-2 rounded-xl border border-white/10 bg-white/10 p-1.5 space-y-0.5">
+          <div className="mb-2 rounded-xl border border-white/10 dark:border-surface-700 bg-white/10 dark:bg-surface-800 p-1.5 space-y-0.5">
             {DEMO_ACCOUNTS.filter(a => a.role !== currentRole).map((account) => (
               <button
                 key={account.role}
                 onClick={() => handleSwitch(account)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-white/80 hover:bg-white/10 transition-all"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-white/80 dark:text-surface-200 hover:bg-white/10 dark:hover:bg-surface-700 transition-all"
               >
                 <span className="text-base">{account.emoji}</span>
                 <span className="font-medium">{account.label}</span>
-                <RefreshCw className="ml-auto h-3 w-3 text-white/40" />
+                <RefreshCw className="ml-auto h-3 w-3 text-white/40 dark:text-surface-500" />
               </button>
             ))}
           </div>
@@ -242,23 +242,23 @@ export function Sidebar() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSwitcher(s => !s)}
-              className="flex flex-1 items-center gap-2.5 rounded-xl p-2 hover:bg-white/10 transition-colors min-w-0"
+              className="flex flex-1 items-center gap-2.5 rounded-xl p-2 hover:bg-white/10 dark:hover:bg-surface-800 transition-colors min-w-0"
             >
-              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold text-white">
+              <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-white/20 dark:bg-surface-700 text-xs font-bold text-white dark:text-surface-100">
                 {(ROLE_NAMES[currentRole ?? '']?.label ?? 'U')[0]}
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="truncate text-sm font-medium text-white">
+                <p className="truncate text-sm font-medium text-white dark:text-surface-100">
                   {ROLE_NAMES[currentRole ?? '']?.emoji} {ROLE_NAMES[currentRole ?? '']?.label ?? 'Démo'}
                 </p>
-                <p className="truncate text-xs text-white/50">{currentRole ?? 'demo'}</p>
+                <p className="truncate text-xs text-white/50 dark:text-surface-500">{currentRole ?? 'demo'}</p>
               </div>
-              <ChevronUp className={clsx('h-3.5 w-3.5 flex-shrink-0 text-white/40 transition-transform', !showSwitcher && 'rotate-180')} />
+              <ChevronUp className={clsx('h-3.5 w-3.5 flex-shrink-0 text-white/40 dark:text-surface-500 transition-transform', !showSwitcher && 'rotate-180')} />
             </button>
             <button
               onClick={handleLogout}
               title="Se déconnecter"
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-white/50 hover:bg-white/20 hover:text-white transition-colors"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-white/50 hover:bg-white/20 hover:text-white dark:text-surface-400 dark:hover:bg-surface-700 dark:hover:text-surface-100 transition-colors"
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -267,7 +267,7 @@ export function Sidebar() {
           <button
             onClick={handleLogout}
             title="Se déconnecter"
-            className="flex w-full items-center justify-center rounded-xl py-2 text-white/50 hover:bg-white/20 hover:text-white transition-colors"
+            className="flex w-full items-center justify-center rounded-xl py-2 text-white/50 hover:bg-white/20 hover:text-white dark:text-surface-400 dark:hover:bg-surface-700 dark:hover:text-surface-100 transition-colors"
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -277,12 +277,12 @@ export function Sidebar() {
       {/* Collapse toggle */}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 bg-zinc-900 shadow-sm hover:bg-zinc-800"
+        className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-white/20 dark:border-surface-600 bg-zinc-900 dark:bg-surface-900 shadow-sm hover:bg-zinc-800 dark:hover:bg-surface-800"
       >
         {collapsed ? (
-          <ChevronRight className="h-3 w-3 text-white/60" />
+          <ChevronRight className="h-3 w-3 text-white/60 dark:text-surface-400" />
         ) : (
-          <ChevronLeft className="h-3 w-3 text-white/60" />
+          <ChevronLeft className="h-3 w-3 text-white/60 dark:text-surface-400" />
         )}
       </button>
     </aside>

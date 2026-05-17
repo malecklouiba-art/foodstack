@@ -46,7 +46,7 @@ export function StripeCardForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-xl border border-surface-200 bg-white p-4">
+      <div className="rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-800 p-4">
         <CardElement
           options={{
             style: {
@@ -54,6 +54,7 @@ export function StripeCardForm({
                 fontSize: '16px',
                 color: '#18181b',
                 '::placeholder': { color: '#a1a1aa' },
+                backgroundColor: 'transparent',
               },
             },
           }}

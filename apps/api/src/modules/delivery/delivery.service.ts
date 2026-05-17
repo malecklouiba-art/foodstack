@@ -1,6 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  'ASSIGNED': ['EN_ROUTE', 'PICKED_UP'],
+  'PICKED_UP': ['EN_ROUTE'],
+  'EN_ROUTE': ['DELIVERED'],
+  'DELIVERED': [],
+  'FAILED': [],
+};
 
 @Injectable()
 export class DeliveryService {

@@ -62,13 +62,13 @@ export function CategoryModal({ open, onClose, onSave, initial }: CategoryModalP
           onChange={(e) => set('name', e.target.value)}
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-surface-700">Description</label>
+          <label className="text-sm font-medium text-surface-700 dark:text-surface-300">Description</label>
           <textarea
             rows={2}
             placeholder="Description courte (optionnel)"
             value={form.description ?? ''}
             onChange={(e) => set('description', e.target.value)}
-            className="w-full resize-none rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm text-surface-900 placeholder:text-surface-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            className="w-full resize-none rounded-xl border border-surface-200 dark:border-surface-600 bg-white dark:bg-surface-800 px-3 py-2 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 dark:placeholder:text-surface-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -92,7 +92,7 @@ export function CategoryModal({ open, onClose, onSave, initial }: CategoryModalP
           >
             <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ${form.isActive ? 'translate-x-6' : 'translate-x-1'}`} />
           </div>
-          <span className="text-sm font-medium text-surface-700">Catégorie active</span>
+          <span className="text-sm font-medium text-surface-700 dark:text-surface-300">Catégorie active</span>
         </label>
       </form>
     </Modal>

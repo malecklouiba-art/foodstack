@@ -5,11 +5,10 @@ import {
   Headers,
   RawBodyRequest,
   Req,
+  HttpCode,
   UseGuards,
-  BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import Stripe from 'stripe';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
@@ -47,23 +46,12 @@ export class PaymentsController {
   }
 
   @Post('webhook')
+  @HttpCode(200)
   @ApiOperation({ summary: 'Stripe webhook handler — do not call directly' })
-  async handleWebhook(
-    @Headers('stripe-signature') signature: string,
+  async webhook(
     @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') signature: string,
   ) {
-    // TODO: Move secret to ConfigService
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? '';
-    if (!webhookSecret) {
-      throw new BadRequestException('Stripe webhook secret is not configured');
-    }
-    let event: Stripe.Event;
-    try {
-      const stripe = new (require('stripe'))(process.env.STRIPE_SECRET_KEY ?? '');
-      event = stripe.webhooks.constructEvent(req.rawBody, signature, webhookSecret);
-    } catch {
-      throw new BadRequestException('Webhook signature verification failed');
-    }
-    return this.paymentsService.handleWebhook(event);
+    return this.paymentsService.handleWebhook(req.rawBody, signature);
   }
 }

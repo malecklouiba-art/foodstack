@@ -13,28 +13,61 @@ import {
 } from 'recharts';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { AIInsights } from '@/components/analytics/AIInsights';
+import { createClient } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth';
 import type {} from 'jspdf-autotable';
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const PERIODS = ['7j', '30j', '90j', 'Année'];
 
-const REVENUE_DATA = [
-  { day: 'Lun', revenue: 1840, objectif: 2500 },
-  { day: 'Mar', revenue: 2230, objectif: 2500 },
-  { day: 'Mer', revenue: 1960, objectif: 2500 },
-  { day: 'Jeu', revenue: 2650, objectif: 2500 },
-  { day: 'Ven', revenue: 3100, objectif: 2500 },
-  { day: 'Sam', revenue: 3800, objectif: 2500 },
-  { day: 'Dim', revenue: 2870, objectif: 2500 },
-];
+// Maps UI period index → API period param
+const PERIOD_API_MAP: Record<number, 'day' | 'week' | 'month'> = {
+  0: 'week',
+  1: 'month',
+  2: 'month',
+  3: 'month',
+};
 
-const KPI_CARDS = [
-  { title: 'CA total',        value: '18 450€', change: '+14.2%', positive: true,  icon: Euro,        iconBg: 'bg-green-50 dark:bg-green-900/20',  iconColor: 'text-green-600 dark:text-green-400' },
-  { title: 'Nb commandes',    value: '312',      change: '+8.7%',  positive: true,  icon: ShoppingBag, iconBg: 'bg-brand-50',  iconColor: 'text-brand-600' },
-  { title: 'Panier moyen',    value: '59.13€',   change: '+5.1%',  positive: true,  icon: TrendingUp,  iconBg: 'bg-blue-50 dark:bg-blue-900/20',   iconColor: 'text-blue-600 dark:text-blue-400' },
-  { title: 'Nouveaux clients',value: '47',       change: '-3.2%',  positive: false, icon: Users,       iconBg: 'bg-purple-50 dark:bg-purple-900/20', iconColor: 'text-purple-600 dark:text-purple-400' },
-];
+const PIE_COLORS = ['#1EFF6A', '#42ff7b', '#70ff98', '#abffbe'];
+
+const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const HOURS = ['8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h'];
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface SalesData {
+  revenue: number;
+  orderCount: number;
+  avgOrderValue: number;
+}
+
+interface RevenuePoint {
+  day: string;
+  revenue: number;
+  objectif: number;
+}
+
+interface TopItem {
+  rank: number;
+  name: string;
+  sold: number;
+  revenue: number;
+  change: number;
+  up: boolean;
+}
+
+interface KpiCard {
+  title: string;
+  value: string;
+  change: string;
+  positive: boolean;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+}
+
+// ── Static data (kept for admin/platform view) ─────────────────────────────────
 
 const PIE_DATA = [
   { name: 'Plats principaux', value: 45 },
@@ -42,11 +75,6 @@ const PIE_DATA = [
   { name: 'Desserts',         value: 18 },
   { name: 'Boissons',         value: 17 },
 ];
-
-const PIE_COLORS = ['#1EFF6A', '#42ff7b', '#70ff98', '#abffbe'];
-
-const DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-const HOURS = ['8h', '10h', '12h', '14h', '16h', '18h', '20h', '22h'];
 
 const HEATMAP: Record<string, number[]> = {
   Lun: [2, 4, 18, 12,  8, 10, 14,  5],
@@ -60,15 +88,7 @@ const HEATMAP: Record<string, number[]> = {
 
 const MAX_HEATMAP = 42;
 
-const TOP_ITEMS = [
-  { rank: 1, name: 'Burger Classique',   sold: 234, revenue: 2808, change: +12.3, up: true  },
-  { rank: 2, name: 'Salade César',       sold: 187, revenue: 1683, change: +5.7,  up: true  },
-  { rank: 3, name: 'Pizza Margherita',   sold: 156, revenue: 1716, change: -2.1,  up: false },
-  { rank: 4, name: 'Tiramisu',           sold: 143, revenue: 858,  change: +8.4,  up: true  },
-  { rank: 5, name: 'Limonade maison',    sold: 198, revenue: 594,  change: -4.5,  up: false },
-];
-
-// ── Platform (admin) mock data ─────────────────────────────────────────────────
+// ── Platform (admin) data — no dedicated API yet, kept as static ───────────────
 
 const PLATFORM_KPI = [
   { title: 'CA Plateforme',           value: '248 600€', change: '+21.4%', positive: true,  icon: Euro,        iconBg: 'bg-green-50',   iconColor: 'text-green-600',   desc: 'Somme des abonnements' },

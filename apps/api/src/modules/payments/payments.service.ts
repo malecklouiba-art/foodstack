@@ -1,62 +1,82 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { PrismaService } from '../../database/prisma.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
-import { OrdersService } from '../orders/orders.service';
-import { OrderStatus } from '../orders/dto/update-order-status.dto';
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe: Stripe;
+  private stripe: Stripe;
 
-  constructor(private readonly orders: OrdersService) {
-    // TODO: Inject ConfigService and use process.env.STRIPE_SECRET_KEY via ConfigModule
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-      apiVersion: '2024-04-10' as any,
-    });
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
+    this.stripe = new Stripe(
+      this.configService.get<string>('STRIPE_SECRET_KEY') ?? 'sk_test_placeholder',
+      {
+        apiVersion: '2024-12-18.acacia',
+      },
+    );
   }
 
   async createPaymentIntent(dto: CreatePaymentIntentDto) {
-    // TODO: Store payment intent record in the database linked to the order
-    // TODO: Idempotency key based on orderId to prevent duplicate charges
-    const intent = await this.stripe.paymentIntents.create({
-      amount: dto.amount,
-      currency: dto.currency,
-      customer: dto.customerId,
-      metadata: { orderId: dto.orderId },
-    });
-    return {
-      clientSecret: intent.client_secret,
-      paymentIntentId: intent.id,
-    };
+    // Créer le PaymentIntent Stripe
+    const intent = await this.stripe.paymentIntents.create(
+      {
+        amount: Math.round(dto.amount * 100), // centimes
+        currency: dto.currency ?? 'eur',
+        metadata: { orderId: dto.orderId ?? '', customerId: dto.customerId ?? '' },
+      },
+      dto.orderId ? { idempotencyKey: `order_${dto.orderId}` } : undefined,
+    );
+
+    // Si orderId fourni, mettre à jour l'order en DB
+    if (dto.orderId) {
+      await this.prisma.order.update({
+        where: { id: dto.orderId },
+        data: { stripePaymentIntentId: intent.id },
+      });
+    }
+
+    return { clientSecret: intent.client_secret, paymentIntentId: intent.id };
   }
 
   async confirmPayment(paymentIntentId: string) {
-    // TODO: Update corresponding order payment status in the database
     const intent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
-    if (intent.status !== 'succeeded') {
-      throw new BadRequestException(`Payment intent status is ${intent.status}, not succeeded`);
-    }
-    return { paymentIntentId, status: intent.status };
+    return { status: intent.status };
   }
 
   async refund(paymentIntentId: string, amount?: number) {
-    // TODO: Update order payment status to REFUNDED in the database
-    // TODO: Validate that amount does not exceed the original charge
     const refund = await this.stripe.refunds.create({
       payment_intent: paymentIntentId,
-      ...(amount !== undefined && { amount }),
+      ...(amount ? { amount: Math.round(amount * 100) } : {}),
     });
-    return { refundId: refund.id, status: refund.status, amount: refund.amount };
+    return { refundId: refund.id, status: refund.status };
   }
 
-  async handleWebhook(event: Stripe.Event) {
-    // TODO: Verify webhook signature using stripe.webhooks.constructEvent before calling this
+  async handleWebhook(rawBody: Buffer, signature: string) {
+    let event: Stripe.Event;
+
+    try {
+      event = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.configService.get<string>('STRIPE_WEBHOOK_SECRET') ?? '',
+      );
+    } catch (err) {
+      throw new BadRequestException(`Webhook Error: ${(err as Error).message}`);
+    }
+
     switch (event.type) {
       case 'payment_intent.succeeded': {
         const intent = event.data.object as Stripe.PaymentIntent;
         const orderId = intent.metadata?.orderId;
         if (orderId) {
-          await this.orders.updateStatus(orderId, { status: OrderStatus.CONFIRMED });
+          await this.prisma.order.update({
+            where: { id: orderId },
+            data: { paymentStatus: 'paid', status: 'confirmed' },
+          });
         }
         break;
       }
@@ -64,17 +84,26 @@ export class PaymentsService {
         const intent = event.data.object as Stripe.PaymentIntent;
         const orderId = intent.metadata?.orderId;
         if (orderId) {
-          await this.orders.updateStatus(orderId, { status: OrderStatus.CANCELLED });
+          await this.prisma.order.update({
+            where: { id: orderId },
+            data: { paymentStatus: 'failed' },
+          });
         }
         break;
       }
-      case 'charge.refunded':
-        // Logged — order status managed separately via refund endpoint
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        const orderId = charge.metadata?.orderId;
+        if (orderId) {
+          await this.prisma.order.update({
+            where: { id: orderId },
+            data: { paymentStatus: 'refunded', status: 'refunded' },
+          });
+        }
         break;
-      default:
-        // Unhandled event type — log and ignore
-        break;
+      }
     }
+
     return { received: true };
   }
 }
