@@ -69,7 +69,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       // 3. Subscribe to push
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
       });
 
       const subJson = sub.toJSON() as {

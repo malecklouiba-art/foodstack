@@ -53,7 +53,7 @@ uploads/
 
 # Docker
 docker-data/
-next-env.d.ts
+# next-env.d.ts is committed intentionally (apps/web/next-env.d.ts)
 
 # External repos cloned locally
 superpowers/
