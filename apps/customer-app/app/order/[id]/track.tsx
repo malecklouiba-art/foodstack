@@ -1,10 +1,11 @@
-import { useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useRef, useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Circle, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useTrackOrder } from '@/hooks/useTrackOrder';
+import { useApi } from '@/hooks/useApi';
 
 type StepStatus = 'done' | 'active' | 'pending';
 
@@ -32,31 +33,87 @@ function stepStatus(stepKey: string, currentStep: string): StepStatus {
   return 'pending';
 }
 
-// Mock destination — in production comes from the order data
-const DEST = { latitude: 48.8738, longitude: 2.3320 };
+interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
+interface OrderDetail {
+  status?: string;
+  deliveryAddress?: {
+    lat?: number;
+    lng?: number;
+    latitude?: number;
+    longitude?: number;
+    address?: string;
+  };
+  // Some APIs embed coords directly
+  lat?: number;
+  lng?: number;
+}
+
+// Fallback destination if order data doesn't have coords
+const FALLBACK_DEST: Coordinates = { latitude: 48.8566, longitude: 2.3522 };
 
 export default function TrackOrderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const api = useApi();
   const { status, driverLocation, connected } = useTrackOrder(id ?? null);
   const mapRef = useRef<MapView>(null);
 
-  const currentStep = status ?? 'delivering';
+  const [dest, setDest] = useState<Coordinates | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
+  const [loadingOrder, setLoadingOrder] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+
+    let cancelled = false;
+    api.get<OrderDetail>(`/api/v1/orders/${id}`)
+      .then((order) => {
+        if (cancelled) return;
+        // Extract delivery coordinates
+        const da = order.deliveryAddress;
+        const lat = da?.lat ?? da?.latitude ?? order.lat;
+        const lng = da?.lng ?? da?.longitude ?? order.lng;
+        if (lat != null && lng != null) {
+          setDest({ latitude: lat, longitude: lng });
+        } else {
+          setDest(FALLBACK_DEST);
+        }
+        if (order.status) setOrderStatus(order.status);
+      })
+      .catch(() => {
+        if (!cancelled) setDest(FALLBACK_DEST);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingOrder(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Prefer real-time status from socket, fall back to REST response
+  const currentStep = status ?? orderStatus ?? 'delivering';
   const currentStepData = STEPS.find((s) => s.key === currentStep) ?? STEPS[3];
 
   const driverCoord = driverLocation
     ? { latitude: driverLocation.lat, longitude: driverLocation.lng }
     : null;
 
-  // Animate map to driver position when it updates
   const handleMapReady = () => {
     if (driverCoord) {
       mapRef.current?.animateCamera({ center: driverCoord, zoom: 15 }, { duration: 600 });
+    } else if (dest) {
+      mapRef.current?.animateCamera({ center: dest, zoom: 15 }, { duration: 600 });
     }
   };
 
   const initialRegion = driverCoord
     ? { latitude: driverCoord.latitude, longitude: driverCoord.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 }
-    : { latitude: DEST.latitude, longitude: DEST.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 };
+    : dest
+    ? { latitude: dest.latitude, longitude: dest.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 }
+    : { latitude: FALLBACK_DEST.latitude, longitude: FALLBACK_DEST.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -73,39 +130,49 @@ export default function TrackOrderScreen() {
       </View>
 
       {/* Map */}
-      <MapView
-        ref={mapRef}
-        provider={PROVIDER_DEFAULT}
-        style={styles.map}
-        initialRegion={initialRegion}
-        onMapReady={handleMapReady}
-        showsUserLocation={false}
-        showsMyLocationButton={false}
-      >
-        {/* Destination (customer) */}
-        <Marker coordinate={DEST} title="Votre adresse" pinColor={Colors.brand[500]} />
-        <Circle
-          center={DEST}
-          radius={60}
-          fillColor={Colors.brand[500] + '20'}
-          strokeColor={Colors.brand[500] + '60'}
-          strokeWidth={1}
-        />
+      {loadingOrder ? (
+        <View style={[styles.map, styles.mapLoading]}>
+          <ActivityIndicator size="large" color={Colors.brand[500]} />
+        </View>
+      ) : (
+        <MapView
+          ref={mapRef}
+          provider={PROVIDER_DEFAULT}
+          style={styles.map}
+          initialRegion={initialRegion}
+          onMapReady={handleMapReady}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
+        >
+          {/* Destination (customer) */}
+          {dest && (
+            <>
+              <Marker coordinate={dest} title="Votre adresse" pinColor={Colors.brand[500]} />
+              <Circle
+                center={dest}
+                radius={60}
+                fillColor={Colors.brand[500] + '20'}
+                strokeColor={Colors.brand[500] + '60'}
+                strokeWidth={1}
+              />
+            </>
+          )}
 
-        {/* Driver */}
-        {driverCoord && (
-          <Marker
-            coordinate={driverCoord}
-            title="Votre livreur"
-            rotation={driverLocation?.heading ?? 0}
-            anchor={{ x: 0.5, y: 0.5 }}
-          >
-            <View style={styles.driverMarker}>
-              <Text style={styles.driverMarkerText}>🛵</Text>
-            </View>
-          </Marker>
-        )}
-      </MapView>
+          {/* Driver */}
+          {driverCoord && (
+            <Marker
+              coordinate={driverCoord}
+              title="Votre livreur"
+              rotation={driverLocation?.heading ?? 0}
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={styles.driverMarker}>
+                <Text style={styles.driverMarkerText}>🛵</Text>
+              </View>
+            </Marker>
+          )}
+        </MapView>
+      )}
 
       {/* Bottom sheet */}
       <View style={styles.sheet}>
@@ -170,7 +237,8 @@ const styles = StyleSheet.create({
   connDot:     { width: 8, height: 8, borderRadius: 4 },
   orderNum:    { fontSize: 13, color: Colors.surface[400], fontWeight: '600' },
 
-  map: { height: 260 },
+  map:        { height: 260 },
+  mapLoading: { alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface[100] },
 
   driverMarker:     { backgroundColor: '#fff', borderRadius: 20, padding: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
   driverMarkerText: { fontSize: 22 },

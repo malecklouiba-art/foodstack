@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export interface CartItem {
   id: string;
@@ -6,6 +9,19 @@ export interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+}
+
+interface CreateOrderDto {
+  restaurantId: string;
+  customerId: string;
+  items: { menuItemId: string; quantity: number; unitPrice: number }[];
+  deliveryAddress?: string;
+}
+
+interface Order {
+  id: string;
+  status: string;
+  [key: string]: unknown;
 }
 
 interface CartStore {
@@ -16,8 +32,18 @@ interface CartStore {
   increment: (id: string) => void;
   decrement: (id: string) => void;
   clear: () => void;
+  clearCart: () => void;
   total: () => number;
   count: () => number;
+  checkout: (deliveryAddress?: string) => Promise<Order>;
+}
+
+async function getToken(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem('auth_token');
+  } catch {
+    return null;
+  }
 }
 
 export const useCartStore = create<CartStore>((set, get) => ({
@@ -54,7 +80,55 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   clear: () => set({ items: [], restaurantId: null }),
 
+  // Alias for clear — explicit name for checkout flows
+  clearCart: () => set({ items: [], restaurantId: null }),
+
   total: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
 
   count: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+
+  checkout: async (deliveryAddress?: string) => {
+    const { items, restaurantId } = get();
+
+    if (items.length === 0) throw new Error('Le panier est vide.');
+    if (!restaurantId) throw new Error('Aucun restaurant sélectionné.');
+
+    const token = await getToken();
+    const userRaw = await AsyncStorage.getItem('auth_user');
+    if (!userRaw) throw new Error('Utilisateur non connecté.');
+
+    const user = JSON.parse(userRaw) as { id: string };
+
+    const dto: CreateOrderDto = {
+      restaurantId,
+      customerId: user.id,
+      items: items.map((i) => ({
+        menuItemId: i.id,
+        quantity: i.quantity,
+        unitPrice: i.price,
+      })),
+    };
+    if (deliveryAddress) dto.deliveryAddress = deliveryAddress;
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_URL}/api/v1/orders`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json().catch(() => ({}))) as { message?: string };
+      throw new Error(errorData.message ?? `Erreur ${response.status}`);
+    }
+
+    const order = (await response.json()) as Order;
+
+    // Clear cart after successful checkout
+    set({ items: [], restaurantId: null });
+
+    return order;
+  },
 }));
