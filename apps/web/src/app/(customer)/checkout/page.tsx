@@ -57,11 +57,9 @@ export default function CheckoutPage() {
   const [hoveredStar, setHoveredStar] = useState(0);
   const reviewDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const DEMO_COUPONS: Record<string, { discount: number; type: 'percent' | 'fixed' }> = {
-    'BIENVENUE10': { discount: 10, type: 'percent' },
-    'ETE5':        { discount: 5,  type: 'fixed' },
-    'FIDELE20':    { discount: 20, type: 'percent' },
-    'FLASH15':     { discount: 15, type: 'percent' },
+  const FALLBACK_COUPONS: Record<string, { discount: number; type: 'percent' | 'fixed' }> = {
+    'SAVE10':    { discount: 10, type: 'percent' },
+    'WELCOME20': { discount: 20, type: 'percent' },
   };
 
   function triggerReviewModal() {
@@ -78,19 +76,50 @@ export default function CheckoutPage() {
     if (reviewDismissTimer.current) clearTimeout(reviewDismissTimer.current);
   }
 
-  function applyCoupon() {
+  async function applyCoupon() {
     if (!couponCode.trim()) return;
     setCouponLoading(true);
-    setTimeout(() => {
-      const found = DEMO_COUPONS[couponCode.toUpperCase()];
+
+    const code = couponCode.toUpperCase();
+
+    try {
+      const apiBase =
+        process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+
+      const response = await fetch(`${apiBase}/api/v1/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          restaurantId: 'demo-restaurant-id',
+          orderValue: subtotal(),
+        }),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as {
+          code: string;
+          discount: number;
+          type: 'percent' | 'fixed';
+        };
+        setAppliedCoupon({ code: data.code ?? code, discount: data.discount, type: data.type });
+        toast.success(`Code "${data.code ?? code}" appliqué !`);
+      } else {
+        const err = await response.json().catch(() => ({})) as { message?: string };
+        toast.error(err.message ?? 'Code promo invalide ou expiré');
+      }
+    } catch {
+      // Network error — fall back to hardcoded demo coupons
+      const found = FALLBACK_COUPONS[code];
       if (found) {
-        setAppliedCoupon({ code: couponCode.toUpperCase(), ...found });
-        toast.success(`Code "${couponCode.toUpperCase()}" appliqué !`);
+        setAppliedCoupon({ code, ...found });
+        toast.success(`Code "${code}" appliqué ! (mode hors-ligne)`);
       } else {
         toast.error('Code promo invalide ou expiré');
       }
+    } finally {
       setCouponLoading(false);
-    }, 600);
+    }
   }
 
   function removeCoupon() {
