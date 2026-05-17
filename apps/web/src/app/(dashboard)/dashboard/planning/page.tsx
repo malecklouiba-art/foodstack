@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import {
   ChevronLeft, ChevronRight, Plus, Clock, Users,
   CalendarDays, Sun, Sunset, Moon, Copy, Trash2,
-  Check, ImagePlus, Trash,
+  Check, ImagePlus, Trash, Loader2,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Card } from '@/components/ui/Card';
@@ -160,12 +160,67 @@ function getMonthGrid(monthOffset: number): { date: Date; inMonth: boolean }[] {
 
 const MONTHS_FR = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 
+// ── Seeded shift generator ─────────────────────────────────────────────────────
+// Produces deterministic but week-varying mock schedules.
+// Uses the Monday ISO date string as the seed.
+
+function seededRand(seed: number): () => number {
+  let s = seed;
+  return function () {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 0xffffffff;
+  };
+}
+
+const SHIFT_TYPES: ShiftType[] = ['morning', 'afternoon', 'evening', 'full'];
+
+function generateShiftsForWeek(weekOffset: number): Shift[] {
+  // Use the monday date as a numeric seed
+  const dates = getWeekDates(weekOffset);
+  const monday = dates[0];
+  const seed = monday.getFullYear() * 10000 + (monday.getMonth() + 1) * 100 + monday.getDate();
+  const rand = seededRand(seed);
+
+  const shifts: Shift[] = [];
+  let idCounter = 1;
+
+  EMPLOYEES.forEach((emp) => {
+    // Each employee works 4–6 days per week (deterministic per week/employee)
+    const workDaysCount = 4 + Math.floor(rand() * 3); // 4, 5, or 6
+    const days = Array.from({ length: 7 }, (_, i) => i);
+    // Shuffle days using Fisher-Yates with seeded rand
+    for (let i = days.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [days[i], days[j]] = [days[j], days[i]];
+    }
+    const workDays = days.slice(0, workDaysCount).sort((a, b) => a - b);
+
+    workDays.forEach((day) => {
+      const type = SHIFT_TYPES[Math.floor(rand() * SHIFT_TYPES.length)];
+      const cfg = SHIFT_CFG[type];
+      shifts.push({
+        id: `w${seed}-${idCounter++}`,
+        employeeId: emp.id,
+        day,
+        type,
+        startTime: cfg.start,
+        endTime: cfg.end,
+      });
+    });
+  });
+
+  return shifts;
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function PlanningPage() {
-  const [shifts, setShifts] = useState<Shift[]>(INIT_SHIFTS);
-  const [scope, setScope] = useState<'day' | 'week' | 'month'>('week');
   const [weekOffset, setWeekOffset] = useState(0);
+  const [shifts, setShifts] = useState<Shift[]>(() => generateShiftsForWeek(0));
+  // Per-week overrides: user edits are stored keyed by weekOffset
+  const [weekEdits, setWeekEdits] = useState<Record<number, Shift[]>>({});
+  const [isLoadingWeek, startWeekTransition] = useTransition();
+  const [scope, setScope] = useState<'day' | 'week' | 'month'>('week');
   const [dayOffset, setDayOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
   const [showModal, setShowModal] = useState(false);
@@ -174,6 +229,20 @@ export default function PlanningPage() {
   const [copied, setCopied] = useState(false);
   const [bgImage, setBgImage] = useState<string | null>(null);
 
+  // Regenerate shifts whenever weekOffset changes, respecting any user edits for that week
+  useEffect(() => {
+    startWeekTransition(() => {
+      const edited = weekEdits[weekOffset];
+      if (edited) {
+        setShifts(edited);
+      } else {
+        setShifts(generateShiftsForWeek(weekOffset));
+      }
+    });
+  // weekEdits intentionally excluded: only re-run on weekOffset change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekOffset]);
+
   const weekDates = getWeekDates(weekOffset);
   const totalStaff = EMPLOYEES.length;
   const totalShifts = shifts.length;
@@ -181,6 +250,12 @@ export default function PlanningPage() {
   const staffToday = new Set(
     shifts.filter((s) => s.day === (new Date().getDay() + 6) % 7).map((s) => s.employeeId)
   ).size;
+
+  // Persist edits for current week whenever shifts change due to user action
+  function saveWeekEdits(updated: Shift[]) {
+    setShifts(updated);
+    setWeekEdits((prev) => ({ ...prev, [weekOffset]: updated }));
+  }
 
   function openAdd(day?: number, empId?: string) {
     setForm(emptyForm(day, empId));
@@ -204,13 +279,13 @@ export default function PlanningPage() {
   function handleSave() {
     if (!form.employeeId || form.startTime >= form.endTime) return;
     if (editingId) {
-      setShifts((prev) => prev.map((s) =>
+      saveWeekEdits(shifts.map((s) =>
         s.id === editingId
           ? { ...s, employeeId: form.employeeId, day: Number(form.day), type: form.type, startTime: form.startTime, endTime: form.endTime, note: form.note || undefined }
           : s
       ));
     } else {
-      setShifts((prev) => [...prev, {
+      saveWeekEdits([...shifts, {
         id: `s${Date.now()}`,
         employeeId: form.employeeId,
         day: Number(form.day),
@@ -224,13 +299,13 @@ export default function PlanningPage() {
   }
 
   function deleteShift(id: string) {
-    setShifts((prev) => prev.filter((s) => s.id !== id));
+    saveWeekEdits(shifts.filter((s) => s.id !== id));
     setShowModal(false);
   }
 
   function copyWeek() {
     const newShifts = shifts.map((s) => ({ ...s, id: `s${Date.now()}-${Math.random()}` }));
-    setShifts((prev) => [...prev, ...newShifts]);
+    saveWeekEdits([...shifts, ...newShifts]);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -351,7 +426,10 @@ export default function PlanningPage() {
           >
             <ChevronLeft className="h-4 w-4 text-surface-600 dark:text-surface-300" />
           </button>
-          <span className="text-sm font-semibold text-surface-700 dark:text-surface-200">
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-surface-700 dark:text-surface-200">
+            {isLoadingWeek && scope === 'week' && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-brand-500" />
+            )}
             {scope === 'day' && (
               <>
                 {dayOffset === 0 ? "Aujourd'hui" : dayOffset === 1 ? 'Demain' : dayOffset === -1 ? 'Hier' : ''}
@@ -363,7 +441,7 @@ export default function PlanningPage() {
               <>
                 {weekOffset === 0 ? 'Cette semaine' : weekOffset === 1 ? 'Semaine prochaine' : weekOffset === -1 ? 'Semaine dernière' : `Semaine ${weekOffset > 0 ? '+' : ''}${weekOffset}`}
                 {' · '}
-                {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                {weekDates[0].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — {weekDates[6].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
               </>
             )}
             {scope === 'month' && (() => {
@@ -406,7 +484,7 @@ export default function PlanningPage() {
 
       {/* Grid — week */}
       {scope === 'week' && (
-        <Card padding="none" className="overflow-hidden">
+        <Card padding="none" className={clsx('overflow-hidden transition-opacity duration-200', isLoadingWeek && 'opacity-50')}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead>

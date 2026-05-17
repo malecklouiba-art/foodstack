@@ -13,6 +13,11 @@ import {
   Euro,
   CheckCircle,
   XCircle,
+  Smartphone,
+  Pin,
+  PinOff,
+  Zap,
+  TrendingDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -32,8 +37,12 @@ interface Coupon {
   minOrderValue: number;
   maxUses: number | null;
   usedCount: number;
+  /** Today's redemption count (mock) */
+  usedToday: number;
   expiresAt: string | null;
   active: boolean;
+  /** Pinned coupons appear prominently in the customer mobile app */
+  pinned: boolean;
 }
 
 interface CouponFormState {
@@ -49,16 +58,16 @@ interface CouponFormState {
 // ─── Demo data ────────────────────────────────────────────────────────────────
 
 const INIT_COUPONS: Coupon[] = [
-  { id: '1', code: 'BIENVENUE10', description: 'Nouveau client', discountType: 'percent', discountValue: 10, minOrderValue: 0, maxUses: 100, usedCount: 23, expiresAt: '2026-12-31', active: true },
-  { id: '2', code: 'ETE5', description: 'Promo été', discountType: 'fixed', discountValue: 5, minOrderValue: 25, maxUses: 50, usedCount: 50, expiresAt: '2026-08-31', active: false },
-  { id: '3', code: 'FIDELE20', description: 'Client fidèle', discountType: 'percent', discountValue: 20, minOrderValue: 50, maxUses: null, usedCount: 8, expiresAt: null, active: true },
-  { id: '4', code: 'FLASH15', description: 'Offre flash', discountType: 'percent', discountValue: 15, minOrderValue: 30, maxUses: 200, usedCount: 197, expiresAt: '2026-06-30', active: true },
-  { id: '5', code: 'NOEL25', description: 'Noël 2026', discountType: 'percent', discountValue: 25, minOrderValue: 60, maxUses: 500, usedCount: 0, expiresAt: '2026-12-26', active: true },
-  { id: '6', code: 'WEEKEND10', description: 'Promo week-end', discountType: 'percent', discountValue: 10, minOrderValue: 20, maxUses: 300, usedCount: 45, expiresAt: '2026-07-31', active: true },
-  { id: '7', code: 'VIP30', description: 'Client VIP', discountType: 'percent', discountValue: 30, minOrderValue: 80, maxUses: 20, usedCount: 3, expiresAt: null, active: true },
-  { id: '8', code: 'GRATUIT8', description: 'Livraison offerte', discountType: 'fixed', discountValue: 8, minOrderValue: 15, maxUses: 150, usedCount: 112, expiresAt: '2026-09-30', active: false },
-  { id: '9', code: 'RENTRE15', description: 'Rentrée scolaire', discountType: 'percent', discountValue: 15, minOrderValue: 35, maxUses: 400, usedCount: 0, expiresAt: '2026-10-01', active: true },
-  { id: '10', code: 'LOYAL5', description: 'Récompense fidélité', discountType: 'fixed', discountValue: 5, minOrderValue: 0, maxUses: null, usedCount: 67, expiresAt: null, active: true },
+  { id: '1',  code: 'BIENVENUE10', description: 'Nouveau client',      discountType: 'percent', discountValue: 10, minOrderValue: 0,  maxUses: 100,  usedCount: 23,  usedToday: 4,  expiresAt: '2026-12-31', active: true,  pinned: true  },
+  { id: '2',  code: 'ETE5',        description: 'Promo été',           discountType: 'fixed',   discountValue: 5,  minOrderValue: 25, maxUses: 50,   usedCount: 50,  usedToday: 0,  expiresAt: '2026-08-31', active: false, pinned: false },
+  { id: '3',  code: 'FIDELE20',    description: 'Client fidèle',       discountType: 'percent', discountValue: 20, minOrderValue: 50, maxUses: null, usedCount: 8,   usedToday: 1,  expiresAt: null,         active: true,  pinned: false },
+  { id: '4',  code: 'FLASH15',     description: 'Offre flash',         discountType: 'percent', discountValue: 15, minOrderValue: 30, maxUses: 200,  usedCount: 197, usedToday: 12, expiresAt: '2026-06-30', active: true,  pinned: false },
+  { id: '5',  code: 'NOEL25',      description: 'Noël 2026',           discountType: 'percent', discountValue: 25, minOrderValue: 60, maxUses: 500,  usedCount: 0,   usedToday: 0,  expiresAt: '2026-12-26', active: true,  pinned: false },
+  { id: '6',  code: 'WEEKEND10',   description: 'Promo week-end',      discountType: 'percent', discountValue: 10, minOrderValue: 20, maxUses: 300,  usedCount: 45,  usedToday: 7,  expiresAt: '2026-07-31', active: true,  pinned: true  },
+  { id: '7',  code: 'VIP30',       description: 'Client VIP',          discountType: 'percent', discountValue: 30, minOrderValue: 80, maxUses: 20,   usedCount: 3,   usedToday: 0,  expiresAt: null,         active: true,  pinned: false },
+  { id: '8',  code: 'GRATUIT8',    description: 'Livraison offerte',   discountType: 'fixed',   discountValue: 8,  minOrderValue: 15, maxUses: 150,  usedCount: 112, usedToday: 0,  expiresAt: '2026-09-30', active: false, pinned: false },
+  { id: '9',  code: 'RENTRE15',    description: 'Rentrée scolaire',    discountType: 'percent', discountValue: 15, minOrderValue: 35, maxUses: 400,  usedCount: 0,   usedToday: 0,  expiresAt: '2026-10-01', active: true,  pinned: false },
+  { id: '10', code: 'LOYAL5',      description: 'Récompense fidélité', discountType: 'fixed',   discountValue: 5,  minOrderValue: 0,  maxUses: null, usedCount: 67,  usedToday: 3,  expiresAt: null,         active: true,  pinned: false },
 ];
 
 const EMPTY_FORM: CouponFormState = {
@@ -224,14 +233,17 @@ export default function CouponsPage() {
   const [form, setForm] = useState<CouponFormState>(EMPTY_FORM);
   const [editForm, setEditForm] = useState<CouponFormState>(EMPTY_FORM);
 
-  // ── Stats ──────────────────────────────────────────────────────────────────
+  // ── Derived data ──────────────────────────────────────────────────────────
 
+  const activeCouponList = coupons.filter((c) => c.active && !isExpired(c.expiresAt) && !isExhausted(c));
   const totalCoupons = coupons.length;
-  const activeCoupons = coupons.filter((c) => c.active && !isExpired(c.expiresAt) && !isExhausted(c)).length;
-  const totalUses = coupons.reduce((sum, c) => sum + c.usedCount, 0);
-  const avgDiscount = coupons.length
-    ? Math.round(coupons.filter((c) => c.discountType === 'percent').reduce((s, c) => s + c.discountValue, 0) / Math.max(1, coupons.filter((c) => c.discountType === 'percent').length))
-    : 0;
+  const activeCouponsCount = activeCouponList.length;
+  const totalUsesToday = coupons.reduce((sum, c) => sum + c.usedToday, 0);
+  const totalSavings = coupons.reduce((sum, c) => {
+    if (c.discountType === 'fixed') return sum + c.discountValue * c.usedCount;
+    // Approximate: assume average order of 35€ for percentage coupons
+    return sum + (c.discountValue / 100) * 35 * c.usedCount;
+  }, 0);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -246,8 +258,10 @@ export default function CouponsPage() {
       minOrderValue: parseFloat(form.minOrderValue) || 0,
       maxUses: form.maxUses ? parseInt(form.maxUses) : null,
       usedCount: 0,
+      usedToday: 0,
       expiresAt: form.expiresAt || null,
       active: true,
+      pinned: false,
     };
     setCoupons((prev) => [newCoupon, ...prev]);
     setForm(EMPTY_FORM);
@@ -292,6 +306,10 @@ export default function CouponsPage() {
     setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, active: !c.active } : c)));
   }
 
+  function handleTogglePinned(id: string) {
+    setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)));
+  }
+
   function handleDelete() {
     if (!deleteCoupon) return;
     setCoupons((prev) => prev.filter((c) => c.id !== deleteCoupon.id));
@@ -329,6 +347,40 @@ export default function CouponsPage() {
         </Button>
       </div>
 
+      {/* ── Active promo banner ─────────────────────────────────────────── */}
+      {activeCouponList.length > 0 && (
+        <div className="rounded-2xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-4 dark:border-green-800 dark:from-green-950/40 dark:to-emerald-950/40">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-white">
+                <Zap className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold text-green-800 dark:text-green-300">
+                {activeCouponList.length} code{activeCouponList.length > 1 ? 's' : ''} actif{activeCouponList.length > 1 ? 's' : ''} en ce moment
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {activeCouponList.map((c) => (
+                <span
+                  key={c.id}
+                  className="flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1 font-mono text-xs font-bold text-green-800 shadow-sm ring-1 ring-green-200 dark:bg-green-900/40 dark:text-green-200 dark:ring-green-700"
+                >
+                  {c.pinned && <Pin className="h-3 w-3 text-brand-500" />}
+                  {c.code}
+                  <span className="font-sans font-medium text-green-600 dark:text-green-400">
+                    –{formatDiscount(c)}
+                  </span>
+                </span>
+              ))}
+            </div>
+            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700 dark:bg-green-900/60 dark:text-green-300">
+              <Smartphone className="h-3.5 w-3.5" />
+              Synchronisé avec les apps
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
@@ -338,18 +390,24 @@ export default function CouponsPage() {
         />
         <StatCard
           title="Codes actifs"
-          value={activeCoupons}
+          value={activeCouponsCount}
           icon={CheckCircle}
+          iconColor="text-green-600"
+          iconBg="bg-green-50"
         />
         <StatCard
-          title="Utilisations totales"
-          value={totalUses}
+          title="Utilisations aujourd'hui"
+          value={totalUsesToday}
           icon={RefreshCw}
+          iconColor="text-blue-600"
+          iconBg="bg-blue-50"
         />
         <StatCard
-          title="Réduction moy."
-          value={`${avgDiscount}%`}
-          icon={Percent}
+          title="Économies offertes"
+          value={`${totalSavings.toFixed(0)}€`}
+          icon={TrendingDown}
+          iconColor="text-purple-600"
+          iconBg="bg-purple-50"
         />
       </div>
 
@@ -434,17 +492,42 @@ export default function CouponsPage() {
                         <span className="text-surface-300 italic">Sans limite</span>
                       )}
                     </td>
-                    {/* Status */}
+                    {/* Status + sync */}
                     <td className="px-4 py-3">
-                      <Badge variant={status.variant} dot>{status.label}</Badge>
+                      <div className="flex flex-col gap-1.5">
+                        <Badge variant={status.variant} dot>{status.label}</Badge>
+                        {status.variant === 'success' && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-green-200 dark:bg-green-900/30 dark:text-green-300 dark:ring-green-700">
+                            <CheckCircle className="h-2.5 w-2.5" />
+                            Synchronisé avec les apps
+                          </span>
+                        )}
+                      </div>
                     </td>
                     {/* Actions */}
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Pin toggle — always visible for active coupons */}
+                        <button
+                          onClick={() => handleTogglePinned(coupon.id)}
+                          className={clsx(
+                            'rounded-lg p-1.5 transition-colors',
+                            coupon.pinned
+                              ? 'text-brand-500 hover:bg-brand-50'
+                              : 'text-surface-300 opacity-0 group-hover:opacity-100 hover:bg-surface-100 hover:text-surface-600'
+                          )}
+                          title={coupon.pinned ? 'Désépingler (retirer de la mise en avant app)' : 'Épingler (mettre en avant dans l\'app)'}
+                        >
+                          {coupon.pinned ? (
+                            <Pin className="h-4 w-4" />
+                          ) : (
+                            <PinOff className="h-4 w-4" />
+                          )}
+                        </button>
                         {/* Active toggle */}
                         <button
                           onClick={() => handleToggleActive(coupon.id)}
-                          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700 transition-colors"
+                          className="rounded-lg p-1.5 text-surface-400 opacity-0 group-hover:opacity-100 hover:bg-surface-100 hover:text-surface-700 transition-colors"
                           title={coupon.active ? 'Désactiver' : 'Activer'}
                         >
                           {coupon.active ? (
@@ -456,7 +539,7 @@ export default function CouponsPage() {
                         {/* Edit */}
                         <button
                           onClick={() => handleEdit(coupon)}
-                          className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-700 transition-colors"
+                          className="rounded-lg p-1.5 text-surface-400 opacity-0 group-hover:opacity-100 hover:bg-surface-100 hover:text-surface-700 transition-colors"
                           title="Modifier"
                         >
                           <Pencil className="h-4 w-4" />
@@ -464,7 +547,7 @@ export default function CouponsPage() {
                         {/* Delete */}
                         <button
                           onClick={() => setDeleteCoupon(coupon)}
-                          className="rounded-lg p-1.5 text-surface-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+                          className="rounded-lg p-1.5 text-surface-400 opacity-0 group-hover:opacity-100 hover:bg-red-100 hover:text-red-600 transition-colors"
                           title="Supprimer"
                         >
                           <Trash2 className="h-4 w-4" />

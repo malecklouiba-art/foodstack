@@ -1,36 +1,56 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Edit2, Trash2, Users, QrCode,
   CheckCircle, Clock, X, Utensils, LayoutGrid,
   LayoutList, AlertCircle, Download, Move,
   Sparkles, ClipboardList, CalendarClock, Brush,
-  Circle, Square as SquareIcon,
+  Circle, Square as SquareIcon, Layers, Pencil,
+  ChevronRight, PaintBucket, Grid3X3,
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { QRCodeSVG } from 'qrcode.react';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const GRID = 40; // snap grid size in px
+
+function snap(v: number) {
+  return Math.round(v / GRID) * GRID;
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type TableStatus = 'free' | 'occupied' | 'reserved' | 'cleaning';
 type TableShape = 'rect' | 'circle';
+type PageTab = 'floor' | 'editor' | 'list';
 
 interface RestaurantTable {
   id: string;
   number: number;
   capacity: number;
   status: TableStatus;
-  section: string;
+  zoneId: string;
   shape: TableShape;
-  x: number; // canvas coordinates, in px
+  x: number;
   y: number;
   currentOrderId?: string;
   reservedAt?: string;
   reservedBy?: string;
   occupiedSince?: string;
+}
+
+interface Zone {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  color: string; // hex color for zone background
 }
 
 // ── Static data ────────────────────────────────────────────────────────────────
@@ -50,82 +70,84 @@ const STATUS_CONFIG: Record<TableStatus, {
   cleaning: { label: 'Nettoyage', text: 'text-gray-700',   bg: 'bg-gray-100',  ring: 'ring-gray-300',   dot: 'bg-gray-500',   fill: 'bg-gray-200',   border: 'border-gray-400' },
 };
 
-const SECTIONS = ['Salle principale', 'Terrasse', 'Bar', 'VIP'];
+// Zone palette for quick color picks
+const ZONE_COLORS = [
+  '#e0f2fe', // sky
+  '#fef9c3', // yellow
+  '#f0fdf4', // green
+  '#fdf2f8', // pink
+  '#f5f3ff', // purple
+  '#fff7ed', // orange
+  '#f0fdfa', // teal
+  '#fefce8', // amber
+];
 
-interface SectionZone {
-  name: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  color: string;
-}
-
-const SECTION_ZONES: SectionZone[] = [
-  { name: 'Salle principale', x: 40,  y: 60,  w: 520, h: 380, color: 'bg-brand-500/[0.04] border-brand-500/30' },
-  { name: 'Terrasse',         x: 580, y: 60,  w: 320, h: 230, color: 'bg-amber-50/60 border-amber-300/60' },
-  { name: 'Bar',              x: 580, y: 310, w: 150, h: 130, color: 'bg-purple-50/60 border-purple-300/60' },
-  { name: 'VIP',              x: 750, y: 310, w: 150, h: 130, color: 'bg-pink-50/60 border-pink-300/60' },
+const INIT_ZONES: Zone[] = [
+  { id: 'z1', name: 'Salle principale', x: 40,  y: 60,  w: 520, h: 380, color: '#eff6ff' },
+  { id: 'z2', name: 'Terrasse',         x: 580, y: 60,  w: 320, h: 230, color: '#fefce8' },
+  { id: 'z3', name: 'Bar',              x: 580, y: 310, w: 150, h: 130, color: '#faf5ff' },
+  { id: 'z4', name: 'VIP',              x: 750, y: 310, w: 150, h: 130, color: '#fdf2f8' },
 ];
 
 const INIT_TABLES: RestaurantTable[] = [
-  { id: 't1',  number: 1,  capacity: 2, status: 'occupied', section: 'Salle principale', shape: 'circle', x:  90, y: 120, currentOrderId: 'ORD-8821', occupiedSince: '12:30' },
-  { id: 't2',  number: 2,  capacity: 4, status: 'free',     section: 'Salle principale', shape: 'rect',   x: 210, y: 110 },
-  { id: 't3',  number: 3,  capacity: 4, status: 'reserved', section: 'Salle principale', shape: 'rect',   x: 350, y: 110, reservedAt: '14:00', reservedBy: 'Martin P.' },
-  { id: 't4',  number: 4,  capacity: 6, status: 'occupied', section: 'Salle principale', shape: 'rect',   x: 470, y: 110, currentOrderId: 'ORD-8819', occupiedSince: '12:00' },
-  { id: 't5',  number: 5,  capacity: 2, status: 'cleaning', section: 'Salle principale', shape: 'circle', x:  90, y: 260 },
-  { id: 't6',  number: 6,  capacity: 4, status: 'free',     section: 'Salle principale', shape: 'rect',   x: 210, y: 260 },
-  { id: 't7',  number: 7,  capacity: 8, status: 'free',     section: 'Salle principale', shape: 'rect',   x: 360, y: 360 },
-  { id: 't8',  number: 8,  capacity: 4, status: 'occupied', section: 'Salle principale', shape: 'rect',   x: 470, y: 260, currentOrderId: 'ORD-8820', occupiedSince: '13:15' },
-  { id: 't9',  number: 9,  capacity: 2, status: 'free',     section: 'Terrasse',         shape: 'circle', x: 620, y: 120 },
-  { id: 't10', number: 10, capacity: 4, status: 'free',     section: 'Terrasse',         shape: 'rect',   x: 740, y: 110 },
-  { id: 't11', number: 11, capacity: 6, status: 'occupied', section: 'Terrasse',         shape: 'rect',   x: 830, y: 200, currentOrderId: 'ORD-8817', occupiedSince: '12:45' },
-  { id: 't12', number: 12, capacity: 2, status: 'reserved', section: 'Terrasse',         shape: 'circle', x: 620, y: 220, reservedAt: '15:00', reservedBy: 'Dubois L.' },
-  { id: 't13', number: 13, capacity: 6, status: 'free',     section: 'Bar',              shape: 'rect',   x: 620, y: 360 },
-  { id: 't14', number: 14, capacity: 4, status: 'free',     section: 'VIP',              shape: 'rect',   x: 790, y: 360 },
-  { id: 't15', number: 15, capacity: 8, status: 'reserved', section: 'VIP',              shape: 'rect',   x: 820, y: 380, reservedAt: '20:00', reservedBy: 'Leclerc A.' },
+  { id: 't1',  number: 1,  capacity: 2, status: 'occupied', zoneId: 'z1', shape: 'circle', x:  80, y: 120, currentOrderId: 'ORD-8821', occupiedSince: '12:30' },
+  { id: 't2',  number: 2,  capacity: 4, status: 'free',     zoneId: 'z1', shape: 'rect',   x: 200, y: 120 },
+  { id: 't3',  number: 3,  capacity: 4, status: 'reserved', zoneId: 'z1', shape: 'rect',   x: 320, y: 120, reservedAt: '14:00', reservedBy: 'Martin P.' },
+  { id: 't4',  number: 4,  capacity: 6, status: 'occupied', zoneId: 'z1', shape: 'rect',   x: 440, y: 120, currentOrderId: 'ORD-8819', occupiedSince: '12:00' },
+  { id: 't5',  number: 5,  capacity: 2, status: 'cleaning', zoneId: 'z1', shape: 'circle', x:  80, y: 240 },
+  { id: 't6',  number: 6,  capacity: 4, status: 'free',     zoneId: 'z1', shape: 'rect',   x: 200, y: 240 },
+  { id: 't7',  number: 7,  capacity: 8, status: 'free',     zoneId: 'z1', shape: 'rect',   x: 360, y: 320 },
+  { id: 't8',  number: 8,  capacity: 4, status: 'occupied', zoneId: 'z1', shape: 'rect',   x: 440, y: 240, currentOrderId: 'ORD-8820', occupiedSince: '13:15' },
+  { id: 't9',  number: 9,  capacity: 2, status: 'free',     zoneId: 'z2', shape: 'circle', x: 600, y: 120 },
+  { id: 't10', number: 10, capacity: 4, status: 'free',     zoneId: 'z2', shape: 'rect',   x: 720, y: 120 },
+  { id: 't11', number: 11, capacity: 6, status: 'occupied', zoneId: 'z2', shape: 'rect',   x: 800, y: 200, currentOrderId: 'ORD-8817', occupiedSince: '12:45' },
+  { id: 't12', number: 12, capacity: 2, status: 'reserved', zoneId: 'z2', shape: 'circle', x: 600, y: 200, reservedAt: '15:00', reservedBy: 'Dubois L.' },
+  { id: 't13', number: 13, capacity: 6, status: 'free',     zoneId: 'z3', shape: 'rect',   x: 600, y: 320 },
+  { id: 't14', number: 14, capacity: 4, status: 'free',     zoneId: 'z4', shape: 'rect',   x: 760, y: 320 },
+  { id: 't15', number: 15, capacity: 8, status: 'reserved', zoneId: 'z4', shape: 'rect',   x: 760, y: 360, reservedAt: '20:00', reservedBy: 'Leclerc A.' },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function tableSize(t: RestaurantTable): { w: number; h: number } {
   if (t.shape === 'circle') {
-    const d = t.capacity <= 2 ? 70 : t.capacity <= 4 ? 86 : 100;
+    const d = t.capacity <= 2 ? 72 : t.capacity <= 4 ? 88 : 104;
     return { w: d, h: d };
   }
-  // rectangle: width scales with capacity
-  if (t.capacity <= 2) return { w: 84, h: 64 };
-  if (t.capacity <= 4) return { w: 110, h: 78 };
-  if (t.capacity <= 6) return { w: 140, h: 86 };
-  return { w: 170, h: 96 };
+  if (t.capacity <= 2) return { w: 80, h: 64 };
+  if (t.capacity <= 4) return { w: 112, h: 80 };
+  if (t.capacity <= 6) return { w: 144, h: 88 };
+  return { w: 176, h: 96 };
 }
 
-// ── Add/Edit Modal ────────────────────────────────────────────────────────────
+// ── Add/Edit Table Modal ───────────────────────────────────────────────────────
 
 interface TableForm {
   number: string;
   capacity: string;
-  section: string;
+  zoneId: string;
   shape: TableShape;
 }
 
-function emptyForm(): TableForm {
-  return { number: '', capacity: '4', section: 'Salle principale', shape: 'rect' };
+function emptyTableForm(zones: Zone[]): TableForm {
+  return { number: '', capacity: '4', zoneId: zones[0]?.id ?? '', shape: 'rect' };
 }
 
 function TableModal({
   table,
+  zones,
   onClose,
   onSave,
 }: {
   table?: RestaurantTable;
+  zones: Zone[];
   onClose: () => void;
   onSave: (data: TableForm) => void;
 }) {
   const [form, setForm] = useState<TableForm>(
     table
-      ? { number: String(table.number), capacity: String(table.capacity), section: table.section, shape: table.shape }
-      : emptyForm()
+      ? { number: String(table.number), capacity: String(table.capacity), zoneId: table.zoneId, shape: table.shape }
+      : emptyTableForm(zones)
   );
 
   return (
@@ -204,13 +226,13 @@ function TableModal({
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Section</label>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Zone</label>
             <select
-              value={form.section}
-              onChange={(e) => setForm(f => ({ ...f, section: e.target.value }))}
+              value={form.zoneId}
+              onChange={(e) => setForm(f => ({ ...f, zoneId: e.target.value }))}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
             >
-              {SECTIONS.map(s => <option key={s}>{s}</option>)}
+              {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
             </select>
           </div>
         </div>
@@ -230,10 +252,104 @@ function TableModal({
   );
 }
 
+// ── Zone Modal (add/edit zone) ─────────────────────────────────────────────────
+
+interface ZoneForm {
+  name: string;
+  color: string;
+}
+
+function ZoneModal({
+  zone,
+  onClose,
+  onSave,
+}: {
+  zone?: Zone;
+  onClose: () => void;
+  onSave: (data: ZoneForm) => void;
+}) {
+  const [form, setForm] = useState<ZoneForm>(
+    zone ? { name: zone.name, color: zone.color } : { name: '', color: ZONE_COLORS[0] }
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-900">{zone ? 'Modifier la zone' : 'Ajouter une zone'}</h3>
+          <button onClick={onClose} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Nom de la zone</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              placeholder="Ex: Salle principale"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Couleur de fond</label>
+            <div className="flex flex-wrap gap-2">
+              {ZONE_COLORS.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setForm(f => ({ ...f, color: c }))}
+                  className={`h-8 w-8 rounded-lg border-2 transition-all ${
+                    form.color === c ? 'border-gray-800 scale-110' : 'border-transparent hover:border-gray-300'
+                  }`}
+                  style={{ backgroundColor: c }}
+                  title={c}
+                />
+              ))}
+              {/* Custom color */}
+              <label className="relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400" title="Couleur personnalisée">
+                <PaintBucket className="h-3.5 w-3.5 text-gray-400" />
+                <input
+                  type="color"
+                  value={form.color}
+                  onChange={(e) => setForm(f => ({ ...f, color: e.target.value }))}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                />
+              </label>
+            </div>
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2">
+              <div className="h-5 w-5 rounded-md border border-gray-200" style={{ backgroundColor: form.color }} />
+              <span className="text-sm text-gray-600">{form.color}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={onClose}>Annuler</Button>
+          <Button
+            className="flex-1"
+            onClick={() => onSave(form)}
+            disabled={!form.name.trim()}
+          >
+            {zone ? 'Enregistrer' : 'Ajouter'}
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ── QR Modal ──────────────────────────────────────────────────────────────────
 
-function QRModal({ table, onClose }: { table: RestaurantTable; onClose: () => void }) {
+function QRModal({ table, zones, onClose }: { table: RestaurantTable; zones: Zone[]; onClose: () => void }) {
   const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://foodstack.app'}/menu?table=${table.number}`;
+  const zoneName = zones.find(z => z.id === table.zoneId)?.name ?? table.zoneId;
 
   function download() {
     const svg = document.getElementById(`qr-table-${table.id}`);
@@ -259,7 +375,7 @@ function QRModal({ table, onClose }: { table: RestaurantTable; onClose: () => vo
             <X className="h-4 w-4" />
           </button>
         </div>
-        <p className="mb-4 text-xs text-gray-500">{table.section} · {table.capacity} couverts</p>
+        <p className="mb-4 text-xs text-gray-500">{zoneName} · {table.capacity} couverts</p>
         <div className="flex justify-center rounded-xl border border-gray-100 bg-gray-50 p-4">
           <QRCodeSVG id={`qr-table-${table.id}`} value={url} size={160} level="M" />
         </div>
@@ -276,6 +392,7 @@ function QRModal({ table, onClose }: { table: RestaurantTable; onClose: () => vo
 
 interface ActionMenuProps {
   table: RestaurantTable;
+  zones: Zone[];
   position: { x: number; y: number };
   onClose: () => void;
   onChangeStatus: (status: TableStatus) => void;
@@ -286,14 +403,9 @@ interface ActionMenuProps {
 }
 
 function ActionMenu({
-  table, position, onClose, onChangeStatus, onAssignOrder, onEdit, onQr, onDelete,
+  table, zones, position, onClose, onChangeStatus, onAssignOrder, onEdit, onQr, onDelete,
 }: ActionMenuProps) {
-  // Close on escape
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  const zoneName = zones.find(z => z.id === table.zoneId)?.name ?? table.zoneId;
 
   return (
     <>
@@ -308,7 +420,7 @@ function ActionMenu({
           <div className="flex items-center justify-between">
             <div>
               <p className="font-bold text-gray-900">Table {table.number}</p>
-              <p className="text-xs text-gray-500">{table.section} · {table.capacity} couverts</p>
+              <p className="text-xs text-gray-500">{zoneName} · {table.capacity} couverts</p>
             </div>
             <div className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_CONFIG[table.status].bg} ${STATUS_CONFIG[table.status].text}`}>
               <span className={`h-1.5 w-1.5 rounded-full ${STATUS_CONFIG[table.status].dot}`} />
@@ -318,64 +430,34 @@ function ActionMenu({
         </div>
 
         <div className="py-1.5">
-          <button
-            onClick={onAssignOrder}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={onAssignOrder} className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
             <ClipboardList className="h-4 w-4 text-gray-500" />
             Assigner une commande
           </button>
-          <button
-            onClick={() => onChangeStatus('reserved')}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={() => onChangeStatus('reserved')} className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
             <CalendarClock className="h-4 w-4 text-yellow-500" />
             Réserver
           </button>
-          <button
-            onClick={() => onChangeStatus('cleaning')}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={() => onChangeStatus('cleaning')} className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
             <Brush className="h-4 w-4 text-gray-500" />
             Marquer en nettoyage
           </button>
-          <button
-            onClick={() => onChangeStatus('free')}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={() => onChangeStatus('free')} className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
             <CheckCircle className="h-4 w-4 text-green-500" />
             Libérer la table
           </button>
-          {table.status === 'cleaning' && (
-            <button
-              onClick={() => onChangeStatus('free')}
-              className="flex w-full items-center gap-2.5 bg-green-50 px-4 py-2 text-left text-sm font-medium text-green-700 hover:bg-green-100"
-            >
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              Nettoyage terminé → Libérer
-            </button>
-          )}
         </div>
 
         <div className="border-t border-gray-100 py-1.5">
-          <button
-            onClick={onQr}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={onQr} className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
             <QrCode className="h-4 w-4 text-gray-500" />
             QR Code
           </button>
-          <button
-            onClick={onEdit}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-          >
+          <button onClick={onEdit} className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
             <Edit2 className="h-4 w-4 text-gray-500" />
             Modifier
           </button>
-          <button
-            onClick={onDelete}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-          >
+          <button onClick={onDelete} className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">
             <Trash2 className="h-4 w-4" />
             Supprimer
           </button>
@@ -385,15 +467,27 @@ function ActionMenu({
   );
 }
 
-// ── Floor plan canvas ─────────────────────────────────────────────────────────
+// ── Floor plan canvas (shared between floor view and editor) ──────────────────
 
 interface FloorCanvasProps {
   tables: RestaurantTable[];
+  zones: Zone[];
+  editorMode?: boolean;
+  selectedTableId?: string | null;
   onMove: (id: string, x: number, y: number) => void;
   onClickTable: (table: RestaurantTable, screenX: number, screenY: number) => void;
+  onSelectTable?: (id: string | null) => void;
 }
 
-function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
+function FloorCanvas({
+  tables,
+  zones,
+  editorMode = false,
+  selectedTableId,
+  onMove,
+  onClickTable,
+  onSelectTable,
+}: FloorCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     id: string;
@@ -408,6 +502,7 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
     (e: React.PointerEvent<HTMLDivElement>, table: RestaurantTable) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
+      e.stopPropagation();
       const canvasRect = canvas.getBoundingClientRect();
       e.currentTarget.setPointerCapture(e.pointerId);
       dragRef.current = {
@@ -434,22 +529,30 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
       drag.moved = true;
 
       const canvasRect = canvas.getBoundingClientRect();
-      const newX = Math.max(0, e.clientX - canvasRect.left - drag.offsetX);
-      const newY = Math.max(0, e.clientY - canvasRect.top - drag.offsetY);
+      const rawX = e.clientX - canvasRect.left - drag.offsetX;
+      const rawY = e.clientY - canvasRect.top - drag.offsetY;
+      const newX = Math.max(0, editorMode ? snap(rawX) : rawX);
+      const newY = Math.max(0, editorMode ? snap(rawY) : rawY);
       onMove(drag.id, newX, newY);
     },
-    [onMove]
+    [onMove, editorMode]
   );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>, table: RestaurantTable) => {
       const drag = dragRef.current;
-      if (drag && drag.id === table.id && !drag.moved) {
-        onClickTable(table, e.clientX, e.clientY);
+      if (drag && drag.id === table.id) {
+        if (!drag.moved) {
+          if (editorMode && onSelectTable) {
+            onSelectTable(table.id === selectedTableId ? null : table.id);
+          } else {
+            onClickTable(table, e.clientX, e.clientY);
+          }
+        }
       }
       dragRef.current = null;
     },
-    [onClickTable]
+    [onClickTable, editorMode, onSelectTable, selectedTableId]
   );
 
   return (
@@ -461,15 +564,23 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
           backgroundImage:
             'linear-gradient(to right, rgba(15,23,42,0.04) 1px, transparent 1px),' +
             'linear-gradient(to bottom, rgba(15,23,42,0.04) 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
+          backgroundSize: `${GRID}px ${GRID}px`,
         }}
+        onClick={() => editorMode && onSelectTable?.(null)}
       >
-        {/* Section zones */}
-        {SECTION_ZONES.map(zone => (
+        {/* Zone backgrounds */}
+        {zones.map(zone => (
           <div
-            key={zone.name}
-            className={`absolute rounded-2xl border-2 border-dashed ${zone.color}`}
-            style={{ left: zone.x, top: zone.y, width: zone.w, height: zone.h }}
+            key={zone.id}
+            className="absolute rounded-2xl border-2 border-dashed"
+            style={{
+              left: zone.x,
+              top: zone.y,
+              width: zone.w,
+              height: zone.h,
+              backgroundColor: zone.color,
+              borderColor: zone.color === '#eff6ff' ? '#93c5fd' : adjustColorBorder(zone.color),
+            }}
           >
             <span className="absolute left-3 top-2 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 shadow-sm">
               {zone.name}
@@ -482,6 +593,7 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
           const cfg = STATUS_CONFIG[table.status];
           const { w, h } = tableSize(table);
           const isCircle = table.shape === 'circle';
+          const isSelected = editorMode && selectedTableId === table.id;
           return (
             <div
               key={table.id}
@@ -489,16 +601,23 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
               onPointerMove={handlePointerMove}
               onPointerUp={(e) => handlePointerUp(e, table)}
               className={`absolute flex cursor-grab touch-none flex-col items-center justify-center border-2 shadow-sm transition-shadow hover:shadow-md active:cursor-grabbing ${cfg.fill} ${cfg.border} ${isCircle ? 'rounded-full' : 'rounded-2xl'}`}
-              style={{ left: table.x, top: table.y, width: w, height: h }}
+              style={{
+                left: table.x,
+                top: table.y,
+                width: w,
+                height: h,
+                outline: isSelected ? '3px solid #6366f1' : undefined,
+                outlineOffset: isSelected ? '3px' : undefined,
+                zIndex: isSelected ? 10 : undefined,
+              }}
               title={`Table ${table.number} — ${cfg.label}`}
             >
               {/* Status dot */}
               <span className={`absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-white ${cfg.dot}`} />
-              {/* Cleaning pulse ring */}
+              {/* Cleaning pulse */}
               {table.status === 'cleaning' && (
                 <span className="absolute inset-0 rounded-[inherit] animate-pulse ring-2 ring-yellow-400/60 pointer-events-none" />
               )}
-
               <div className="flex items-baseline gap-1">
                 <span className="text-lg font-extrabold text-gray-900 leading-none">{table.number}</span>
               </div>
@@ -515,6 +634,205 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
             </div>
           );
         })}
+
+        {/* Editor grid overlay hint */}
+        {editorMode && (
+          <div className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1.5 text-[10px] font-medium text-gray-500 shadow-sm backdrop-blur-sm">
+            <Grid3X3 className="h-3 w-3" />
+            Grille 40 px · clic pour sélectionner · glisser pour déplacer
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Derive a darker border color from the zone fill hex
+function adjustColorBorder(hex: string): string {
+  // Simple darkening by reducing each channel by 20%
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const darken = (c: number) => Math.max(0, Math.round(c * 0.7));
+  return `rgb(${darken(r)}, ${darken(g)}, ${darken(b)})`;
+}
+
+// ── Editor right panel ────────────────────────────────────────────────────────
+
+interface EditorPanelProps {
+  selectedTable: RestaurantTable | null;
+  zones: Zone[];
+  onUpdateTable: (id: string, patch: Partial<RestaurantTable>) => void;
+  onDeleteTable: (id: string) => void;
+  onDeselectTable: () => void;
+  onEditZone: (zone: Zone) => void;
+  onDeleteZone: (id: string) => void;
+  onAddZone: () => void;
+}
+
+function EditorPanel({
+  selectedTable,
+  zones,
+  onUpdateTable,
+  onDeleteTable,
+  onDeselectTable,
+  onEditZone,
+  onDeleteZone,
+  onAddZone,
+}: EditorPanelProps) {
+  return (
+    <div className="flex h-full flex-col gap-4">
+      {/* Table properties */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-900">Propriétés de la table</h3>
+          {selectedTable && (
+            <button onClick={onDeselectTable} className="rounded-md p-1 text-gray-400 hover:bg-gray-100">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {!selectedTable ? (
+          <p className="text-center text-xs text-gray-400 py-4">
+            Cliquez sur une table dans le plan pour la sélectionner
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-3 py-2">
+              <span className="text-sm font-bold text-gray-900">Table {selectedTable.number}</span>
+              <span className={`ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_CONFIG[selectedTable.status].bg} ${STATUS_CONFIG[selectedTable.status].text}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${STATUS_CONFIG[selectedTable.status].dot}`} />
+                {STATUS_CONFIG[selectedTable.status].label}
+              </span>
+            </div>
+
+            {/* Shape toggle */}
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-gray-600">Forme</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => onUpdateTable(selectedTable.id, { shape: 'rect' })}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-medium transition-all ${
+                    selectedTable.shape === 'rect'
+                      ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <SquareIcon className="h-3.5 w-3.5" /> Rectangle
+                </button>
+                <button
+                  onClick={() => onUpdateTable(selectedTable.id, { shape: 'circle' })}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl border py-2 text-xs font-medium transition-all ${
+                    selectedTable.shape === 'circle'
+                      ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <Circle className="h-3.5 w-3.5" /> Ronde
+                </button>
+              </div>
+            </div>
+
+            {/* Capacity */}
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-gray-600">Capacité</p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {[2, 4, 6, 8].map(cap => (
+                  <button
+                    key={cap}
+                    onClick={() => onUpdateTable(selectedTable.id, { capacity: cap })}
+                    className={`flex items-center justify-center rounded-xl border py-1.5 text-xs font-semibold transition-all ${
+                      selectedTable.capacity === cap
+                        ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    {cap}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Zone */}
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-gray-600">Zone</p>
+              <select
+                value={selectedTable.zoneId}
+                onChange={(e) => onUpdateTable(selectedTable.id, { zoneId: e.target.value })}
+                className="w-full rounded-xl border border-gray-200 px-2.5 py-2 text-xs focus:border-indigo-400 focus:outline-none"
+              >
+                {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+              </select>
+            </div>
+
+            {/* Position */}
+            <div>
+              <p className="mb-1.5 text-xs font-medium text-gray-600">Position (grille)</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-gray-500">X</label>
+                  <input
+                    type="number"
+                    step={GRID}
+                    value={selectedTable.x}
+                    onChange={(e) => onUpdateTable(selectedTable.id, { x: snap(Number(e.target.value)) })}
+                    className="w-full rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-indigo-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] text-gray-500">Y</label>
+                  <input
+                    type="number"
+                    step={GRID}
+                    value={selectedTable.y}
+                    onChange={(e) => onUpdateTable(selectedTable.id, { y: snap(Number(e.target.value)) })}
+                    className="w-full rounded-lg border border-gray-200 px-2 py-1 text-xs focus:border-indigo-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onDeleteTable(selectedTable.id)}
+              className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 py-2 text-xs font-medium text-red-600 hover:bg-red-100"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Supprimer cette table
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Zones manager */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-900">Zones</h3>
+          <button
+            onClick={onAddZone}
+            className="flex items-center gap-1 rounded-lg bg-gray-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-gray-700"
+          >
+            <Plus className="h-3 w-3" />
+            Ajouter
+          </button>
+        </div>
+        <div className="space-y-1.5">
+          {zones.map(zone => (
+            <div key={zone.id} className="flex items-center gap-2 rounded-xl border border-gray-100 px-3 py-2 hover:bg-gray-50">
+              <div
+                className="h-4 w-4 flex-shrink-0 rounded-md border border-gray-200"
+                style={{ backgroundColor: zone.color }}
+              />
+              <span className="flex-1 truncate text-xs font-medium text-gray-700">{zone.name}</span>
+              <button onClick={() => onEditZone(zone)} className="rounded p-0.5 text-gray-400 hover:text-gray-600">
+                <Pencil className="h-3 w-3" />
+              </button>
+              <button onClick={() => onDeleteZone(zone.id)} className="rounded p-0.5 text-gray-400 hover:text-red-500">
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -524,21 +842,31 @@ function FloorCanvas({ tables, onMove, onClickTable }: FloorCanvasProps) {
 
 export default function TablesPage() {
   const [tables, setTables] = useState<RestaurantTable[]>(INIT_TABLES);
-  const [viewMode, setViewMode] = useState<'floor' | 'list'>('floor');
+  const [zones, setZones] = useState<Zone[]>(INIT_ZONES);
+  const [tab, setTab] = useState<PageTab>('floor');
   const [sectionFilter, setSectionFilter] = useState<string>('Tous');
   const [statusFilter, setStatusFilter] = useState<TableStatus | 'all'>('all');
+
+  // Modals
   const [editingTable, setEditingTable] = useState<RestaurantTable | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showTableModal, setShowTableModal] = useState(false);
+  const [editingZone, setEditingZone] = useState<Zone | null>(null);
+  const [showZoneModal, setShowZoneModal] = useState(false);
   const [qrTable, setQrTable] = useState<RestaurantTable | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [actionMenu, setActionMenu] = useState<{ table: RestaurantTable; x: number; y: number } | null>(null);
   const [assignOrderFor, setAssignOrderFor] = useState<RestaurantTable | null>(null);
   const [toasts, setToasts] = useState<{ id: number; message: string }[]>([]);
 
-  const sections = ['Tous', ...SECTIONS.filter(s => tables.some(t => t.section === s))];
+  // Editor
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+
+  const zoneNames = ['Tous', ...zones.map(z => z.name)];
+  const selectedTable = tables.find(t => t.id === selectedTableId) ?? null;
 
   const filtered = tables.filter(t => {
-    if (sectionFilter !== 'Tous' && t.section !== sectionFilter) return false;
+    const zoneName = zones.find(z => z.id === t.zoneId)?.name ?? '';
+    if (sectionFilter !== 'Tous' && zoneName !== sectionFilter) return false;
     if (statusFilter !== 'all' && t.status !== statusFilter) return false;
     return true;
   });
@@ -552,27 +880,23 @@ export default function TablesPage() {
     covers: tables.filter(t => t.status === 'occupied').reduce((s, t) => s + t.capacity, 0),
   };
 
+  // ── Table CRUD ───────────────────────────────────────────────────────────────
+
   function openAdd() {
     setEditingTable(null);
-    setShowModal(true);
+    setShowTableModal(true);
   }
 
   function openEdit(table: RestaurantTable) {
     setEditingTable(table);
-    setShowModal(true);
+    setShowTableModal(true);
   }
 
-  function handleSave(form: TableForm) {
+  function handleSaveTable(form: { number: string; capacity: string; zoneId: string; shape: TableShape }) {
     if (editingTable) {
       setTables(prev => prev.map(t =>
         t.id === editingTable.id
-          ? {
-              ...t,
-              number: Number(form.number),
-              capacity: Number(form.capacity),
-              section: form.section,
-              shape: form.shape,
-            }
+          ? { ...t, number: Number(form.number), capacity: Number(form.capacity), zoneId: form.zoneId, shape: form.shape }
           : t
       ));
     } else {
@@ -580,24 +904,33 @@ export default function TablesPage() {
         id: `t${Date.now()}`,
         number: Number(form.number),
         capacity: Number(form.capacity),
-        section: form.section,
+        zoneId: form.zoneId,
         shape: form.shape,
         status: 'free',
-        x: 60 + (prev.length % 6) * 130,
-        y: 80 + Math.floor(prev.length / 6) * 130,
+        x: snap(60 + (prev.length % 6) * 130),
+        y: snap(80 + Math.floor(prev.length / 6) * 130),
       }]);
     }
-    setShowModal(false);
+    setShowTableModal(false);
+  }
+
+  function updateTable(id: string, patch: Partial<RestaurantTable>) {
+    setTables(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
   }
 
   function moveTable(id: string, x: number, y: number) {
     setTables(prev => prev.map(t => t.id === id ? { ...t, x, y } : t));
   }
 
+  function deleteTable(id: string) {
+    setTables(prev => prev.filter(t => t.id !== id));
+    if (selectedTableId === id) setSelectedTableId(null);
+    setDeleteId(null);
+  }
+
   function changeStatus(id: string, status: TableStatus) {
     setTables(prev => prev.map(t => {
       if (t.id !== id) return t;
-      // When a customer leaves (occupied/reserved → free), require cleaning first
       if (status === 'free' && (t.status === 'occupied' || t.status === 'reserved')) {
         addToast(`🧹 Table ${t.number} — nettoyage requis avant de l'attribuer`);
         return { ...t, status: 'cleaning', currentOrderId: undefined, occupiedSince: undefined, reservedAt: undefined, reservedBy: undefined };
@@ -609,16 +942,51 @@ export default function TablesPage() {
     }));
   }
 
+  // ── Zone CRUD ────────────────────────────────────────────────────────────────
+
+  function openAddZone() {
+    setEditingZone(null);
+    setShowZoneModal(true);
+  }
+
+  function openEditZone(zone: Zone) {
+    setEditingZone(zone);
+    setShowZoneModal(true);
+  }
+
+  function handleSaveZone(form: ZoneForm) {
+    if (editingZone) {
+      setZones(prev => prev.map(z => z.id === editingZone.id ? { ...z, ...form } : z));
+    } else {
+      const id = `z${Date.now()}`;
+      // Place new zone at a free area
+      const offsetIdx = zones.length;
+      setZones(prev => [...prev, {
+        id,
+        name: form.name,
+        color: form.color,
+        x: 40 + (offsetIdx % 3) * 340,
+        y: 460,
+        w: 280,
+        h: 120,
+      }]);
+    }
+    setShowZoneModal(false);
+  }
+
+  function deleteZone(id: string) {
+    setZones(prev => prev.filter(z => z.id !== id));
+    // Reassign tables from that zone to first remaining zone
+    const fallbackId = zones.find(z => z.id !== id)?.id ?? '';
+    setTables(prev => prev.map(t => t.zoneId === id ? { ...t, zoneId: fallbackId } : t));
+  }
+
+  // ── Misc ─────────────────────────────────────────────────────────────────────
+
   function addToast(message: string) {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
-  }
-
-  function confirmDelete(id: string) { setDeleteId(id); }
-  function doDelete() {
-    if (deleteId) setTables(prev => prev.filter(t => t.id !== deleteId));
-    setDeleteId(null);
   }
 
   function handleAssignOrder(table: RestaurantTable) {
@@ -633,7 +1001,6 @@ export default function TablesPage() {
   }
 
   function openActionMenu(table: RestaurantTable, screenX: number, screenY: number) {
-    // Keep within viewport
     const x = Math.min(screenX, window.innerWidth - 256);
     const y = Math.min(screenY, window.innerHeight - 360);
     setActionMenu({ table, x, y });
@@ -661,7 +1028,7 @@ export default function TablesPage() {
         </AnimatePresence>
       </div>
 
-      {/* IA Nettoyage banner */}
+      {/* IA nettoyage banner */}
       {stats.cleaning > 0 && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
@@ -687,10 +1054,12 @@ export default function TablesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500 sm:flex">
-            <Move className="h-3.5 w-3.5" />
-            Glissez pour déplacer · cliquez pour les actions
-          </div>
+          {tab !== 'editor' && (
+            <div className="hidden items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-500 sm:flex">
+              <Move className="h-3.5 w-3.5" />
+              Glissez pour déplacer · cliquez pour les actions
+            </div>
+          )}
           <Button onClick={openAdd} icon={<Plus className="h-4 w-4" />}>
             Ajouter une table
           </Button>
@@ -720,71 +1089,77 @@ export default function TablesPage() {
         })}
       </div>
 
-      {/* Filters + view toggle */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Section tabs */}
-        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
-          {sections.map(s => (
-            <button
-              key={s}
-              onClick={() => setSectionFilter(s)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                sectionFilter === s ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-
-        {/* Status filter */}
-        <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
-          <button
-            onClick={() => setStatusFilter('all')}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${statusFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-          >
-            Toutes
-          </button>
-          {(Object.keys(STATUS_CONFIG) as TableStatus[]).map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${statusFilter === s ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${STATUS_CONFIG[s].dot}`} />
-              {STATUS_CONFIG[s].label}
-            </button>
-          ))}
-        </div>
-
-        <div className="ml-auto flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
-          <button
-            onClick={() => setViewMode('floor')}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${viewMode === 'floor' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            title="Plan de salle"
-          >
-            <LayoutGrid className="h-4 w-4" />
-            Plan
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition-all ${viewMode === 'list' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-            title="Liste"
-          >
-            <LayoutList className="h-4 w-4" />
-            Liste
-          </button>
-        </div>
+      {/* Tab bar */}
+      <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 w-fit">
+        <button
+          onClick={() => setTab('floor')}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${tab === 'floor' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+        >
+          <LayoutGrid className="h-4 w-4" />
+          Plan de salle
+        </button>
+        <button
+          onClick={() => setTab('editor')}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${tab === 'editor' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+        >
+          <Layers className="h-4 w-4" />
+          Éditeur de plan
+        </button>
+        <button
+          onClick={() => setTab('list')}
+          className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${tab === 'list' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+        >
+          <LayoutList className="h-4 w-4" />
+          Liste
+        </button>
       </div>
 
-      {/* Main view */}
-      {viewMode === 'floor' ? (
+      {/* ── FLOOR VIEW ─────────────────────────────────────────────────────────── */}
+      {tab === 'floor' && (
         <div className="space-y-3">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+              {zoneNames.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSectionFilter(s)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                    sectionFilter === s ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${statusFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Toutes
+              </button>
+              {(Object.keys(STATUS_CONFIG) as TableStatus[]).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${statusFilter === s ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${STATUS_CONFIG[s].dot}`} />
+                  {STATUS_CONFIG[s].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <FloorCanvas
             tables={filtered}
+            zones={zones}
+            editorMode={false}
             onMove={moveTable}
             onClickTable={openActionMenu}
           />
+
           {/* Legend */}
           <div className="flex flex-wrap items-center gap-4 rounded-xl border border-gray-100 bg-gray-50 px-4 py-2.5 text-xs">
             <div className="flex items-center gap-2 font-medium text-gray-700">
@@ -799,99 +1174,220 @@ export default function TablesPage() {
             ))}
           </div>
         </div>
-      ) : (
-        /* List view */
-        <Card padding="none">
-          <div className="divide-y divide-gray-100">
-            {filtered.map(table => {
-              const cfg = STATUS_CONFIG[table.status];
-              return (
-                <div key={table.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 font-bold text-gray-900">
-                    {table.number}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900">Table {table.number}</span>
-                      <span className="text-gray-400">·</span>
-                      <span className="text-sm text-gray-500">{table.section}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Users className="h-3.5 w-3.5" />
-                      {table.capacity} couverts
-                      {table.status === 'occupied' && table.currentOrderId && (
-                        <span className="text-red-600">· {table.currentOrderId}</span>
-                      )}
-                      {table.status === 'reserved' && (
-                        <span className="text-yellow-700">· {table.reservedAt} — {table.reservedBy}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cfg.bg} ${cfg.text}`}>
-                    <div className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                    {cfg.label}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {table.status === 'cleaning' && (
-                      <button
-                        onClick={() => changeStatus(table.id, 'free')}
-                        className="flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-100"
-                        title="Nettoyage terminé"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5" />
-                        Libérer
-                      </button>
-                    )}
-                    <button
-                      onClick={(e) => openActionMenu(table, e.clientX, e.clientY)}
-                      className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                      title="Actions"
-                    >
-                      <Clock className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => setQrTable(table)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" title="QR Code">
-                      <QrCode className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => openEdit(table)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" title="Modifier">
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => confirmDelete(table.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500" title="Supprimer">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
       )}
 
-      {/* Action menu */}
+      {/* ── EDITOR TAB ──────────────────────────────────────────────────────────── */}
+      {tab === 'editor' && (
+        <div className="space-y-3">
+          {/* Toolbar */}
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Outils</span>
+            <div className="h-4 w-px bg-gray-200" />
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Table
+            </button>
+            <button
+              onClick={openAddZone}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50 active:bg-gray-100"
+            >
+              <Layers className="h-3.5 w-3.5" />
+              Zone
+            </button>
+            {selectedTableId && (
+              <>
+                <div className="h-4 w-px bg-gray-200" />
+                <button
+                  onClick={() => setDeleteId(selectedTableId)}
+                  className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Supprimer table
+                </button>
+              </>
+            )}
+            <div className="ml-auto flex items-center gap-1.5 text-xs text-gray-400">
+              <Grid3X3 className="h-3.5 w-3.5" />
+              Grille 40 px
+            </div>
+          </div>
+
+          {/* Canvas + Panel */}
+          <div className="flex gap-4 items-start">
+            <div className="flex-1 min-w-0">
+              <FloorCanvas
+                tables={tables}
+                zones={zones}
+                editorMode={true}
+                selectedTableId={selectedTableId}
+                onMove={moveTable}
+                onClickTable={() => {/* editor mode handles selection instead */}}
+                onSelectTable={setSelectedTableId}
+              />
+            </div>
+
+            {/* Right panel */}
+            <div className="w-64 flex-shrink-0">
+              <EditorPanel
+                selectedTable={selectedTable}
+                zones={zones}
+                onUpdateTable={updateTable}
+                onDeleteTable={(id) => setDeleteId(id)}
+                onDeselectTable={() => setSelectedTableId(null)}
+                onEditZone={openEditZone}
+                onDeleteZone={deleteZone}
+                onAddZone={openAddZone}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── LIST VIEW ──────────────────────────────────────────────────────────── */}
+      {tab === 'list' && (
+        <div className="space-y-3">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+              {zoneNames.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSectionFilter(s)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
+                    sectionFilter === s ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 rounded-xl border border-gray-200 bg-white p-1">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${statusFilter === 'all' ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+              >
+                Toutes
+              </button>
+              {(Object.keys(STATUS_CONFIG) as TableStatus[]).map(s => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${statusFilter === s ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${STATUS_CONFIG[s].dot}`} />
+                  {STATUS_CONFIG[s].label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Card padding="none">
+            <div className="divide-y divide-gray-100">
+              {filtered.map(table => {
+                const cfg = STATUS_CONFIG[table.status];
+                const zoneName = zones.find(z => z.id === table.zoneId)?.name ?? table.zoneId;
+                return (
+                  <div key={table.id} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 font-bold text-gray-900">
+                      {table.number}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">Table {table.number}</span>
+                        <span className="text-gray-400">·</span>
+                        <span className="text-sm text-gray-500">{zoneName}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Users className="h-3.5 w-3.5" />
+                        {table.capacity} couverts
+                        {table.status === 'occupied' && table.currentOrderId && (
+                          <span className="text-red-600">· {table.currentOrderId}</span>
+                        )}
+                        {table.status === 'reserved' && (
+                          <span className="text-yellow-700">· {table.reservedAt} — {table.reservedBy}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${cfg.bg} ${cfg.text}`}>
+                      <div className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                      {cfg.label}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {table.status === 'cleaning' && (
+                        <button
+                          onClick={() => changeStatus(table.id, 'free')}
+                          className="flex items-center gap-1 rounded-lg bg-green-50 px-2 py-1 text-xs font-medium text-green-700 hover:bg-green-100"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Libérer
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => openActionMenu(table, e.clientX, e.clientY)}
+                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                        title="Actions"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setQrTable(table)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" title="QR Code">
+                        <QrCode className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => openEdit(table)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600" title="Modifier">
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => setDeleteId(table.id)} className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500" title="Supprimer">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Action menu ──────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {actionMenu && (
           <ActionMenu
             table={actionMenu.table}
+            zones={zones}
             position={{ x: actionMenu.x, y: actionMenu.y }}
             onClose={() => setActionMenu(null)}
             onChangeStatus={(s) => { changeStatus(actionMenu.table.id, s); setActionMenu(null); }}
             onAssignOrder={() => { setAssignOrderFor(actionMenu.table); setActionMenu(null); }}
             onEdit={() => { openEdit(actionMenu.table); setActionMenu(null); }}
             onQr={() => { setQrTable(actionMenu.table); setActionMenu(null); }}
-            onDelete={() => { confirmDelete(actionMenu.table.id); setActionMenu(null); }}
+            onDelete={() => { setDeleteId(actionMenu.table.id); setActionMenu(null); }}
           />
         )}
       </AnimatePresence>
 
-      {/* Modals */}
+      {/* ── Modals ───────────────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {showModal && (
+        {showTableModal && (
           <TableModal
             table={editingTable || undefined}
-            onClose={() => setShowModal(false)}
-            onSave={handleSave}
+            zones={zones}
+            onClose={() => setShowTableModal(false)}
+            onSave={handleSaveTable}
           />
         )}
-        {qrTable && <QRModal table={qrTable} onClose={() => setQrTable(null)} />}
+
+        {showZoneModal && (
+          <ZoneModal
+            zone={editingZone || undefined}
+            onClose={() => setShowZoneModal(false)}
+            onSave={handleSaveZone}
+          />
+        )}
+
+        {qrTable && <QRModal table={qrTable} zones={zones} onClose={() => setQrTable(null)} />}
+
         {assignOrderFor && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <motion.div
@@ -917,6 +1413,7 @@ export default function TablesPage() {
             </motion.div>
           </div>
         )}
+
         {deleteId && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <motion.div
@@ -935,7 +1432,7 @@ export default function TablesPage() {
               </div>
               <div className="flex gap-3">
                 <Button variant="secondary" className="flex-1" onClick={() => setDeleteId(null)}>Annuler</Button>
-                <Button variant="danger" className="flex-1" onClick={doDelete}>Supprimer</Button>
+                <Button variant="danger" className="flex-1" onClick={() => deleteTable(deleteId)}>Supprimer</Button>
               </div>
             </motion.div>
           </div>
