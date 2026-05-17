@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 import {
@@ -8,6 +8,9 @@ import {
   ShoppingCart, ChevronLeft, Star, Zap, Moon, Leaf,
   ImagePlus, X,
 } from 'lucide-react';
+import { useAuthStore } from '@/store/auth';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -170,6 +173,23 @@ const PRESETS: Preset[] = [
 ];
 
 type PreviewTab = 'accueil' | 'menu' | 'panier';
+
+// ── API types ─────────────────────────────────────────────────────────────────
+
+interface MenuCategory {
+  id: string;
+  name: string;
+}
+
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  categoryId?: string;
+  badge?: string | null;
+  emoji?: string;
+  imageUrl?: string | null;
+}
 
 // ── Theme Helpers ─────────────────────────────────────────────────────────────
 
@@ -536,18 +556,23 @@ function ElementEditor({
   );
 }
 
-// ── Preview Screens ───────────────────────────────────────────────────────────
+// ── Fallback preview data (used while loading or if API unavailable) ──────────
 
-const MOCK_PRODUCTS = [
-  { id: 'p1', name: 'Burger Classic', price: 12.90, emoji: '🍔', badge: 'Best-seller' },
-  { id: 'p2', name: 'Salade César',   price: 9.50,  emoji: '🥗', badge: null },
+const FALLBACK_PRODUCTS: MenuItem[] = [
+  { id: 'p1', name: 'Burger Classic',  price: 12.90, emoji: '🍔', badge: 'Best-seller' },
+  { id: 'p2', name: 'Salade César',    price: 9.50,  emoji: '🥗', badge: null },
   { id: 'p3', name: 'Pâtes Carbonara', price: 11.50, emoji: '🍝', badge: null },
-  { id: 'p4', name: 'Tiramisu',       price: 6.50,  emoji: '🍮', badge: 'Nouveau' },
-  { id: 'p5', name: 'Coca-Cola',      price: 3.00,  emoji: '🥤', badge: null },
-  { id: 'p6', name: 'Menu Burger',    price: 17.90, emoji: '🍱', badge: 'Éco' },
+  { id: 'p4', name: 'Tiramisu',        price: 6.50,  emoji: '🍮', badge: 'Nouveau' },
 ];
 
-const MOCK_CATEGORIES = ['Menus', 'Entrées', 'Plats', 'Desserts', 'Boissons'];
+const FALLBACK_CATEGORIES: MenuCategory[] = [
+  { id: 'c1', name: 'Menus' },
+  { id: 'c2', name: 'Entrées' },
+  { id: 'c3', name: 'Plats' },
+  { id: 'c4', name: 'Desserts' },
+];
+
+// ── Preview Screens ───────────────────────────────────────────────────────────
 
 function PreviewAccueil({ theme }: { theme: KioskTheme }) {
   const bgStyle = applyTheme(theme.background);
@@ -583,7 +608,7 @@ function PreviewAccueil({ theme }: { theme: KioskTheme }) {
   );
 }
 
-function PreviewMenu({ theme }: { theme: KioskTheme }) {
+function PreviewMenu({ theme, products, categories }: { theme: KioskTheme; products: MenuItem[]; categories: MenuCategory[] }) {
   const navStyle = applyTheme(theme.navbar);
   const cardStyle = applyTheme(theme.productCard);
   const badgeStyle = applyTheme(theme.badge);
@@ -606,16 +631,16 @@ function PreviewMenu({ theme }: { theme: KioskTheme }) {
 
       {/* Categories row */}
       <div className="flex gap-1 overflow-x-auto px-2 py-1.5">
-        {MOCK_CATEGORIES.slice(0, 4).map((cat, i) => (
+        {categories.slice(0, 4).map((cat, i) => (
           <div
-            key={cat}
+            key={cat.id}
             className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold"
             style={i === 0
               ? { background: theme.primaryButton.bgColor, color: theme.primaryButton.textColor }
               : { background: theme.secondaryButton.bgColor, color: theme.secondaryButton.textColor }
             }
           >
-            {cat}
+            {cat.name}
           </div>
         ))}
       </div>
@@ -623,14 +648,14 @@ function PreviewMenu({ theme }: { theme: KioskTheme }) {
       {/* Product grid */}
       <div className="flex-1 overflow-hidden p-2">
         <div className="grid grid-cols-2 gap-2">
-          {MOCK_PRODUCTS.slice(0, 4).map((p) => (
+          {products.slice(0, 4).map((p) => (
             <div key={p.id} className="flex flex-col items-center p-2" style={cardStyle}>
               {p.badge && (
                 <div className="mb-1 self-start px-1.5 py-0.5 text-[9px] font-bold" style={badgeStyle}>
                   {p.badge}
                 </div>
               )}
-              <span className="text-2xl">{p.emoji}</span>
+              <span className="text-2xl">{p.emoji ?? '🍽️'}</span>
               <p className="mt-1 text-center text-[10px] font-bold" style={{ color: theme.productCard.textColor }}>
                 {p.name}
               </p>
@@ -645,13 +670,17 @@ function PreviewMenu({ theme }: { theme: KioskTheme }) {
   );
 }
 
-function PreviewPanier({ theme }: { theme: KioskTheme }) {
+function PreviewPanier({ theme, products }: { theme: KioskTheme; products: MenuItem[] }) {
   const bgStyle = applyTheme(theme.background);
   const navStyle = applyTheme(theme.navbar);
   const cardStyle = applyTheme(theme.productCard);
   const primaryStyle = applyTheme(theme.primaryButton);
   const secondaryStyle = applyTheme(theme.secondaryButton);
   const headStyle = applyTheme(theme.heading);
+
+  const previewItems = products.slice(0, 2);
+  const subtotal = previewItems.reduce((sum, p) => sum + p.price, 0);
+  const tva = subtotal * 0.1;
 
   return (
     <div className="flex h-full w-full flex-col" style={bgStyle}>
@@ -661,9 +690,9 @@ function PreviewPanier({ theme }: { theme: KioskTheme }) {
       </div>
 
       <div className="flex-1 overflow-hidden p-3 space-y-2">
-        {MOCK_PRODUCTS.slice(0, 2).map((p) => (
+        {previewItems.map((p) => (
           <div key={p.id} className="flex items-center gap-2 px-2 py-2" style={cardStyle}>
-            <span className="text-xl">{p.emoji}</span>
+            <span className="text-xl">{p.emoji ?? '🍽️'}</span>
             <div className="flex-1 min-w-0">
               <p className="truncate text-[10px] font-bold" style={{ color: theme.productCard.textColor }}>{p.name}</p>
               <p className="text-[10px]" style={{ color: theme.subheading.textColor }}>× 1</p>
@@ -676,13 +705,13 @@ function PreviewPanier({ theme }: { theme: KioskTheme }) {
 
         <div className="rounded-xl p-3 space-y-1" style={cardStyle}>
           <div className="flex justify-between text-[10px]" style={{ color: theme.subheading.textColor }}>
-            <span>Sous-total</span><span>22,40 €</span>
+            <span>Sous-total</span><span>{subtotal.toFixed(2)} €</span>
           </div>
           <div className="flex justify-between text-[10px]" style={{ color: theme.subheading.textColor }}>
-            <span>TVA</span><span>2,24 €</span>
+            <span>TVA</span><span>{tva.toFixed(2)} €</span>
           </div>
           <div className="flex justify-between text-[11px] font-black border-t pt-1" style={{ borderColor: theme.productCard.border.color, color: theme.productCard.textColor }}>
-            <span>Total</span><span>22,40 €</span>
+            <span>Total</span><span>{(subtotal + tva).toFixed(2)} €</span>
           </div>
         </div>
       </div>
@@ -711,6 +740,45 @@ function PreviewPanier({ theme }: { theme: KioskTheme }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function KioskDesignerPage() {
+  const { accessToken, user } = useAuthStore();
+  const restaurantId = user?.restaurantIds?.[0] ?? '';
+
+  const [products, setProducts] = useState<MenuItem[]>(FALLBACK_PRODUCTS);
+  const [categories, setCategories] = useState<MenuCategory[]>(FALLBACK_CATEGORIES);
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    if (!restaurantId || !accessToken) return;
+
+    const headers = { Authorization: `Bearer ${accessToken}` };
+
+    async function fetchMenuData() {
+      setDataLoading(true);
+      try {
+        const [catRes, itemsRes] = await Promise.all([
+          fetch(`${API_BASE}/api/v1/menu/categories?restaurantId=${restaurantId}`, { headers }),
+          fetch(`${API_BASE}/api/v1/menu/items?restaurantId=${restaurantId}`, { headers }),
+        ]);
+
+        if (catRes.ok) {
+          const catData = (await catRes.json()) as MenuCategory[];
+          if (Array.isArray(catData) && catData.length > 0) setCategories(catData);
+        }
+
+        if (itemsRes.ok) {
+          const itemsData = (await itemsRes.json()) as MenuItem[];
+          if (Array.isArray(itemsData) && itemsData.length > 0) setProducts(itemsData);
+        }
+      } catch {
+        // Network error: keep fallback data, no toast needed for preview
+      } finally {
+        setDataLoading(false);
+      }
+    }
+
+    void fetchMenuData();
+  }, [restaurantId, accessToken]);
+
   const [theme, setTheme] = useState<KioskTheme>(MINIMAL_THEME);
   const [selectedElement, setSelectedElement] = useState<ElementKey>('background');
   const [previewTab, setPreviewTab] = useState<PreviewTab>('accueil');
@@ -880,6 +948,9 @@ export default function KioskDesignerPage() {
                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
+            {dataLoading && (
+              <span className="ml-2 text-xs text-surface-400 animate-pulse">Chargement du menu…</span>
+            )}
           </div>
 
           <div className="flex flex-1 items-center justify-center p-10">
@@ -911,8 +982,8 @@ export default function KioskDesignerPage() {
                       className="h-full w-full"
                     >
                       {previewTab === 'accueil' && <PreviewAccueil theme={theme} />}
-                      {previewTab === 'menu'    && <PreviewMenu    theme={theme} />}
-                      {previewTab === 'panier'  && <PreviewPanier  theme={theme} />}
+                      {previewTab === 'menu'    && <PreviewMenu    theme={theme} products={products} categories={categories} />}
+                      {previewTab === 'panier'  && <PreviewPanier  theme={theme} products={products} />}
                     </motion.div>
                   </AnimatePresence>
                 </div>

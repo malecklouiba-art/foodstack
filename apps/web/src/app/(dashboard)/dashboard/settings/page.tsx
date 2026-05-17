@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import {
   Settings, Clock, Bell, Truck, CreditCard, Users,
   Upload, Save, Check, X, ChevronRight, MapPin,
@@ -9,12 +10,30 @@ import {
   Building2, RefreshCw, Shield, Eye, EyeOff,
   Printer, CreditCard as TPEIcon, Bluetooth, Wifi, Usb,
 } from 'lucide-react';
-import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { useAuthStore } from '@/store/auth';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type TabId = 'general' | 'horaires' | 'notifications' | 'livraison' | 'paiements' | 'equipe' | 'peripheriques';
+
+interface RestaurantData {
+  id?: string;
+  name?: string;
+  description?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  openingHours?: Record<string, { open: boolean; start: string; end: string }>;
+}
+
+interface TabProps {
+  restaurantId: string;
+  accessToken: string;
+}
 
 interface DaySchedule {
   open: boolean;

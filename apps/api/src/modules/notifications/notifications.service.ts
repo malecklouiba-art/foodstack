@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
+import twilio from 'twilio';
+import type { Twilio } from 'twilio';
 
 interface OrderConfirmationData {
   orderNumber: string;
@@ -25,6 +27,7 @@ interface DeliveryCompletedData {
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly resend: Resend | null;
+  private twilioClient: Twilio | null = null;
 
   constructor(private config: ConfigService) {
     const apiKey = this.config.get<string>('RESEND_API_KEY');
@@ -32,6 +35,14 @@ export class NotificationsService {
       this.logger.warn('RESEND_API_KEY is not configured — emails will be skipped');
     }
     this.resend = apiKey ? new Resend(apiKey) : null;
+
+    const twilioSid = this.config.get<string>('TWILIO_ACCOUNT_SID');
+    const twilioToken = this.config.get<string>('TWILIO_AUTH_TOKEN');
+    if (twilioSid && twilioToken) {
+      this.twilioClient = twilio(twilioSid, twilioToken);
+    } else {
+      this.logger.warn('Twilio credentials not configured — SMS will be skipped');
+    }
   }
 
   async sendOrderConfirmation(to: string, orderData: OrderConfirmationData): Promise<void> {
@@ -155,6 +166,33 @@ export class NotificationsService {
         </div>
       `,
     });
+  }
+
+  async sendSms(to: string, message: string): Promise<void> {
+    if (!this.twilioClient) {
+      this.logger.warn('Twilio not configured, skipping SMS');
+      return;
+    }
+    try {
+      await this.twilioClient.messages.create({
+        body: message,
+        from: this.config.get<string>('TWILIO_PHONE_NUMBER'),
+        to,
+      });
+    } catch (err) {
+      this.logger.error(`SMS failed to ${to}:`, err);
+    }
+  }
+
+  async sendOrderReadySms(phone: string, orderNumber: string): Promise<void> {
+    await this.sendSms(phone, `Votre commande #${orderNumber} est prête ! 🎉`);
+  }
+
+  async sendDeliveryEnRouteSms(phone: string, orderNumber: string, eta: number): Promise<void> {
+    await this.sendSms(
+      phone,
+      `Votre livreur est en route pour #${orderNumber}. Livraison estimée dans ${eta} min. 🛵`,
+    );
   }
 
   private async send({ to, subject, html }: { to: string; subject: string; html: string }) {

@@ -305,11 +305,13 @@ model Order {
   notes               String?
   cancelReason        String?
 
+  tableId             String?
   estimatedDeliveryTime DateTime?
   actualDeliveryTime    DateTime?
 
-  restaurant  Restaurant   @relation(fields: [restaurantId], references: [id])
-  customer    User         @relation("Customer", fields: [customerId], references: [id])
+  restaurant  Restaurant        @relation(fields: [restaurantId], references: [id])
+  customer    User              @relation("Customer", fields: [customerId], references: [id])
+  table       RestaurantTable?  @relation(fields: [tableId], references: [id])
   items       OrderItem[]
   delivery    Delivery?
   review      Review?
@@ -345,6 +347,8 @@ model Delivery {
   id                  String         @id @default(cuid())
   orderId             String         @unique
   driverId            String
+  driverProfileId     String?
+
   status              DeliveryStatus @default(assigned)
 
   pickupLatitude      Float?
@@ -362,8 +366,9 @@ model Delivery {
   distance            Float?
   duration            Int?
 
-  order   Order @relation(fields: [orderId], references: [id])
-  driver  User  @relation("Driver", fields: [driverId], references: [id])
+  order         Order   @relation(fields: [orderId], references: [id])
+  driver        User    @relation("Driver", fields: [driverId], references: [id])
+  driverProfile Driver? @relation(fields: [driverProfileId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -516,11 +521,15 @@ model Driver {
   vehiclePlate String?
   latitude     Float?
   longitude    Float?
+  currentLat   Float?
+  currentLng   Float?
+  lastSeenAt   DateTime?
   isAvailable  Boolean   @default(true)
   isOnline     Boolean   @default(false)
-  totalDeliveries Int    @default(0)
-  rating       Float     @default(5.0)
-  createdAt    DateTime  @default(now())
+  totalDeliveries Int       @default(0)
+  rating          Float     @default(5.0)
+  deliveries      Delivery[]
+  createdAt       DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@map("drivers")
@@ -530,28 +539,39 @@ model Notification {
   id         String   @id @default(cuid())
   userId     String
   user       User     @relation(fields: [userId], references: [id])
-  type       String   // "order_new" | "order_status" | "low_stock" | "promo" | "system"
+  type       String   // "order_new" | "order_status" | "order_update" | "low_stock" | "promo" | "system"
+  channel    String   @default("push") // "push" | "email" | "sms"
   title      String
   body       String
   read       Boolean  @default(false)
   data       Json?
+  sentAt     DateTime @default(now())
+  readAt     DateTime?
   createdAt  DateTime @default(now())
 
+  @@index([userId, read])
   @@map("notifications")
 }
 
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
-  action     String
-  resource   String
+  action     String   // "order.created" | "payment.processed" | "user.deleted" etc.
+  resource   String?
   resourceId String?
+  entityType String?  // "Order" | "User" | "Restaurant"
+  entityId   String?
   before     Json?
   after      Json?
+  metadata   Json?
   ip         String?
+  ipAddress  String?
   userAgent  String?
   createdAt  DateTime @default(now())
 
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
   @@map("audit_logs")
 }
 
@@ -562,8 +582,9 @@ model RestaurantTable {
   number       Int
   capacity     Int      @default(4)
   section      String   @default("Salle principale")
-  status       String   @default("free") // "free" | "occupied" | "reserved" | "cleaning"
+  status       String   @default("free") // "free" | "available" | "occupied" | "reserved" | "cleaning"
   qrCode       String?
+  orders       Order[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

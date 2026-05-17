@@ -3,3 +3,8 @@ export * from './types/order';
 export * from './types/restaurant';
 export * from './types/menu';
 export * from './types/inventory';
+export * from './types/driver';
+export * from './types/notification';
+export * from './types/audit';
+export * from './types/table';
+export * from './types/subscription';
