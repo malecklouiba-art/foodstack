@@ -58,3 +58,6 @@ docker-data/
 # External repos cloned locally
 superpowers/
 claude-code/
+
+# Claude Code worktrees
+.claude/worktrees/
