@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Navbar } from '@/components/layout/Navbar';
 import { useCartStore } from '@/store/cart';
+import { useAuthStore } from '@/store/auth';
 import { StripeCardForm } from '@/components/checkout/StripeCardForm';
 import api from '@/lib/api';
 
@@ -41,14 +42,15 @@ const deliverySlots = [
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, deliveryFee, tax, total, clearCart } = useCartStore();
+  const { items, subtotal, deliveryFee, tax, total, clearCart, restaurantId } = useCartStore();
+  const { user } = useAuthStore();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [selectedSlot, setSelectedSlot] = useState('asap');
   const [loading, setLoading] = useState(false);
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [_paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -139,6 +141,22 @@ export default function CheckoutPage() {
     return Math.max(0, total() - couponDiscount());
   }
 
+  async function createRealOrder(): Promise<string | null> {
+    if (!user?.id || !restaurantId) return null;
+    try {
+      const order = await (api.post('/orders', {
+        restaurantId,
+        customerId: user.id,
+        deliveryAddress: address,
+        deliveryNotes: notes,
+        items: items.map((i) => ({ menuItemId: i.menuItemId, quantity: i.quantity ?? 1, notes: undefined })),
+      }) as Promise<{ id: string }>);
+      return (order as any).id ?? null;
+    } catch {
+      return null;
+    }
+  }
+
   const handlePlaceOrder = async () => {
     if (!address) {
       toast.error('Veuillez entrer une adresse de livraison');
@@ -148,36 +166,37 @@ export default function CheckoutPage() {
     if (paymentMethod === 'card') {
       setLoading(true);
       try {
-        const data = await api.post<unknown, { clientSecret: string; paymentIntentId: string }>(
-          '/payments/intent',
-          {
-            amount: Math.round(total() * 100),
-            currency: 'eur',
-            orderId: 'ORD-' + Date.now(),
-          }
-        );
-        setClientSecret(data.clientSecret);
-        setPaymentIntentId(data.paymentIntentId);
+        const orderId = await createRealOrder() ?? `tmp-${Date.now()}`;
+        setCreatedOrderId(orderId);
+        const data = await (api.post('/payments/intent', {
+          amount: Math.round(total() * 100),
+          currency: 'eur',
+          orderId,
+        }) as Promise<{ clientSecret: string; paymentIntentId: string }>);
+        setClientSecret((data as any).clientSecret);
       } catch {
         toast.error('Impossible de préparer le paiement. Veuillez réessayer.');
       } finally {
         setLoading(false);
       }
     } else {
-      // Non-card payment methods: mock flow
       setLoading(true);
-      await new Promise((r) => setTimeout(r, 1000));
-      const orderId = `ORD-${Date.now()}`;
-      clearCart();
-      if (selectedSlot === 'schedule' && scheduledDate && scheduledTime) {
-        const dateLabel = new Date(scheduledDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-        toast.success(`Commande programmée pour le ${dateLabel} à ${scheduledTime} !`);
-      } else {
-        toast.success('Commande passée avec succès !');
+      try {
+        const orderId = await createRealOrder() ?? `tmp-${Date.now()}`;
+        clearCart();
+        if (selectedSlot === 'schedule' && scheduledDate && scheduledTime) {
+          const dateLabel = new Date(scheduledDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+          toast.success(`Commande programmée pour le ${dateLabel} à ${scheduledTime} !`);
+        } else {
+          toast.success('Commande passée avec succès !');
+        }
+        triggerReviewModal();
+        router.push(`/orders/${orderId}/track`);
+      } catch {
+        toast.error('Erreur lors de la commande.');
+      } finally {
+        setLoading(false);
       }
-      triggerReviewModal();
-      router.push(`/orders/${orderId}/track`);
-      setLoading(false);
     }
   };
 
@@ -312,7 +331,7 @@ export default function CheckoutPage() {
                       onClick={() => {
                         setPaymentMethod(method.id);
                         setClientSecret(null);
-                        setPaymentIntentId(null);
+                        setCreatedOrderId(null);
                       }}
                       className={`flex items-center justify-center gap-2 rounded-xl border p-3 transition-all ${
                         paymentMethod === method.id
@@ -332,7 +351,8 @@ export default function CheckoutPage() {
                       clientSecret={clientSecret}
                       onSuccess={() => {
                         clearCart();
-                        router.push(`/orders/ORD-${Date.now()}/track`);
+                        triggerReviewModal();
+                        router.push(`/orders/${createdOrderId ?? 'latest'}/track`);
                       }}
                       onError={(msg) => toast.error(msg)}
                       loading={loading}

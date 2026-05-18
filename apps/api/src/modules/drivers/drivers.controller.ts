@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Query,
+  Request,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
@@ -21,6 +22,36 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('drivers')
 export class DriversController {
   constructor(private readonly driversService: DriversService) {}
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get own driver profile' })
+  getMe(@Request() req: any) {
+    return this.driversService.findByUserId(req.user.id);
+  }
+
+  @Patch('me/location')
+  @ApiOperation({ summary: 'Update own GPS location' })
+  updateMyLocation(@Request() req: any, @Body() dto: UpdateLocationDto) {
+    return this.driversService.findByUserId(req.user.id).then((d) =>
+      d ? this.driversService.updateLocation(d.id, dto) : null
+    );
+  }
+
+  @Patch('me/availability')
+  @ApiOperation({ summary: 'Toggle own availability' })
+  setMyAvailability(@Request() req: any, @Body() body: { available: boolean }) {
+    return this.driversService.findByUserId(req.user.id).then((d) =>
+      d ? this.driversService.setAvailability(d.id, body.available) : null
+    );
+  }
+
+  @Patch('me/online')
+  @ApiOperation({ summary: 'Toggle own online status' })
+  setMyOnline(@Request() req: any, @Body() body: { online: boolean }) {
+    return this.driversService.findByUserId(req.user.id).then((d) =>
+      d ? this.driversService.setOnline(d.id, body.online) : null
+    );
+  }
 
   @Get()
   @ApiOperation({ summary: 'List all drivers for a restaurant' })

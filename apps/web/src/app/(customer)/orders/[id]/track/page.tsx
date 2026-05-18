@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Navbar } from '@/components/layout/Navbar';
+import { useTrackOrder } from '@/hooks/useTrackOrder';
+import api from '@/lib/api';
 import type { DeliveryMapProps } from '@/components/map/DeliveryMap';
 
 // Leaflet does not support SSR — load only on client
@@ -33,83 +35,58 @@ const ORDER_STEPS = [
   { id: 'delivered', label: 'Livrée', icon: MapPin, description: 'Commande livrée !' },
 ];
 
-const STEP_DURATIONS = [0, 8000, 12000, 18000, 25000];
-
-// Placeholder coordinates — in production these come from the order object
-// fetched via API (order.restaurant.lat/lng and order.deliveryAddress.lat/lng)
-const DEFAULT_RESTAURANT_POS: [number, number] = [48.8566, 2.3522]; // Paris centre
+// Placeholder coordinates — come from order API in production
+const DEFAULT_RESTAURANT_POS: [number, number] = [48.8566, 2.3522];
 const DEFAULT_CUSTOMER_POS: [number, number] = [48.8606, 2.3376];
+
+const STATUS_TO_STEP: Record<string, number> = {
+  confirmed: 0,
+  preparing: 1,
+  ready: 2,
+  delivering: 3,
+  delivered: 4,
+};
+
+interface ApiOrder {
+  status?: string;
+  estimatedDeliveryTime?: string;
+  driver?: { firstName?: string; lastName?: string; rating?: number; totalDeliveries?: number };
+}
 
 export default function OrderTrackingPage() {
   const params = useParams();
   const orderId = params.id as string;
-  const [currentStep, setCurrentStep] = useState(0);
+  const { status: socketStatus } = useTrackOrder(orderId);
+
+  const [apiStatus, setApiStatus] = useState<string>('confirmed');
   const [eta, setEta] = useState(28);
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(0);
+  const [driver, setDriver] = useState<ApiOrder['driver']>(undefined);
+  const [driverPosition] = useState<[number, number] | undefined>(undefined);
 
-  // Real GPS coordinates for the driver, updated via WebSocket 'driver:location_update'
-  const [driverPosition, setDriverPosition] = useState<[number, number] | undefined>(undefined);
-
-  // Simulate order progression
-  useEffect(() => {
-    const timers: NodeJS.Timeout[] = [];
-
-    STEP_DURATIONS.forEach((delay, index) => {
-      if (delay === 0) { setCurrentStep(0); return; }
-      timers.push(
-        setTimeout(() => {
-          setCurrentStep(index);
-          setEta((prev) => Math.max(0, prev - Math.floor(Math.random() * 5 + 2)));
-        }, delay)
-      );
-    });
-
-    timers.push(setTimeout(() => setShowRating(true), 26000));
-
-    return () => timers.forEach(clearTimeout);
-  }, []);
-
-  // WebSocket: subscribe to driver location updates
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Only connect when the order is in delivery phase
-    let socket: WebSocket | null = null;
-
-    const connect = () => {
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001';
-      socket = new WebSocket(`${wsUrl}/orders/${orderId}/track`);
-
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data as string) as {
-            type: string;
-            lat?: number;
-            lng?: number;
-          };
-          if (data.type === 'driver:location_update' && data.lat !== undefined && data.lng !== undefined) {
-            setDriverPosition([data.lat, data.lng]);
-          }
-        } catch {
-          // ignore malformed messages
-        }
-      };
-
-      socket.onerror = () => {
-        // Silently ignore — the map still renders with restaurant/customer positions
-      };
-    };
-
-    // Connect when entering delivery step
-    if (currentStep >= 3) {
-      connect();
+  const loadOrder = useCallback(async () => {
+    if (!orderId || orderId.startsWith('tmp-') || orderId.startsWith('latest')) return;
+    try {
+      const order = await (api.get(`/orders/${orderId}`) as Promise<ApiOrder>);
+      if ((order as any).status) setApiStatus((order as any).status);
+      if ((order as any).driver) setDriver((order as any).driver);
+    } catch {
+      // keep defaults
     }
+  }, [orderId]);
 
-    return () => {
-      socket?.close();
-    };
-  }, [orderId, currentStep]);
+  useEffect(() => { loadOrder(); }, [loadOrder]);
+
+  // Prefer real-time socket status
+  const currentStatus = socketStatus ?? apiStatus;
+  const currentStep = STATUS_TO_STEP[currentStatus] ?? 0;
+
+  useEffect(() => {
+    if (currentStatus === 'delivered') {
+      setTimeout(() => setShowRating(true), 1500);
+    }
+  }, [currentStatus]);
 
   const isDelivered = currentStep === ORDER_STEPS.length - 1;
   const currentStatusLabel = ORDER_STEPS[currentStep]?.label ?? '';
@@ -242,12 +219,16 @@ export default function OrderTrackingPage() {
                   KA
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-surface-900">Karim Amara</p>
+                  <p className="font-semibold text-surface-900">
+                    {driver ? `${driver.firstName ?? ''} ${driver.lastName ?? ''}`.trim() || 'Votre livreur' : 'Votre livreur'}
+                  </p>
                   <div className="flex items-center gap-1">
                     <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm text-surface-500">4.9 · 1 247 livraisons</span>
+                    <span className="text-sm text-surface-500">
+                      {driver?.rating ?? '4.9'} · {(driver?.totalDeliveries ?? 1247).toLocaleString('fr-FR')} livraisons
+                    </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-surface-400">🛵 Scooter électrique · XX-123-XX</p>
+                  <p className="mt-0.5 text-xs text-surface-400">🛵 En route</p>
                 </div>
                 <div className="flex gap-2">
                   <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-100 text-surface-700 hover:bg-surface-200">
@@ -284,7 +265,16 @@ export default function OrderTrackingPage() {
                   ))}
                 </div>
                 {rating > 0 && (
-                  <Button className="mt-4" size="sm">
+                  <Button
+                    className="mt-4"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await (api.post(`/orders/${orderId}/review`, { rating }) as Promise<unknown>);
+                        setShowRating(false);
+                      } catch { setShowRating(false); }
+                    }}
+                  >
                     Envoyer l'avis
                   </Button>
                 )}

@@ -29,6 +29,17 @@ export class DriversService {
     });
   }
 
+  findByUserId(userId: string) {
+    return this.prisma.driver.findFirst({
+      where: { userId },
+      include: {
+        user: {
+          select: { firstName: true, lastName: true, email: true, phone: true, avatar: true },
+        },
+      },
+    });
+  }
+
   create(dto: CreateDriverDto) {
     return this.prisma.driver.create({
       data: {

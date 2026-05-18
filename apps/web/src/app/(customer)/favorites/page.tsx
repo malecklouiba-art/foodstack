@@ -211,7 +211,7 @@ export default function FavoritesPage() {
 
   function goToMenu(restaurant: FavoriteRestaurant) {
     if (!restaurant.open) return;
-    router.push(`/menu?restaurant=${restaurant.id}`);
+    router.push(`/restaurants/${restaurant.id}`);
   }
 
   // ── Loading skeleton ──────────────────────────────────────────────────────
