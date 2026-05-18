@@ -32,16 +32,17 @@ export class OrdersController {
     return this.ordersService.createOrder(dto);
   }
 
+  @Get()
+  @Roles('super_admin', 'restaurant_owner', 'staff')
+  @ApiOperation({ summary: 'Get all orders (admin/staff)' })
+  findAll() {
+    return this.ordersService.findAll();
+  }
+
   @Get('me')
   @ApiOperation({ summary: 'Get own orders' })
   findMyOrders(@Request() req: any) {
     return this.ordersService.findByCustomer(req.user.id);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get order by ID' })
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findById(id);
   }
 
   @Get('restaurant/:restaurantId')
@@ -64,6 +65,12 @@ export class OrdersController {
   @ApiOperation({ summary: 'Get all orders assigned to a driver' })
   findByDriver(@Param('driverId') driverId: string) {
     return this.ordersService.findByDriver(driverId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get order by ID' })
+  findOne(@Param('id') id: string) {
+    return this.ordersService.findById(id);
   }
 
   @Patch(':id/status')

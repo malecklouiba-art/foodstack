@@ -13,6 +13,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -432,6 +434,32 @@ export default function POSPage() {
   // Auth
   const [authenticated, setAuthenticated] = useState(false);
   const [operator, setOperator] = useState<string>('');
+  const authUser = useAuthStore((s) => s.user);
+  const [menuItems, setMenuItems] = useState<POSItem[]>(MENU_ITEMS);
+  const [categories, setCategories] = useState<string[]>(CATEGORIES);
+
+  useEffect(() => {
+    const restaurantId = authUser?.restaurantIds?.[0];
+    if (!restaurantId) return;
+    (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<{ id: string; name: string; items: { id: string; name: string; price: number; category?: string }[] }[]>)
+      .then((cats) => {
+        const items: POSItem[] = cats.flatMap((cat) =>
+          cat.items.map((it) => ({
+            id: it.id,
+            name: it.name,
+            category: cat.name,
+            price: it.price,
+            tvaRate: 10,
+            emoji: '🍽',
+          }))
+        );
+        if (items.length > 0) {
+          setMenuItems(items);
+          setCategories(['Tout', ...Array.from(new Set(cats.map((c) => c.name)))]);
+        }
+      })
+      .catch(() => {});
+  }, [authUser?.restaurantIds]);
   const [pinInput, setPinInput] = useState('');
 
   const [activeCategory, setActiveCategory] = useState('Tout');
@@ -478,7 +506,7 @@ export default function POSPage() {
   const [discountPct, setDiscountPct] = useState('');
   const [discountReason, setDiscountReason] = useState('');
 
-  const filteredItems = MENU_ITEMS.filter((item) => {
+  const filteredItems = menuItems.filter((item) => {
     const matchCat = activeCategory === 'Tout' || item.category === activeCategory;
     const matchSearch = !search || item.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
@@ -507,14 +535,14 @@ export default function POSPage() {
     setCart((prev) => prev.map((l) =>
       l.item.id === discountTarget ? { ...l, discount: pct, discountReason } : l
     ));
-    addJournalEvent('discount', `Remise ${pct}% sur ${MENU_ITEMS.find(i => i.id === discountTarget)?.name} — ${discountReason}`, pct);
+    addJournalEvent('discount', `Remise ${pct}% sur ${menuItems.find(i => i.id === discountTarget)?.name} — ${discountReason}`, pct);
     setDiscountTarget(null);
     setDiscountPct('');
     setDiscountReason('');
   };
 
   const markOffert = (itemId: string) => {
-    const item = MENU_ITEMS.find(i => i.id === itemId);
+    const item = menuItems.find(i => i.id === itemId);
     setCart((prev) => prev.map((l) => l.item.id === itemId ? { ...l, offert: true, discount: 100, discountReason: 'Offert' } : l));
     addJournalEvent('offert', `Article offert : ${item?.name}`, item?.price);
   };
@@ -741,7 +769,7 @@ export default function POSPage() {
         </div>
 
         <div className="flex gap-2 overflow-x-auto px-4 pb-2 no-scrollbar">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -875,7 +903,7 @@ export default function POSPage() {
                     {showFavorites && (
                       <div className="mt-2 space-y-1">
                         {selectedCustomer.favorites.map(fid => {
-                          const it = MENU_ITEMS.find(m => m.id === fid);
+                          const it = menuItems.find(m => m.id === fid);
                           if (!it) return null;
                           return (
                             <button

@@ -119,6 +119,14 @@ export class OrdersService {
     return orderWithoutCustomer;
   }
 
+  async findAll() {
+    return this.prisma.order.findMany({
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+  }
+
   async findById(id: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },

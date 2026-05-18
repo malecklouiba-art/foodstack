@@ -10,6 +10,7 @@ import { clsx } from 'clsx';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import api from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -104,7 +105,7 @@ interface ShiftFormState {
 
 function emptyForm(day?: number, employeeId?: string): ShiftFormState {
   return {
-    employeeId: employeeId ?? EMPLOYEES[0].id,
+    employeeId: employeeId ?? '',
     day: String(day ?? 0),
     type: 'morning',
     startTime: '07:00',
@@ -174,7 +175,7 @@ function seededRand(seed: number): () => number {
 
 const SHIFT_TYPES: ShiftType[] = ['morning', 'afternoon', 'evening', 'full'];
 
-function generateShiftsForWeek(weekOffset: number): Shift[] {
+function generateShiftsForWeek(weekOffset: number, employees: Employee[] = EMPLOYEES): Shift[] {
   // Use the monday date as a numeric seed
   const dates = getWeekDates(weekOffset);
   const monday = dates[0];
@@ -184,7 +185,7 @@ function generateShiftsForWeek(weekOffset: number): Shift[] {
   const shifts: Shift[] = [];
   let idCounter = 1;
 
-  EMPLOYEES.forEach((emp) => {
+  employees.forEach((emp) => {
     // Each employee works 4–6 days per week (deterministic per week/employee)
     const workDaysCount = 4 + Math.floor(rand() * 3); // 4, 5, or 6
     const days = Array.from({ length: 7 }, (_, i) => i);
@@ -214,9 +215,38 @@ function generateShiftsForWeek(weekOffset: number): Shift[] {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+const ROLE_MAP_API: Record<string, Role> = {
+  restaurant_owner: 'Manager',
+  staff: 'Serveur',
+  driver: 'Livreur',
+};
+
+const EMPLOYEE_COLORS = [
+  'bg-brand-500', 'bg-yellow-500', 'bg-blue-500', 'bg-orange-500',
+  'bg-pink-500', 'bg-indigo-500', 'bg-gray-500', 'bg-teal-500',
+];
+
 export default function PlanningPage() {
+  const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
   const [weekOffset, setWeekOffset] = useState(0);
   const [shifts, setShifts] = useState<Shift[]>(() => generateShiftsForWeek(0));
+
+  useEffect(() => {
+    (api.get('/users/staff') as Promise<{ id: string; name: string; role: string }[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped: Employee[] = data.map((u, i) => ({
+            id: u.id,
+            name: u.name,
+            role: (ROLE_MAP_API[u.role] ?? 'Serveur') as Role,
+            color: EMPLOYEE_COLORS[i % EMPLOYEE_COLORS.length],
+          }));
+          setEmployees(mapped);
+          setShifts(generateShiftsForWeek(0, mapped));
+        }
+      })
+      .catch(() => {});
+  }, []);
   // Per-week overrides: user edits are stored keyed by weekOffset
   const [weekEdits, setWeekEdits] = useState<Record<number, Shift[]>>({});
   const [isLoadingWeek, startWeekTransition] = useTransition();
@@ -236,13 +266,13 @@ export default function PlanningPage() {
       if (edited) {
         setShifts(edited);
       } else {
-        setShifts(generateShiftsForWeek(weekOffset));
+        setShifts(generateShiftsForWeek(weekOffset, employees));
       }
     });
-  }, [weekOffset]); // weekEdits intentionally excluded — only re-run on weekOffset change
+  }, [weekOffset, employees]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const weekDates = getWeekDates(weekOffset);
-  const totalStaff = EMPLOYEES.length;
+  const totalStaff = employees.length;
   const totalShifts = shifts.length;
   const weekHours = totalHours(shifts);
   const staffToday = new Set(
@@ -506,7 +536,7 @@ export default function PlanningPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-50 dark:divide-surface-800">
-                {EMPLOYEES.map((emp) => {
+                {employees.map((emp) => {
                   const empShifts = shifts.filter((s) => s.employeeId === emp.id);
                   const hrs = totalHours(empShifts);
                   return (
@@ -590,7 +620,7 @@ export default function PlanningPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-50 dark:divide-surface-800">
-                {EMPLOYEES.map((emp) => {
+                {employees.map((emp) => {
                   const dayShifts = shifts.filter((s) => s.employeeId === emp.id && s.day === dIdx);
                   const hrs = totalHours(dayShifts);
                   return (
@@ -742,7 +772,7 @@ export default function PlanningPage() {
               onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
               className="w-full rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm text-surface-900 focus:border-brand-400 focus:outline-none dark:border-surface-600 dark:bg-surface-700 dark:text-surface-100"
             >
-              {EMPLOYEES.map((e) => (
+              {employees.map((e) => (
                 <option key={e.id} value={e.id}>{e.name} — {e.role}</option>
               ))}
             </select>
