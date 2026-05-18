@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bike, Star, Phone, MapPin, Clock, TrendingUp,
@@ -395,6 +396,7 @@ function apiDriverToDriver(d: ApiDriver): Driver {
 }
 
 export default function DriversPage() {
+  const restaurantId = useAuthStore((s) => s.user?.restaurantIds?.[0]);
   const [drivers, setDrivers]     = useState<Driver[]>(SEED);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState<DriverStatus | 'all'>('all');
@@ -405,14 +407,15 @@ export default function DriversPage() {
   const [menuOpen, setMenuOpen]   = useState<string | null>(null);
 
   useEffect(() => {
-    (api.get('/drivers') as Promise<ApiDriver[]>)
+    if (!restaurantId) return;
+    (api.get(`/drivers?restaurantId=${restaurantId}`) as Promise<ApiDriver[]>)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setDrivers(data.map(apiDriverToDriver));
         }
       })
       .catch(() => { /* keep mock data */ });
-  }, []);
+  }, [restaurantId]);
 
   const filtered = useMemo(() => drivers.filter(d => {
     if (statusFilter !== 'all' && d.status !== statusFilter) return false;

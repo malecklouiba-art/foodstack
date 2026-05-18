@@ -293,9 +293,9 @@ export default function CouponsPage() {
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   async function handleCreate() {
-    if (!form.code || !form.discountValue) return;
+    if (!form.code || !form.discountValue || !restaurantId) return;
     const body = {
-      restaurantId: restaurantId ?? 'demo',
+      restaurantId,
       code: form.code.toUpperCase(),
       description: form.description,
       discountType: form.discountType,

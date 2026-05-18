@@ -59,7 +59,15 @@ export default function CheckoutPage() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewStars, setReviewStars] = useState(0);
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [orderCount, setOrderCount] = useState<number | null>(null);
   const reviewDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    (api.get('/users/me') as Promise<{ _count?: { orders: number } }>)
+      .then((profile) => setOrderCount(profile._count?.orders ?? null))
+      .catch(() => {});
+  }, [user?.id]);
 
   const FALLBACK_COUPONS: Record<string, { discount: number; type: 'percent' | 'fixed' }> = {
     'SAVE10':    { discount: 10, type: 'percent' },
@@ -67,7 +75,7 @@ export default function CheckoutPage() {
   };
 
   function triggerReviewModal() {
-    const isFirstOrder = true; // demo: always show; replace with real check
+    const isFirstOrder = orderCount === null || orderCount <= 1;
     if (!isFirstOrder) return;
     setTimeout(() => {
       setShowReviewModal(true);
