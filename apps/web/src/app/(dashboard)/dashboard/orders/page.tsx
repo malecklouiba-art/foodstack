@@ -371,7 +371,7 @@ function normaliseOrder(o: ApiOrder): KanbanOrder {
 
 export default function OrdersPage() {
   const authUser = useAuthStore((s) => s.user);
-  const restaurantId = authUser?.restaurantIds?.[0] ?? 'r1';
+  const restaurantId = authUser?.restaurantIds?.[0] ?? '';
   const [orders, setOrders] = useState<KanbanOrder[]>(INITIAL_ORDERS);
   const [view, setView] = useState<ViewMode>('kanban');
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
@@ -387,7 +387,7 @@ export default function OrdersPage() {
   soundRef.current = sound;
 
   useEffect(() => {
-    const endpoint = restaurantId !== 'r1'
+    const endpoint = restaurantId
       ? `/orders/restaurant/${restaurantId}`
       : '/orders';
     (api.get(endpoint) as Promise<ApiOrder[]>)
