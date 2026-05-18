@@ -239,9 +239,7 @@ export default function PlanningPage() {
         setShifts(generateShiftsForWeek(weekOffset));
       }
     });
-  // weekEdits intentionally excluded: only re-run on weekOffset change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekOffset]);
+  }, [weekOffset]); // weekEdits intentionally excluded — only re-run on weekOffset change
 
   const weekDates = getWeekDates(weekOffset);
   const totalStaff = EMPLOYEES.length;

@@ -14,7 +14,6 @@ import {
   BarChart3,
   Settings,
   Store,
-  Star,
   CreditCard,
   ChevronLeft,
   ChevronRight,
