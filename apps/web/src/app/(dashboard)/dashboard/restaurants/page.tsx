@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import {
   Store, TrendingUp, Clock, MapPin, Settings,
   Plus, X, ChevronRight, Edit2, Search,
@@ -1388,12 +1389,19 @@ function mergeApiRestaurant(api: ApiRestaurant): Restaurant {
 }
 
 export default function RestaurantsPage() {
+  const authUser = useAuthStore((s) => s.user);
   const [restaurants, setRestaurants] = useState<Restaurant[]>(RESTAURANTS_SEED);
   const [showModal, setShowModal]     = useState(false);
   const [detailId, setDetailId]       = useState<string | null>(null);
   const [search, setSearch]           = useState('');
   const [crmFilter, setCrmFilter]     = useState<CRMStatus | 'all'>('all');
-  const [role, setRole]               = useState<string | null>(null);
+
+  // Use real auth role; fall back to cookie for demo/dev mode
+  const [cookieRole, setCookieRole] = useState<string>('manager');
+  useEffect(() => { if (!authUser) setCookieRole(parseCookie('fs_demo') ?? 'manager'); }, [authUser]);
+  const role = authUser
+    ? (authUser.role === 'restaurant_owner' ? 'owner' : authUser.role === 'super_admin' ? 'admin' : 'manager')
+    : cookieRole;
 
   useEffect(() => {
     (api.get('/restaurants') as Promise<ApiRestaurant[]>)
@@ -1403,11 +1411,6 @@ export default function RestaurantsPage() {
         }
       })
       .catch(() => { /* keep seed data */ });
-  }, []);
-
-  useEffect(() => {
-    const val = parseCookie('fs_demo');
-    setRole(val ?? 'manager');
   }, []);
 
   const filtered = useMemo(() => restaurants.filter(r => {
@@ -1428,10 +1431,6 @@ export default function RestaurantsPage() {
 
   function updateRestaurant(updated: Restaurant) {
     setRestaurants(prev => prev.map(r => r.id === updated.id ? updated : r));
-  }
-
-  if (role === null) {
-    return <div className="p-6 text-surface-400 text-sm">Chargement…</div>;
   }
 
   // Owner view — single restaurant
