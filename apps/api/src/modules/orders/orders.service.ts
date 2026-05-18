@@ -50,6 +50,34 @@ export class OrdersService {
   ) {}
 
   async createOrder(dto: CreateOrderDto) {
+    // Fetch menu items to get real prices and names
+    const menuItemIds = dto.items.map((i) => i.menuItemId);
+    const menuItems = await this.prisma.menuItem.findMany({
+      where: { id: { in: menuItemIds } },
+      select: { id: true, name: true, price: true },
+    });
+    const menuMap = new Map(menuItems.map((m) => [m.id, m]));
+
+    const DELIVERY_FEE = 2.90;
+    const TAX_RATE = 0.10;
+
+    const orderItemsData = dto.items.map((item) => {
+      const menuItem = menuMap.get(item.menuItemId);
+      const price = menuItem?.price ?? 0;
+      return {
+        menuItemId: item.menuItemId,
+        quantity: item.quantity,
+        notes: item.notes,
+        name: menuItem?.name ?? '',
+        price,
+        subtotal: price * item.quantity,
+      };
+    });
+
+    const subtotal = orderItemsData.reduce((sum, i) => sum + i.subtotal, 0);
+    const tax = Math.round(subtotal * TAX_RATE * 100) / 100;
+    const total = Math.round((subtotal + DELIVERY_FEE + tax) * 100) / 100;
+
     const order = await this.prisma.order.create({
       data: {
         restaurantId: dto.restaurantId,
@@ -57,18 +85,13 @@ export class OrdersService {
         deliveryAddress: dto.deliveryAddress ? { address: dto.deliveryAddress } : undefined,
         notes: dto.deliveryNotes,
         orderNumber: `ORD-${Date.now()}`,
-        subtotal: 0,
-        total: 0,
+        subtotal,
+        deliveryFee: DELIVERY_FEE,
+        tax,
+        total,
         status: 'pending',
         items: {
-          create: dto.items.map((item) => ({
-            menuItemId: item.menuItemId,
-            quantity: item.quantity,
-            notes: item.notes,
-            name: '',
-            price: 0,
-            subtotal: 0,
-          })),
+          create: orderItemsData,
         },
       } as any,
       include: { items: true, customer: true },
