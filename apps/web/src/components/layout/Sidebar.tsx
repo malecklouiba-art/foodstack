@@ -29,6 +29,8 @@ import {
   Tag,
   TableIcon,
   CalendarDays,
+  Package,
+  Award,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -55,9 +57,11 @@ const navItems: NavItem[] = [
   { href: '/dashboard/staff', label: 'Employés', icon: UserCog, section: 'Gestion', roles: ['admin', 'owner'] },
   { href: '/dashboard/planning', label: 'Planning', icon: CalendarDays, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/coupons', label: 'Codes Promo', icon: Tag, section: 'Gestion', roles: ['admin', 'owner'] },
+  { href: '/dashboard/inventory', label: 'Inventaire', icon: Package, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/tables', label: 'Tables', icon: TableIcon, section: 'Gestion', roles: ['admin', 'owner', 'staff'] },
   { href: '/dashboard/restaurants', label: 'Restaurants', icon: Store, section: 'Administration', roles: ['admin', 'owner'] },
   { href: '/dashboard/customers', label: 'Clients', icon: Users, section: 'Administration', roles: ['admin', 'owner'] },
+  { href: '/dashboard/loyalty', label: 'Fidélité', icon: Award, section: 'Administration', roles: ['admin', 'owner'] },
   { href: '/dashboard/payments', label: 'Paiements', icon: CreditCard, section: 'Administration', roles: ['admin', 'owner'] },
   { href: '/pos', label: 'Caisse POS', icon: ShoppingCart, section: 'Gestion', roles: ['owner', 'staff'] },
   { href: '/dashboard/kiosk', label: 'Borne de commande', icon: Monitor, section: 'Gestion', roles: ['admin', 'owner'] },
