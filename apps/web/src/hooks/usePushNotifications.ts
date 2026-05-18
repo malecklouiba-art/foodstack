@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useAuthStore } from '@/store/auth';
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
@@ -28,6 +29,7 @@ export interface UsePushNotificationsReturn {
 }
 
 export function usePushNotifications(): UsePushNotificationsReturn {
+  const userId = useAuthStore((s) => s.user?.id);
   const [supported, setSupported] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [subscribed, setSubscribed] = useState(false);
@@ -53,7 +55,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   }, []);
 
   const subscribe = useCallback(async (): Promise<PushSubscription | null> => {
-    if (!supported) return null;
+    if (!supported || !userId) return null;
 
     try {
       // 1. Register (or reuse) the service worker
@@ -82,7 +84,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'demo-user',
+          userId,
           endpoint: subJson.endpoint,
           keys: subJson.keys,
         }),
@@ -94,7 +96,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       console.error('[usePushNotifications] subscribe failed', err);
       return null;
     }
-  }, [supported]);
+  }, [supported, userId]);
 
   const unsubscribe = useCallback(async (): Promise<void> => {
     if (!supported) return;
