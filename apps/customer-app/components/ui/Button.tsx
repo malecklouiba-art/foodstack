@@ -16,6 +16,13 @@ interface ButtonProps {
   style?: ViewStyle;
 }
 
+const TEXT_STYLE: Record<Variant, TextStyle> = {
+  primary:   { color: '#fff' },
+  secondary: { color: '#fff' },
+  ghost:     { color: '#3f3f46' },
+  danger:    { color: '#fff' },
+};
+
 export function Button({
   children, onPress, variant = 'primary', size = 'md',
   loading, disabled, fullWidth, style,
@@ -36,9 +43,7 @@ export function Button({
     >
       {loading
         ? <ActivityIndicator color={variant === 'ghost' ? Colors.brand[500] : '#fff'} size="small" />
-        : <Text style={[styles.text, styles[`${variant}Text` as keyof typeof styles] as TextStyle]}>
-            {children}
-          </Text>
+        : <Text style={[styles.text, TEXT_STYLE[variant]]}>{children as string}</Text>
       }
     </TouchableOpacity>
   );

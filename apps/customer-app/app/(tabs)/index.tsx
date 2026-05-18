@@ -133,7 +133,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               key={resto.id}
               style={styles.restaurantCard}
-              onPress={() => router.push('/(tabs)/menu')}
+              onPress={() => router.push(`/restaurant/${resto.id}`)}
               activeOpacity={0.85}
             >
               <View style={styles.restaurantLogo}>

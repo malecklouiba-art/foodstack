@@ -185,7 +185,7 @@ export default function TrackOrderScreen() {
             <Text style={styles.statusText}>{STATUS_LABEL[currentStep] ?? currentStep}</Text>
             {currentStep === 'delivering' && driverLocation && driverCoord && (
               <Text style={styles.statusSub}>
-                📍 {(driverLocation.lat ?? driverLocation.latitude).toFixed(4)}, {(driverLocation.lng ?? driverLocation.longitude).toFixed(4)}
+                📍 {driverLocation.lat.toFixed(4)}, {driverLocation.lng.toFixed(4)}
               </Text>
             )}
           </View>

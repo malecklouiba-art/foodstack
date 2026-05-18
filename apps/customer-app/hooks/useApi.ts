@@ -20,7 +20,7 @@ async function getRefreshToken(): Promise<string | null> {
 }
 
 async function clearSession(): Promise<void> {
-  await AsyncStorage.multiRemove(['auth_token', 'auth_refresh_token', 'auth_user']).catch(() => {});
+  await Promise.all(['auth_token', 'auth_refresh_token', 'auth_user'].map((k) => AsyncStorage.removeItem(k))).catch(() => {});
   router.replace('/(auth)/login');
 }
 

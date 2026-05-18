@@ -1,7 +1,9 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
 import { Colors } from '@/constants/Colors';
 import { useCartStore } from '@/store/cart';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
   return (
@@ -25,6 +27,45 @@ function CartTabIcon({ focused }: { focused: boolean }) {
         )}
       </View>
       <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>Panier</Text>
+    </View>
+  );
+}
+
+function NotifTabIcon({ focused }: { focused: boolean }) {
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchUnread = async () => {
+      try {
+        const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+        const token = await AsyncStorage.getItem('auth_token').catch(() => null);
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`${API_URL}/api/v1/notifications`, { headers });
+        if (res.ok) {
+          const data = (await res.json()) as { read: boolean }[];
+          if (mounted) setUnread(data.filter((n) => !n.read).length);
+        }
+      } catch {
+        // silently ignore
+      }
+    };
+    void fetchUnread();
+    return () => { mounted = false; };
+  }, [focused]);
+
+  return (
+    <View style={[styles.tabItem, focused && styles.tabItemFocused]}>
+      <View>
+        <Text style={styles.emoji}>🔔</Text>
+        {unread > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unread > 9 ? '9+' : unread}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.tabLabel, focused && styles.tabLabelFocused]}>Alertes</Text>
     </View>
   );
 }
@@ -60,6 +101,12 @@ export default function TabsLayout() {
         name="orders"
         options={{
           tabBarIcon: ({ focused }) => <TabIcon emoji="📦" label="Commandes" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          tabBarIcon: ({ focused }) => <NotifTabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen

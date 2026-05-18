@@ -25,16 +25,12 @@ interface MenuItem {
   isActive: boolean;
   isFeatured: boolean;
   rating?: number;
+  image?: string;
 }
 
 interface MenuResponse {
   categories: MenuCategory[];
   items: MenuItem[];
-}
-
-interface Restaurant {
-  id: string;
-  name: string;
 }
 
 const ALL_CATEGORY: MenuCategory = { id: 'all', name: 'Tout' };
@@ -43,34 +39,24 @@ export default function MenuScreen() {
   const api = useApi();
   const [categories, setCategories] = useState<MenuCategory[]>([ALL_CATEGORY]);
   const [items, setItems] = useState<MenuItem[]>([]);
-  const [restaurantId, setRestaurantId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCat, setSelectedCat] = useState('all');
   const [search, setSearch] = useState('');
 
+  // Use cart's restaurantId — set when user browses a restaurant detail page
+  const restaurantId = useCartStore((s) => s.restaurantId);
   const cartCount = useCartStore((s) => s.count());
   const cartTotal = useCartStore((s) => s.total());
 
   const loadMenu = useCallback(async (isRefresh = false) => {
+    if (!restaurantId) return;
     try {
       if (!isRefresh) setLoading(true);
       setError(null);
 
-      // Fetch first restaurant if we don't have one yet
-      let rid = restaurantId;
-      if (!rid) {
-        const restaurants = await api.get<Restaurant[]>('/api/v1/restaurants');
-        if (restaurants.length === 0) {
-          setError('Aucun restaurant disponible.');
-          return;
-        }
-        rid = restaurants[0].id;
-        setRestaurantId(rid);
-      }
-
-      const data = await api.get<MenuResponse>(`/api/v1/menu?restaurantId=${rid}`);
+      const data = await api.get<MenuResponse>(`/api/v1/menu?restaurantId=${restaurantId}`);
       setCategories([ALL_CATEGORY, ...data.categories]);
       setItems(data.items);
     } catch (err) {
@@ -82,8 +68,12 @@ export default function MenuScreen() {
   }, [restaurantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    loadMenu();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    setSelectedCat('all');
+    setSearch('');
+    if (restaurantId) {
+      loadMenu();
+    }
+  }, [restaurantId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -95,6 +85,31 @@ export default function MenuScreen() {
     const matchSearch = !search || i.name.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  // No restaurant selected yet
+  if (!restaurantId) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Menu</Text>
+        </View>
+        <View style={styles.center}>
+          <Text style={styles.placeholderEmoji}>🍽️</Text>
+          <Text style={styles.placeholderTitle}>Choisissez un restaurant</Text>
+          <Text style={styles.placeholderSub}>
+            Parcourez la liste des restaurants et ajoutez des articles au panier.
+          </Text>
+          <TouchableOpacity
+            style={styles.browseBtn}
+            onPress={() => router.push('/(tabs)/')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.browseBtnText}>Voir les restaurants →</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (loading) {
     return (
@@ -125,7 +140,7 @@ export default function MenuScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notre menu</Text>
+        <Text style={styles.headerTitle}>Menu</Text>
         <Text style={styles.headerSub}>{filtered.length} articles</Text>
       </View>
 
@@ -172,10 +187,11 @@ export default function MenuScreen() {
             description={item.description}
             price={item.price}
             compareAtPrice={item.compareAtPrice}
+            image={item.image}
             prepTime={item.prepTime}
             isFeatured={item.isFeatured}
             isActive={item.isActive}
-            restaurantId={restaurantId ?? ''}
+            restaurantId={restaurantId}
           />
         )}
         contentContainerStyle={styles.itemList}
@@ -215,6 +231,12 @@ const styles = StyleSheet.create({
   errorText:   { fontSize: 15, color: Colors.surface[500], textAlign: 'center', paddingHorizontal: 32 },
   retryBtn:    { marginTop: 8, backgroundColor: Colors.brand[500], borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10 },
   retryBtnText:{ color: '#fff', fontWeight: '700', fontSize: 14 },
+
+  placeholderEmoji: { fontSize: 64, marginBottom: 4 },
+  placeholderTitle: { fontSize: 20, fontWeight: '800', color: Colors.surface[900], textAlign: 'center' },
+  placeholderSub:   { fontSize: 14, color: Colors.surface[400], textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 },
+  browseBtn:        { marginTop: 8, backgroundColor: Colors.brand[500], borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 },
+  browseBtnText:    { color: '#fff', fontWeight: '700', fontSize: 15 },
 
   header: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   headerTitle: { fontSize: 26, fontWeight: '800', color: Colors.surface[900] },

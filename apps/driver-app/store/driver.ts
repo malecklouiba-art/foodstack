@@ -10,6 +10,8 @@ export interface ActiveDelivery {
   restaurantAddress: string;
   restaurantLat: number;
   restaurantLng: number;
+  customerName?: string;
+  customerPhone?: string;
   customerAddress: string;
   customerLat: number;
   customerLng: number;

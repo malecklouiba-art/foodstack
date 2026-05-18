@@ -1,12 +1,30 @@
 import { Tabs } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '@/constants/Colors';
+import { useNotificationBadge } from '@/hooks/useNotificationBadge';
 
 function TabIcon({ emoji, label, focused }: { emoji: string; label: string; focused: boolean }) {
   return (
     <View style={[styles.tabItem, focused && styles.tabItemFocused]}>
       <Text style={styles.emoji}>{emoji}</Text>
       <Text style={[styles.label, focused && styles.labelFocused]}>{label}</Text>
+    </View>
+  );
+}
+
+function NotificationsTabIcon({ focused }: { focused: boolean }) {
+  const unreadCount = useNotificationBadge();
+  return (
+    <View style={[styles.tabItem, focused && styles.tabItemFocused]}>
+      <View style={styles.badgeWrapper}>
+        <Text style={styles.emoji}>🔔</Text>
+        {unreadCount > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.label, focused && styles.labelFocused]}>Alertes</Text>
     </View>
   );
 }
@@ -33,6 +51,10 @@ export default function TabsLayout() {
         options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="💰" label="Gains" focused={focused} /> }}
       />
       <Tabs.Screen
+        name="notifications"
+        options={{ tabBarIcon: ({ focused }) => <NotificationsTabIcon focused={focused} /> }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="👤" label="Profil" focused={focused} /> }}
       />
@@ -52,4 +74,15 @@ const styles = StyleSheet.create({
   emoji:         { fontSize: 22 },
   label:         { fontSize: 10, color: Colors.surface[400], fontWeight: '500' },
   labelFocused:  { color: Colors.brand[600] },
+
+  badgeWrapper:  { position: 'relative' },
+  badge: {
+    position: 'absolute', top: -4, right: -8,
+    minWidth: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#ef4444',
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.5, borderColor: '#fff',
+  },
+  badgeText:     { color: '#fff', fontSize: 9, fontWeight: '800' },
 });

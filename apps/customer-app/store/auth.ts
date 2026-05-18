@@ -26,15 +26,15 @@ interface AuthState {
 }
 
 async function persistAuth(token: string, refreshToken: string, user: User) {
-  await AsyncStorage.multiSet([
-    ['auth_token', token],
-    ['auth_refresh_token', refreshToken],
-    ['auth_user', JSON.stringify(user)],
-  ]);
+  await AsyncStorage.setItem('auth_token', token);
+  await AsyncStorage.setItem('auth_refresh_token', refreshToken);
+  await AsyncStorage.setItem('auth_user', JSON.stringify(user));
 }
 
 async function clearPersistedAuth() {
-  await AsyncStorage.multiRemove(['auth_token', 'auth_refresh_token', 'auth_user']);
+  await AsyncStorage.removeItem('auth_token');
+  await AsyncStorage.removeItem('auth_refresh_token');
+  await AsyncStorage.removeItem('auth_user');
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -152,10 +152,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   loadStoredAuth: async () => {
     set({ isLoading: true });
     try {
-      const results = await AsyncStorage.multiGet(['auth_token', 'auth_refresh_token', 'auth_user']);
-      const token = results[0][1];
-      const refreshToken = results[1][1];
-      const userRaw = results[2][1];
+      const token = await AsyncStorage.getItem('auth_token');
+      const refreshToken = await AsyncStorage.getItem('auth_refresh_token');
+      const userRaw = await AsyncStorage.getItem('auth_user');
 
       if (token && refreshToken && userRaw) {
         const user = JSON.parse(userRaw) as User;
