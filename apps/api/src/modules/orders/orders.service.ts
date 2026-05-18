@@ -3,6 +3,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PushService } from '../notifications/push.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -44,6 +45,7 @@ export class OrdersService {
     private readonly realtime: RealtimeGateway,
     private readonly notifications: NotificationsService,
     private readonly push: PushService,
+    private readonly loyalty: LoyaltyService,
     private readonly audit: AuditService,
   ) {}
 
@@ -212,6 +214,19 @@ export class OrdersService {
       ).catch((err: unknown) => {
         this.logger.warn(`Expo push failed for order ${id}`, err);
       });
+
+      // Award loyalty points on delivery: 1 pt per euro
+      if (updated.status === 'delivered' && updated.total) {
+        const points = Math.floor(updated.total);
+        this.loyalty.addPoints(
+          updated.customerId,
+          points,
+          `Commande ${updated.orderNumber} livrée`,
+          updated.id,
+        ).catch((err: unknown) => {
+          this.logger.warn(`Failed to award loyalty points for order ${id}`, err);
+        });
+      }
     }
 
     return updated;

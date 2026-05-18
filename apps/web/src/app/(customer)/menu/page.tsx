@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Search, Bell, MapPin, Star, Clock, Plus, ChevronRight, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { useCartStore } from '@/store/cart';
+import api from '@/lib/api';
 
+// ---------------------------------------------------------------------------
+// Static display categories (used for UI tabs and emoji/colour mapping)
+// ---------------------------------------------------------------------------
 const categories = [
   { id: 'all',      label: 'Tout',     emoji: '🍽️' },
   { id: 'burgers',  label: 'Burgers',  emoji: '🍔' },
@@ -16,34 +21,106 @@ const categories = [
   { id: 'desserts', label: 'Desserts', emoji: '🍮' },
 ];
 
-const menuItems = [
-  { id: '1', menuItemId: 'mi-1', restaurantId: 'r-1', name: 'Classic Smash Burger', description: 'Double smash patty, cheddar fondu, sauce maison', price: 14.90, category: 'burgers', image: null, rating: 4.8, reviewCount: 234, prepTime: 12, tags: ['Bestseller'], allergens: ['gluten', 'lactose'], calories: 650 },
-  { id: '2', menuItemId: 'mi-2', restaurantId: 'r-1', name: 'Truffle Cheeseburger', description: 'Beef wagyu, fromage de chèvre, huile de truffe', price: 22.50, category: 'burgers', image: null, rating: 4.9, reviewCount: 189, prepTime: 15, tags: ['Premium'], allergens: ['gluten', 'lactose'], calories: 780 },
-  { id: '3', menuItemId: 'mi-3', restaurantId: 'r-1', name: 'Margherita Napoletana', description: 'Sauce tomate San Marzano, mozzarella, basilic', price: 13.90, category: 'pizza', image: null, rating: 4.7, reviewCount: 312, prepTime: 20, tags: ['Végétarien'], allergens: ['gluten', 'lactose'], calories: 820 },
-  { id: '4', menuItemId: 'mi-4', restaurantId: 'r-1', name: 'Salade César Premium', description: 'Poulet grillé, romaine, parmesan, sauce César', price: 12.50, category: 'salads', image: null, rating: 4.6, reviewCount: 156, prepTime: 8, tags: ['Healthy'], allergens: ['gluten', 'lactose'], calories: 420 },
-  { id: '5', menuItemId: 'mi-5', restaurantId: 'r-1', name: 'Frites Maison', description: 'Pommes de terre fraîches, fleur de sel', price: 4.50, category: 'sides', image: null, rating: 4.5, reviewCount: 445, prepTime: 8, tags: ['Vegan'], allergens: [], calories: 340 },
-  { id: '6', menuItemId: 'mi-6', restaurantId: 'r-1', name: 'Tiramisu Classique', description: 'Mascarpone, espresso, biscuits Savoiardi', price: 7.50, category: 'desserts', image: null, rating: 4.9, reviewCount: 98, tags: ['Maison'], allergens: ['gluten', 'lactose'], calories: 380 },
-  { id: '7', menuItemId: 'mi-7', restaurantId: 'r-1', name: 'Limonade Artisanale', description: 'Citrons pressés, menthe, sirop de canne', price: 4.90, category: 'drinks', image: null, rating: 4.7, reviewCount: 203, tags: ['Frais'], allergens: [], calories: 120 },
-  { id: '8', menuItemId: 'mi-8', restaurantId: 'r-1', name: 'Diavola Épicée', description: 'Salami piquant, piment, mozzarella', price: 16.50, category: 'pizza', image: null, rating: 4.8, reviewCount: 174, tags: ['Épicé'], allergens: ['gluten', 'lactose'], calories: 920 },
-  { id: '9', menuItemId: 'mi-9', restaurantId: 'r-1', name: 'Chicken Burger Crispy', description: 'Poulet frit croustillant, coleslaw, sauce sriracha', price: 13.90, category: 'burgers', image: null, rating: 4.7, reviewCount: 287, tags: ['Populaire'], allergens: ['gluten'], calories: 590 },
-];
-
 const EMOJI_BG: Record<string, string> = {
-  burgers: 'bg-brand-100',
-  pizza: 'bg-red-100',
-  salads: 'bg-green-100',
-  sides: 'bg-yellow-100',
-  drinks: 'bg-blue-100',
+  burgers:  'bg-brand-100',
+  pizza:    'bg-red-100',
+  salads:   'bg-green-100',
+  sides:    'bg-yellow-100',
+  drinks:   'bg-blue-100',
   desserts: 'bg-pink-100',
-  all: 'bg-gray-100',
+  all:      'bg-gray-100',
 };
 
-type MenuItem = typeof menuItems[0];
+// ---------------------------------------------------------------------------
+// Hardcoded mock items — used as fallback when the API is unreachable
+// ---------------------------------------------------------------------------
+const MOCK_ITEMS: MenuItem[] = [
+  { id: '1', menuItemId: 'mi-1', restaurantId: 'r-1', name: 'Classic Smash Burger',   description: 'Double smash patty, cheddar fondu, sauce maison',        price: 14.90, category: 'burgers',  image: null, rating: 4.8, reviewCount: 234, prepTime: 12, tags: ['Bestseller'], allergens: ['gluten', 'lactose'], calories: 650 },
+  { id: '2', menuItemId: 'mi-2', restaurantId: 'r-1', name: 'Truffle Cheeseburger',   description: 'Beef wagyu, fromage de chèvre, huile de truffe',          price: 22.50, category: 'burgers',  image: null, rating: 4.9, reviewCount: 189, prepTime: 15, tags: ['Premium'],    allergens: ['gluten', 'lactose'], calories: 780 },
+  { id: '3', menuItemId: 'mi-3', restaurantId: 'r-1', name: 'Margherita Napoletana',  description: 'Sauce tomate San Marzano, mozzarella, basilic',           price: 13.90, category: 'pizza',    image: null, rating: 4.7, reviewCount: 312, prepTime: 20, tags: ['Végétarien'], allergens: ['gluten', 'lactose'], calories: 820 },
+  { id: '4', menuItemId: 'mi-4', restaurantId: 'r-1', name: 'Salade César Premium',   description: 'Poulet grillé, romaine, parmesan, sauce César',           price: 12.50, category: 'salads',   image: null, rating: 4.6, reviewCount: 156, prepTime:  8, tags: ['Healthy'],    allergens: ['gluten', 'lactose'], calories: 420 },
+  { id: '5', menuItemId: 'mi-5', restaurantId: 'r-1', name: 'Frites Maison',          description: 'Pommes de terre fraîches, fleur de sel',                  price:  4.50, category: 'sides',    image: null, rating: 4.5, reviewCount: 445, prepTime:  8, tags: ['Vegan'],      allergens: [],                   calories: 340 },
+  { id: '6', menuItemId: 'mi-6', restaurantId: 'r-1', name: 'Tiramisu Classique',     description: 'Mascarpone, espresso, biscuits Savoiardi',                price:  7.50, category: 'desserts', image: null, rating: 4.9, reviewCount:  98, prepTime: 10, tags: ['Maison'],     allergens: ['gluten', 'lactose'], calories: 380 },
+  { id: '7', menuItemId: 'mi-7', restaurantId: 'r-1', name: 'Limonade Artisanale',    description: 'Citrons pressés, menthe, sirop de canne',                 price:  4.90, category: 'drinks',   image: null, rating: 4.7, reviewCount: 203, prepTime:  5, tags: ['Frais'],      allergens: [],                   calories: 120 },
+  { id: '8', menuItemId: 'mi-8', restaurantId: 'r-1', name: 'Diavola Épicée',         description: 'Salami piquant, piment, mozzarella',                     price: 16.50, category: 'pizza',    image: null, rating: 4.8, reviewCount: 174, prepTime: 20, tags: ['Épicé'],      allergens: ['gluten', 'lactose'], calories: 920 },
+  { id: '9', menuItemId: 'mi-9', restaurantId: 'r-1', name: 'Chicken Burger Crispy',  description: 'Poulet frit croustillant, coleslaw, sauce sriracha',      price: 13.90, category: 'burgers',  image: null, rating: 4.7, reviewCount: 287, prepTime: 12, tags: ['Populaire'],  allergens: ['gluten'],            calories: 590 },
+];
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+interface MenuItem {
+  id: string;
+  menuItemId: string;
+  restaurantId: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image: string | null;
+  rating: number;
+  reviewCount: number;
+  prepTime: number;
+  tags: string[];
+  allergens: string[];
+  calories: number;
+}
+
+interface ApiMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  categoryId?: string;
+  isActive?: boolean;
+  isFeatured?: boolean;
+  [key: string]: unknown;
+}
+
+interface ApiCategory {
+  id: string;
+  name: string;
+}
+
+interface MenuApiResponse {
+  categories: ApiCategory[];
+  items: ApiMenuItem[];
+}
+
+interface Restaurant {
+  id: string;
+  name: string;
+}
+
+// ---------------------------------------------------------------------------
+// Skeleton card for loading state
+// ---------------------------------------------------------------------------
+function SkeletonCard() {
+  return (
+    <div className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm animate-pulse">
+      <div className="h-24 w-24 flex-shrink-0 rounded-xl bg-gray-200" />
+      <div className="flex flex-1 flex-col justify-between py-0.5">
+        <div className="space-y-2">
+          <div className="h-3 w-16 rounded-full bg-gray-200" />
+          <div className="h-4 w-3/4 rounded bg-gray-200" />
+          <div className="h-3 w-full rounded bg-gray-100" />
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="h-3 w-20 rounded bg-gray-200" />
+          <div className="h-7 w-7 rounded-full bg-gray-200" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// ItemDetailModal — unchanged from original
+// ---------------------------------------------------------------------------
 function ItemDetailModal({ item, onClose, onAdd }: { item: MenuItem; onClose: () => void; onAdd: (item: MenuItem, qty: number) => void }) {
   const [qty, setQty] = useState(1);
   const emoji = categories.find(c => c.id === item.category)?.emoji ?? '🍽️';
-  const bg = EMOJI_BG[item.category];
+  const bg = EMOJI_BG[item.category] ?? 'bg-gray-100';
 
   return (
     <AnimatePresence>
@@ -118,22 +195,147 @@ function ItemDetailModal({ item, onClose, onAdd }: { item: MenuItem; onClose: ()
   );
 }
 
-export default function MenuPage() {
-  const [search, setSearch] = useState('');
-  const [cat, setCat] = useState('all');
-  const [cartOpen, setCartOpen] = useState(false);
+// ---------------------------------------------------------------------------
+// Helper: map an API menu item to our internal MenuItem shape
+// ---------------------------------------------------------------------------
+function toMenuItem(apiItem: ApiMenuItem, restaurantId: string): MenuItem {
+  return {
+    id:           String(apiItem.id),
+    menuItemId:   String(apiItem.id),
+    restaurantId,
+    name:         apiItem.name,
+    description:  typeof apiItem.description === 'string' ? apiItem.description : '',
+    price:        Number(apiItem.price),
+    category:     typeof apiItem.categoryId === 'string' ? apiItem.categoryId : 'all',
+    image:        null,
+    rating:       0,
+    reviewCount:  0,
+    prepTime:     0,
+    tags:         apiItem.isFeatured ? ['Populaire'] : [],
+    allergens:    [],
+    calories:     0,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Inner page component — has access to useSearchParams
+// ---------------------------------------------------------------------------
+function MenuPageInner() {
+  const searchParams = useSearchParams();
+  const urlRestaurantId = searchParams.get('restaurant');
+
+  const [search, setSearch]             = useState('');
+  const [cat, setCat]                   = useState('all');
+  const [cartOpen, setCartOpen]         = useState(false);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+
+  // Data / async state
+  const [menuItems, setMenuItems]             = useState<MenuItem[]>([]);
+  const [restaurantName, setRestaurantName]   = useState<string>('');
+  const [activeRestaurantId, setActiveRestaurantId] = useState<string | null>(urlRestaurantId);
+  const [loading, setLoading]                 = useState(true);
+  const [error, setError]                     = useState<string | null>(null);
+
   const { items, addItem, total } = useCartStore();
   const cartCount = items.reduce((a, i) => a + i.quantity, 0);
 
-  const filtered = menuItems
-    .filter((item) => (cat === 'all' || item.category === cat) &&
-      (!search || item.name.toLowerCase().includes(search.toLowerCase())));
-
-  const handleAdd = (item: MenuItem, qty = 1) => {
-    for (let i = 0; i < qty; i++) {
-      addItem({ id: `${item.menuItemId}-${Date.now()}-${i}`, menuItemId: item.menuItemId, restaurantId: item.restaurantId, name: item.name, price: item.price });
+  // ----- fetch restaurant list on mount (to get name / first restaurant) -----
+  const fetchRestaurant = useCallback(async (restaurantId: string) => {
+    try {
+      const res = await api.get<unknown, Restaurant>(`/restaurants/${restaurantId}`);
+      setRestaurantName(res.name);
+    } catch {
+      // non-critical — name just won't show
     }
+  }, []);
+
+  const fetchFirstRestaurant = useCallback(async (): Promise<string | null> => {
+    try {
+      const res = await api.get<unknown, Restaurant[]>('/restaurants');
+      const list = Array.isArray(res) ? res : [];
+      if (list.length > 0) {
+        setRestaurantName(list[0].name);
+        return list[0].id;
+      }
+    } catch {
+      // fall through — will use mock data
+    }
+    return null;
+  }, []);
+
+  // ----- fetch menu items for a given restaurant -----
+  const fetchMenu = useCallback(async (restaurantId: string) => {
+    try {
+      const res = await api.get<unknown, MenuApiResponse>(`/menu?restaurantId=${restaurantId}`);
+      const apiItems: ApiMenuItem[] = Array.isArray(res?.items) ? res.items : [];
+      const active = apiItems.filter(i => i.isActive !== false);
+      setMenuItems(active.map(i => toMenuItem(i, restaurantId)));
+      setError(null);
+    } catch {
+      // Network / API error — fall back to mock items
+      setMenuItems(MOCK_ITEMS);
+      setError(null); // mock fallback: don't surface an error
+    }
+  }, []);
+
+  // ----- orchestrate on mount / when URL param changes -----
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      let restaurantId = urlRestaurantId;
+
+      if (restaurantId) {
+        // Fetch this restaurant's name alongside its menu
+        await fetchRestaurant(restaurantId);
+      } else {
+        // No URL param — pick the first restaurant from the list
+        restaurantId = await fetchFirstRestaurant();
+      }
+
+      if (restaurantId) {
+        setActiveRestaurantId(restaurantId);
+        await fetchMenu(restaurantId);
+      } else {
+        // API completely unavailable — use mock data
+        setMenuItems(MOCK_ITEMS);
+      }
+    } catch {
+      setMenuItems(MOCK_ITEMS);
+      setError(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [urlRestaurantId, fetchRestaurant, fetchFirstRestaurant, fetchMenu]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // ----- filtering -----
+  const filtered = menuItems.filter(
+    (item) =>
+      (cat === 'all' || item.category === cat) &&
+      (!search || item.name.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  // ----- add to cart -----
+  const handleAdd = (item: MenuItem, qty = 1) => {
+    const restaurantId = activeRestaurantId ?? item.restaurantId;
+    for (let i = 0; i < qty; i++) {
+      addItem({
+        id:           `${item.menuItemId}-${Date.now()}-${i}`,
+        menuItemId:   item.menuItemId,
+        restaurantId,
+        name:         item.name,
+        price:        item.price,
+      });
+    }
+  };
+
+  // ----- retry handler -----
+  const handleRetry = () => {
+    setError(null);
+    load();
   };
 
   return (
@@ -147,7 +349,9 @@ export default function MenuPage() {
                 <MapPin className="h-3 w-3 text-brand-500" />
                 <span>Livraison à</span>
               </div>
-              <p className="text-sm font-semibold text-gray-900">Paris, France</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {restaurantName || 'Paris, France'}
+              </p>
             </div>
             <button className="relative rounded-full bg-gray-100 p-2.5">
               <Bell className="h-5 w-5 text-gray-700" />
@@ -217,7 +421,7 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* Popular section */}
+        {/* Popular / filtered section */}
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -226,66 +430,97 @@ export default function MenuPage() {
                 {cat === 'all' ? 'Populaires' : categories.find(c => c.id === cat)?.label}
               </h3>
             </div>
-            <span className="text-xs text-gray-400">{filtered.length} plats</span>
+            {!loading && !error && (
+              <span className="text-xs text-gray-400">{filtered.length} plats</span>
+            )}
           </div>
 
-          <AnimatePresence mode="popLayout">
+          {/* Error state */}
+          {error && (
+            <div className="mt-6 flex flex-col items-center gap-3 py-10 text-center">
+              <p className="text-sm text-gray-500">{error}</p>
+              <button
+                onClick={handleRetry}
+                className="rounded-2xl bg-brand-500 px-5 py-2 text-sm font-semibold text-white"
+              >
+                Réessayer
+              </button>
+            </div>
+          )}
+
+          {/* Loading skeleton */}
+          {loading && !error && (
             <div className="mt-3 space-y-3">
-              {filtered.length === 0 ? (
-                <p className="py-10 text-center text-sm text-gray-400">Aucun résultat</p>
-              ) : filtered.map((item, i) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
-                  onClick={() => setSelectedItem(item)}
-                >
-                  {/* Food emoji placeholder */}
-                  <div className={`flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-xl text-4xl ${EMOJI_BG[item.category]}`}>
-                    {categories.find(c => c.id === item.category)?.emoji ?? '🍽️'}
-                  </div>
-
-                  <div className="flex flex-1 flex-col justify-between py-0.5">
-                    <div>
-                      {item.tags[0] && (
-                        <span className="inline-block rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-600">
-                          {item.tags[0]}
-                        </span>
-                      )}
-                      <h4 className="mt-1 text-sm font-semibold text-gray-900 leading-tight">{item.name}</h4>
-                      <p className="mt-0.5 text-xs text-gray-400 line-clamp-1">{item.description}</p>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-xs text-gray-400">
-                        <span className="flex items-center gap-0.5">
-                          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          <span className="font-medium text-gray-700">{item.rating}</span>
-                        </span>
-                        <span>·</span>
-                        <span className="flex items-center gap-0.5">
-                          <Clock className="h-3 w-3" />
-                          {item.prepTime} min
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-gray-900">{item.price.toFixed(2)}€</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleAdd(item); }}
-                          className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm shadow-brand active:scale-95 transition-transform"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonCard key={i} />
               ))}
             </div>
-          </AnimatePresence>
+          )}
+
+          {/* Item list */}
+          {!loading && !error && (
+            <AnimatePresence mode="popLayout">
+              <div className="mt-3 space-y-3">
+                {filtered.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-gray-400">Aucun résultat</p>
+                ) : filtered.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm cursor-pointer active:scale-[0.99] transition-transform"
+                    onClick={() => setSelectedItem(item)}
+                  >
+                    {/* Food emoji placeholder */}
+                    <div className={`flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-xl text-4xl ${EMOJI_BG[item.category] ?? 'bg-gray-100'}`}>
+                      {categories.find(c => c.id === item.category)?.emoji ?? '🍽️'}
+                    </div>
+
+                    <div className="flex flex-1 flex-col justify-between py-0.5">
+                      <div>
+                        {item.tags[0] && (
+                          <span className="inline-block rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-600">
+                            {item.tags[0]}
+                          </span>
+                        )}
+                        <h4 className="mt-1 text-sm font-semibold text-gray-900 leading-tight">{item.name}</h4>
+                        <p className="mt-0.5 text-xs text-gray-400 line-clamp-1">{item.description}</p>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          {item.rating > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              <span className="font-medium text-gray-700">{item.rating}</span>
+                            </span>
+                          )}
+                          {item.rating > 0 && item.prepTime > 0 && <span>·</span>}
+                          {item.prepTime > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <Clock className="h-3 w-3" />
+                              {item.prepTime} min
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-gray-900">{item.price.toFixed(2)}€</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleAdd(item); }}
+                            className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm shadow-brand active:scale-95 transition-transform"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </AnimatePresence>
+          )}
         </div>
       </div>
 
@@ -322,5 +557,21 @@ export default function MenuPage() {
 
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Default export — wraps inner component in Suspense (required for
+// useSearchParams in Next.js App Router)
+// ---------------------------------------------------------------------------
+export default function MenuPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-sm text-gray-400">Chargement...</div>
+      </div>
+    }>
+      <MenuPageInner />
+    </Suspense>
   );
 }
