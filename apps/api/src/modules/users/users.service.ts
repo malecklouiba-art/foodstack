@@ -24,6 +24,35 @@ export class UsersService {
     });
   }
 
+  async findStaff() {
+    const users = await this.prisma.user.findMany({
+      where: { role: { in: ['staff', 'restaurant_owner'] as any[] } },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatar: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email,
+      email: u.email,
+      phone: u.phone,
+      avatar: u.avatar,
+      role: u.role,
+      isActive: u.isActive,
+      joinedAt: u.createdAt,
+    }));
+  }
+
   async findCustomers() {
     const users = await this.prisma.user.findMany({
       where: { role: 'customer' },

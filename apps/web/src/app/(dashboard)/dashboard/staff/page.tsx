@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 import {
   Users, UserPlus, Search, Shield, ChefHat,
   Bike, ToggleLeft, ToggleRight, Pencil, Trash2, Mail, X,
@@ -713,10 +714,54 @@ function EmployeeCard({ employee, onToggleStatus, onRemove, onManagePin, onConvo
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
+interface ApiStaff {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  isActive: boolean;
+  joinedAt: string;
+}
+
+const ROLE_MAP: Record<string, Role> = {
+  restaurant_owner: 'Patron',
+  staff: 'Commis',
+  driver: 'Livreur',
+};
+
+function apiToEmployee(s: ApiStaff, i: number): Employee {
+  const parts = s.name.split(' ');
+  const role: Role = ROLE_MAP[s.role] ?? 'Commis';
+  const joinedLabel = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(
+    -Math.round((Date.now() - new Date(s.joinedAt).getTime()) / (1000 * 60 * 60 * 24 * 30)),
+    'month'
+  );
+  return {
+    id: s.id,
+    firstName: parts[0] ?? '',
+    lastName: parts.slice(1).join(' ') || `#${i + 1}`,
+    role,
+    status: s.isActive ? 'actif' : 'inactif',
+    email: s.email,
+    joinedLabel,
+  };
+}
+
 export default function StaffPage() {
   const [employees,           setEmployees]           = useState<Employee[]>(INITIAL_EMPLOYEES);
   const [search,              setSearch]              = useState('');
   const [roleFilter,          setRoleFilter]          = useState<RoleFilter>('Tous');
+
+  useEffect(() => {
+    (api.get('/users/staff') as Promise<ApiStaff[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setEmployees(data.map(apiToEmployee));
+        }
+      })
+      .catch(() => { /* keep mock */ });
+  }, []);
   const [showInviteModal,     setShowInviteModal]     = useState(false);
   const [showMatrixPanel,     setShowMatrixPanel]     = useState(false);
   const [pinEmployee,         setPinEmployee]         = useState<Employee | null>(null);

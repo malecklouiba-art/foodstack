@@ -75,6 +75,12 @@ export class UsersController {
     return this.usersService.findCustomers();
   }
 
+  @Get('staff')
+  @ApiOperation({ summary: 'Get all staff members' })
+  findStaff() {
+    return this.usersService.findStaff();
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   findAll() {
