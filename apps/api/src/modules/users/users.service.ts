@@ -77,28 +77,39 @@ export class UsersService {
   }
 
   async findCustomers() {
-    const users = await this.prisma.user.findMany({
-      where: { role: 'customer' },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        avatar: true,
-        loyaltyPoints: true,
-        loyaltyTier: true,
-        isActive: true,
-        createdAt: true,
-        _count: { select: { orders: true } },
-        orders: {
-          select: { total: true, createdAt: true },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
+    const [users, spendByCustomer] = await Promise.all([
+      this.prisma.user.findMany({
+        where: { role: 'customer' },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          avatar: true,
+          loyaltyPoints: true,
+          loyaltyTier: true,
+          isActive: true,
+          createdAt: true,
+          _count: { select: { orders: true } },
+          orders: {
+            select: { createdAt: true },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.order.groupBy({
+        by: ['customerId'],
+        where: { status: { in: ['delivered'] as any[] } },
+        _sum: { total: true },
+      }),
+    ]);
+
+    const spendMap = new Map(
+      spendByCustomer.map((s) => [s.customerId, s._sum.total ?? 0]),
+    );
 
     return users.map((u) => ({
       id: u.id,
@@ -109,7 +120,7 @@ export class UsersService {
       loyaltyPoints: u.loyaltyPoints,
       loyaltyTier: u.loyaltyTier,
       orderCount: u._count.orders,
-      totalSpent: 0,
+      totalSpent: spendMap.get(u.id) ?? 0,
       lastOrderAt: u.orders[0]?.createdAt ?? null,
       isActive: u.isActive,
       joinedAt: u.createdAt,
