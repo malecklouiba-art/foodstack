@@ -46,7 +46,7 @@ export class OrdersController {
   }
 
   @Get('restaurant/:restaurantId')
-  @Roles('super_admin', 'restaurant_owner')
+  @Roles('super_admin', 'restaurant_owner', 'staff')
   @ApiOperation({ summary: 'Get all orders for a restaurant' })
   findByRestaurant(
     @Param('restaurantId') restaurantId: string,
@@ -74,7 +74,7 @@ export class OrdersController {
   }
 
   @Patch(':id/status')
-  @Roles('super_admin', 'restaurant_owner', 'staff')
+  @Roles('super_admin', 'restaurant_owner', 'staff', 'driver')
   @ApiOperation({ summary: 'Update order status' })
   updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
     return this.ordersService.updateStatus(id, dto);
