@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { PrismaService } from '../../database/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { DeliveryStatus, UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 
 const mockPrisma = {
@@ -12,6 +13,11 @@ const mockPrisma = {
   },
 };
 
+const mockRealtime = {
+  emitOrderStatusUpdated: jest.fn(),
+  server: { to: jest.fn().mockReturnThis(), emit: jest.fn() },
+};
+
 describe('DeliveryService', () => {
   let service: DeliveryService;
 
@@ -20,6 +26,7 @@ describe('DeliveryService', () => {
       providers: [
         DeliveryService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: RealtimeGateway, useValue: mockRealtime },
       ],
     }).compile();
 
@@ -197,7 +204,7 @@ describe('DeliveryService', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should filter by ASSIGNED, PICKED_UP and EN_ROUTE statuses', async () => {
+    it('should filter by active delivery statuses (ready, delivering)', async () => {
       mockPrisma.order.findMany.mockResolvedValue([]);
 
       await service.getActiveDeliveries('rest_1');
@@ -205,7 +212,8 @@ describe('DeliveryService', () => {
       expect(mockPrisma.order.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            status: expect.objectContaining({ in: expect.arrayContaining(['ASSIGNED', 'PICKED_UP', 'EN_ROUTE']) }),
+            restaurantId: 'rest_1',
+            status: expect.objectContaining({ in: expect.arrayContaining(['ready', 'delivering']) }),
           }),
         }),
       );
@@ -255,7 +263,6 @@ describe('DeliveryService', () => {
 
       expect(result.orderId).toBe('order_1');
       expect(result.estimatedMinutes).toBeNull();
-      expect(result.message).toBeDefined();
     });
   });
 });

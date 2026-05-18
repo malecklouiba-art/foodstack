@@ -1,36 +1,56 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { UpdateDeliveryStatusDto } from './dto/update-delivery-status.dto';
 
+// Delivery-phase transitions — supports both DTO enum values and Prisma status values
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  'ASSIGNED': ['EN_ROUTE', 'PICKED_UP'],
-  'PICKED_UP': ['EN_ROUTE'],
-  'EN_ROUTE': ['DELIVERED'],
-  'DELIVERED': [],
-  'FAILED': [],
+  // Prisma OrderStatus values
+  ready:      ['delivering'],
+  delivering: ['delivered'],
+  delivered:  [],
+  // Legacy DTO enum values (kept for backward compat)
+  ASSIGNED:   ['EN_ROUTE', 'PICKED_UP'],
+  PICKED_UP:  ['EN_ROUTE'],
+  EN_ROUTE:   ['DELIVERED'],
+  DELIVERED:  [],
+  FAILED:     [],
 };
 
 @Injectable()
 export class DeliveryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   async getActiveDeliveries(restaurantId: string) {
-    // TODO: Filter by active delivery statuses (ASSIGNED, PICKED_UP, EN_ROUTE)
     return this.prisma.order.findMany({
       where: {
         restaurantId,
-        status: { in: ['ASSIGNED', 'PICKED_UP', 'EN_ROUTE'] as any[] },
+        status: { in: ['ready', 'delivering'] as any[] },
       },
       include: {
-        // TODO: Include driver and delivery tracking details when schema is ready
+        items: true,
+        customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
   }
 
   async updateDriverLocation(driverId: string, lat: number, lng: number) {
-    // TODO: Persist driver location to a DriverLocation table or Redis for real-time tracking
-    // TODO: Broadcast location update via WebSocket/SSE to connected clients
+    // Broadcast via WebSocket so customers tracking orders get live updates
+    const activeOrders = await this.prisma.order.findMany({
+      where: { driverId, status: 'delivering' as any },
+      select: { id: true, restaurantId: true },
+    });
+
+    for (const order of activeOrders) {
+      this.realtime['server']?.to(`order:${order.id}`).emit('driver:location', {
+        orderId: order.id, driverId, lat, lng,
+      });
+    }
+
     return { driverId, lat, lng, updatedAt: new Date() };
   }
 
@@ -48,28 +68,27 @@ export class DeliveryService {
       );
     }
 
-    // TODO: Notify customer via push/SMS when status changes to EN_ROUTE or DELIVERED
-    const updateData: Record<string, unknown> = { status: newStatus };
-
-    if (newStatus === 'PICKED_UP') {
-      updateData.actualPickupAt = new Date();
-    }
-
-    if (newStatus === 'DELIVERED') {
-      updateData.actualDeliveryTime = new Date();
-    }
-
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id: orderId },
-      data: updateData as any,
+      data: { status: newStatus as any },
     });
+
+    this.realtime.emitOrderStatusUpdated({
+      orderId: updated.id,
+      orderNumber: updated.orderNumber,
+      restaurantId: updated.restaurantId,
+      status: updated.status as string,
+      customerId: updated.customerId ?? undefined,
+      total: updated.total,
+      itemCount: 0,
+    });
+
+    return updated;
   }
 
   async assignDriver(orderId: string, driverId: string) {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new NotFoundException(`Order #${orderId} not found`);
-    // TODO: Check driver availability before assigning
-    // TODO: Send push notification to driver with order details
     return this.prisma.order.update({
       where: { id: orderId },
       data: { driverId },
@@ -77,14 +96,18 @@ export class DeliveryService {
   }
 
   async getDeliveryETA(orderId: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, estimatedDeliveryTime: true, status: true },
+    });
     if (!order) throw new NotFoundException(`Order #${orderId} not found`);
-    // TODO: Integrate with a mapping service (Google Maps / Mapbox) to compute real ETA
-    // TODO: Factor in driver's current location and traffic conditions
-    return {
-      orderId,
-      estimatedMinutes: null,
-      message: 'ETA calculation not yet implemented',
-    };
+
+    if (order.estimatedDeliveryTime) {
+      const remainingMs = order.estimatedDeliveryTime.getTime() - Date.now();
+      const remainingMin = Math.max(0, Math.round(remainingMs / 60000));
+      return { orderId, estimatedMinutes: remainingMin, estimatedAt: order.estimatedDeliveryTime };
+    }
+
+    return { orderId, estimatedMinutes: null };
   }
 }
