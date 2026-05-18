@@ -33,6 +33,19 @@ export class NotificationsController {
     return { ok: true };
   }
 
+  @Post('expo-token')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  registerExpoToken(
+    @Request() req: { user: { id: string } },
+    @Body() body: { token: string },
+  ): { ok: boolean } {
+    if (body.token) {
+      this.pushService.registerExpoToken(req.user.id, body.token);
+    }
+    return { ok: true };
+  }
+
   // ─── In-app notifications CRUD ───────────────────────────────
 
   @Get()

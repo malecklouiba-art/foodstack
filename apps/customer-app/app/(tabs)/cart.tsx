@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
-  ActivityIndicator, TextInput, Keyboard,
+  ActivityIndicator, TextInput, Keyboard, Modal, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
@@ -18,13 +18,55 @@ interface CouponResult {
   message?: string;
 }
 
+// Saved addresses shape (matches addresses/index.tsx)
+interface SavedAddress {
+  id: string;
+  label: string;
+  address: string;
+  isDefault?: boolean;
+}
+
+const MOCK_SAVED: SavedAddress[] = [
+  { id: 'a1', label: 'Maison',  address: '12 rue de la Paix, 75001 Paris',            isDefault: true  },
+  { id: 'a2', label: 'Bureau',  address: '45 avenue des Champs-Élysées, 75008 Paris', isDefault: false },
+];
+
 export default function CartScreen() {
-  const { items, increment, decrement, remove, clear, total, deliveryFee: storedDeliveryFee } = useCartStore();
+  const { items, increment, decrement, remove, clear, total, deliveryFee: storedDeliveryFee, checkout } = useCartStore();
   const { pay, loading: payLoading } = useStripePayment();
   const api = useApi();
 
   const subtotal = total();
   const deliveryFee = items.length > 0 ? storedDeliveryFee : 0;
+
+  // ── Checkout modal ──────────────────────────────────────────────────────────
+  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>(MOCK_SAVED);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>(
+    MOCK_SAVED.find((a) => a.isDefault)?.id ?? MOCK_SAVED[0]?.id ?? '',
+  );
+  const [customAddress, setCustomAddress] = useState('');
+  const [useCustom, setUseCustom] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  const openCheckoutModal = async () => {
+    // Try to fetch saved addresses
+    try {
+      const data = await api.get<SavedAddress[]>('/api/v1/users/addresses');
+      if (Array.isArray(data) && data.length > 0) {
+        setSavedAddresses(data);
+        setSelectedAddressId(data.find((a) => a.isDefault)?.id ?? data[0].id);
+      }
+    } catch {
+      // Keep mocks
+    }
+    setCheckoutModalVisible(true);
+  };
+
+  const selectedAddress = savedAddresses.find((a) => a.id === selectedAddressId);
+  const deliveryAddress = useCustom
+    ? customAddress.trim()
+    : selectedAddress?.address ?? '';
 
   // ── Promo code ───────────────────────────────────────────────────────────────
   const [couponCode, setCouponCode] = useState('');
@@ -104,19 +146,38 @@ export default function CartScreen() {
     setCouponInput('');
   };
 
-  // ── Checkout ─────────────────────────────────────────────────────────────────
-  const handleCheckout = async () => {
-    const amountCents = Math.round(grandTotal * 100);
-    const orderId = `ORD-${Date.now()}`;
+  // ── Checkout — create order first, then pay ──────────────────────────────────
+  const handleConfirmPayment = async () => {
+    if (!deliveryAddress) {
+      Alert.alert('Adresse requise', 'Veuillez sélectionner ou saisir une adresse de livraison.');
+      return;
+    }
+    setCheckoutLoading(true);
     try {
-      const success = await pay(amountCents, orderId);
+      // Step 1: Create the order
+      let realOrderId: string;
+      try {
+        const order = await checkout(deliveryAddress);
+        realOrderId = order.id;
+      } catch {
+        // Fallback: use a temp ID if API is unavailable
+        realOrderId = `ORD-${Date.now()}`;
+      }
+
+      // Step 2: Charge via Stripe
+      const amountCents = Math.round(grandTotal * 100);
+      const success = await pay(amountCents, realOrderId);
       if (success) {
+        setCheckoutModalVisible(false);
+        // cart is already cleared by checkout() or clear()
         clear();
-        router.push(`/order/${orderId}/track`);
+        router.push(`/order/${realOrderId}/track`);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Une erreur est survenue';
-      Alert.alert('Erreur de paiement', message);
+      Alert.alert('Erreur', message);
+    } finally {
+      setCheckoutLoading(false);
     }
   };
 
@@ -255,7 +316,7 @@ export default function CartScreen() {
         <TouchableOpacity
           style={[styles.checkoutBtn, payLoading && styles.checkoutBtnDisabled]}
           activeOpacity={0.88}
-          onPress={handleCheckout}
+          onPress={openCheckoutModal}
           disabled={payLoading}
         >
           {payLoading ? (
@@ -265,6 +326,116 @@ export default function CartScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* ── Checkout confirmation modal ──────────────────────────────────────── */}
+      <Modal
+        visible={checkoutModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setCheckoutModalVisible(false)}
+      >
+        <SafeAreaView style={styles.modalSafe} edges={['top']}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Confirmer la commande</Text>
+            <TouchableOpacity onPress={() => setCheckoutModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={styles.modalClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+
+            {/* Address selection */}
+            <Text style={styles.modalSection}>Adresse de livraison</Text>
+            {savedAddresses.map((addr) => (
+              <TouchableOpacity
+                key={addr.id}
+                style={[styles.addrCard, !useCustom && selectedAddressId === addr.id && styles.addrCardSelected]}
+                onPress={() => { setSelectedAddressId(addr.id); setUseCustom(false); }}
+                activeOpacity={0.7}
+              >
+                <View style={styles.addrCardLeft}>
+                  <Text style={styles.addrLabel}>
+                    {addr.label === 'Maison' ? '🏠' : addr.label === 'Bureau' ? '🏢' : '📍'} {addr.label}
+                  </Text>
+                  <Text style={styles.addrText} numberOfLines={2}>{addr.address}</Text>
+                </View>
+                {!useCustom && selectedAddressId === addr.id && (
+                  <View style={styles.radioSelected}><View style={styles.radioDot} /></View>
+                )}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[styles.addrCard, useCustom && styles.addrCardSelected]}
+              onPress={() => setUseCustom(true)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.addrLabel}>📝 Autre adresse</Text>
+              {useCustom && (
+                <TextInput
+                  style={styles.customAddrInput}
+                  value={customAddress}
+                  onChangeText={setCustomAddress}
+                  placeholder="Entrez votre adresse…"
+                  placeholderTextColor={Colors.surface[400]}
+                  multiline
+                  autoFocus
+                />
+              )}
+            </TouchableOpacity>
+
+            {/* Order summary */}
+            <Text style={[styles.modalSection, { marginTop: 20 }]}>Récapitulatif</Text>
+            <View style={styles.summaryCard}>
+              {items.slice(0, 4).map((item) => (
+                <View key={item.id} style={styles.summaryItemRow}>
+                  <Text style={styles.summaryItemQty}>{item.quantity}×</Text>
+                  <Text style={styles.summaryItemName} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.summaryItemPrice}>{(item.price * item.quantity).toFixed(2)}€</Text>
+                </View>
+              ))}
+              {items.length > 4 && (
+                <Text style={styles.moreItems}>+{items.length - 4} autre(s) article(s)</Text>
+              )}
+              <View style={styles.summarySep} />
+              <View style={styles.summaryItemRow}>
+                <Text style={[styles.summaryItemName, { color: Colors.surface[500] }]}>Sous-total</Text>
+                <Text style={styles.summaryItemPrice}>{subtotal.toFixed(2)}€</Text>
+              </View>
+              <View style={styles.summaryItemRow}>
+                <Text style={[styles.summaryItemName, { color: Colors.surface[500] }]}>Livraison</Text>
+                <Text style={styles.summaryItemPrice}>{deliveryFee.toFixed(2)}€</Text>
+              </View>
+              {discountAmount > 0 && (
+                <View style={styles.summaryItemRow}>
+                  <Text style={[styles.summaryItemName, { color: Colors.success }]}>Réduction</Text>
+                  <Text style={[styles.summaryItemPrice, { color: Colors.success }]}>−{discountAmount.toFixed(2)}€</Text>
+                </View>
+              )}
+              <View style={[styles.summaryItemRow, { marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: Colors.surface[100] }]}>
+                <Text style={[styles.summaryItemName, { fontWeight: '800', fontSize: 15, color: Colors.surface[900] }]}>Total</Text>
+                <Text style={[styles.summaryItemPrice, { fontWeight: '800', fontSize: 16, color: Colors.brand[600] }]}>{grandTotal.toFixed(2)}€</Text>
+              </View>
+            </View>
+
+            <View style={{ height: 20 }} />
+          </ScrollView>
+
+          {/* Pay button */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity
+              style={[styles.payBtn, (checkoutLoading || payLoading) && styles.payBtnDisabled]}
+              onPress={handleConfirmPayment}
+              disabled={checkoutLoading || payLoading}
+              activeOpacity={0.88}
+            >
+              {checkoutLoading || payLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.payBtnText}>Payer {grandTotal.toFixed(2)}€</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -369,4 +540,56 @@ const styles = StyleSheet.create({
   },
   checkoutBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
   checkoutBtnDisabled: { opacity: 0.6 },
+
+  // Modal
+  modalSafe: { flex: 1, backgroundColor: Colors.surface[50] },
+  modalHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: Colors.surface[100],
+  },
+  modalTitle: { fontSize: 17, fontWeight: '800', color: Colors.surface[900] },
+  modalClose:  { fontSize: 18, color: Colors.surface[400], fontWeight: '600', padding: 4 },
+  modalContent: { padding: 16 },
+  modalSection: { fontSize: 13, fontWeight: '700', color: Colors.surface[400], textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+
+  addrCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 14, marginBottom: 8,
+    borderWidth: 1.5, borderColor: Colors.surface[200],
+  },
+  addrCardSelected: { borderColor: Colors.brand[500], backgroundColor: Colors.brand[50] },
+  addrCardLeft: { flex: 1 },
+  addrLabel: { fontSize: 14, fontWeight: '700', color: Colors.surface[900], marginBottom: 2 },
+  addrText:  { fontSize: 13, color: Colors.surface[500], marginTop: 2 },
+  radioSelected: {
+    width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Colors.brand[500],
+    alignItems: 'center', justifyContent: 'center', alignSelf: 'center',
+  },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.brand[500] },
+  customAddrInput: {
+    marginTop: 8, borderWidth: 1, borderColor: Colors.surface[200], borderRadius: 8,
+    padding: 10, fontSize: 14, color: Colors.surface[900], minHeight: 60,
+  },
+
+  summaryCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
+  },
+  summaryItemRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  summaryItemQty:  { fontSize: 12, fontWeight: '800', color: Colors.brand[600], width: 24 },
+  summaryItemName: { flex: 1, fontSize: 13, color: Colors.surface[700] },
+  summaryItemPrice:{ fontSize: 13, fontWeight: '700', color: Colors.surface[900] },
+  moreItems:       { fontSize: 12, color: Colors.surface[400], fontStyle: 'italic', marginBottom: 6 },
+  summarySep:      { height: 1, backgroundColor: Colors.surface[100], marginVertical: 8 },
+
+  modalFooter: {
+    padding: 16, paddingBottom: 28,
+    backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: Colors.surface[100],
+  },
+  payBtn: {
+    backgroundColor: Colors.brand[500], borderRadius: 16, paddingVertical: 16, alignItems: 'center',
+    shadowColor: Colors.brand[500], shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 5,
+  },
+  payBtnDisabled: { opacity: 0.6 },
+  payBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
 });

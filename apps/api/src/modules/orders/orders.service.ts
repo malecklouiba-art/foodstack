@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PushService } from '../notifications/push.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -42,6 +43,7 @@ export class OrdersService {
     private readonly prisma: PrismaService,
     private readonly realtime: RealtimeGateway,
     private readonly notifications: NotificationsService,
+    private readonly push: PushService,
     private readonly audit: AuditService,
   ) {}
 
@@ -183,13 +185,14 @@ export class OrdersService {
       this.realtime.emitOrderReady(payload);
     }
 
-    // Send status update email to customer — fire-and-forget
+    // Send status update email + Expo push to customer — fire-and-forget
     if (updated.customerId) {
+      const statusLabel = STATUS_LABELS[updated.status] ?? updated.status;
+
       this.prisma.user
         .findUnique({ where: { id: updated.customerId }, select: { email: true } })
         .then((user) => {
           if (!user?.email) return;
-          const statusLabel = STATUS_LABELS[updated.status] ?? updated.status;
           return this.notifications.sendOrderStatusUpdate(user.email, {
             orderNumber: updated.orderNumber,
             status: updated.status,
@@ -199,6 +202,16 @@ export class OrdersService {
         .catch((err: unknown) => {
           this.logger.error(`Failed to send status update email for order ${id}`, err);
         });
+
+      // Mobile push notification
+      this.push.sendExpoNotification(
+        updated.customerId,
+        `Commande ${updated.orderNumber}`,
+        statusLabel,
+        { orderId: updated.id, status: updated.status },
+      ).catch((err: unknown) => {
+        this.logger.warn(`Expo push failed for order ${id}`, err);
+      });
     }
 
     return updated;

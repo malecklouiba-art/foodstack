@@ -115,6 +115,46 @@ export class PushService implements OnModuleInit {
     this.logger.log(`Broadcast sent to ${userIds.size} user(s) with role ${role}`);
   }
 
+  // ─── Expo push tokens (mobile) ──────────────────────────────────────────────
+
+  /** userId → Expo push token */
+  private readonly expoTokens = new Map<string, string>();
+
+  registerExpoToken(userId: string, token: string): void {
+    this.expoTokens.set(userId, token);
+    this.logger.log(`Expo push token registered for user ${userId}`);
+  }
+
+  getExpoToken(userId: string): string | undefined {
+    return this.expoTokens.get(userId);
+  }
+
+  /** Fire-and-forget Expo push notification via the Expo push API. */
+  async sendExpoNotification(
+    userId: string,
+    title: string,
+    body: string,
+    data?: Record<string, unknown>,
+  ): Promise<void> {
+    const token = this.expoTokens.get(userId);
+    if (!token) return;
+
+    try {
+      const res = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ to: token, title, body, data: data ?? {} }),
+      });
+      if (!res.ok) {
+        this.logger.warn(`Expo push failed for user ${userId}: ${res.status}`);
+      } else {
+        this.logger.debug(`Expo push sent to user ${userId}`);
+      }
+    } catch (err) {
+      this.logger.error(`Expo push error for user ${userId}`, err);
+    }
+  }
+
   // ─── Private helpers ────────────────────────────────────────────────────────
 
   private async sendPush(
