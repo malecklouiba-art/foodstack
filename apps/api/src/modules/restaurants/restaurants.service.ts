@@ -3,13 +3,34 @@ import { PrismaService } from '../../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 @Injectable()
 export class RestaurantsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
-    // TODO: Add pagination, filtering by cuisine, isOpen, rating sort
-    return this.prisma.restaurant.findMany();
+  async findAll(options?: { isOpen?: boolean; cuisine?: string; page?: number; limit?: number }) {
+    const page  = options?.page  ?? 1;
+    const limit = options?.limit ?? 50;
+    return this.prisma.restaurant.findMany({
+      where: {
+        ...(options?.isOpen !== undefined ? { isOpen: options.isOpen } : {}),
+        ...(options?.cuisine ? { cuisineType: { contains: options.cuisine, mode: 'insensitive' as const } } : {}),
+      },
+      orderBy: { rating: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
   }
 
   async findById(id: string) {
@@ -18,14 +39,24 @@ export class RestaurantsService {
     return restaurant;
   }
 
-  async findNearby(lat: number, lng: number, radius: number) {
-    // TODO: Implement geospatial query using PostGIS or Haversine formula
-    // Example raw query:
-    // SELECT *, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) *
-    //   cos(radians(longitude) - radians(?)) + sin(radians(?)) *
-    //   sin(radians(latitude)))) AS distance FROM restaurants
-    //   HAVING distance < ? ORDER BY distance
-    return this.prisma.restaurant.findMany();
+  async findNearby(lat: number, lng: number, radiusM: number) {
+    const radiusKm = radiusM / 1000;
+    const all = await this.prisma.restaurant.findMany({
+      where: { isOpen: true },
+    });
+
+    return all
+      .filter((r) => {
+        if (r.latitude == null || r.longitude == null) return true;
+        return haversineKm(lat, lng, r.latitude, r.longitude) <= radiusKm;
+      })
+      .sort((a, b) => {
+        if (a.latitude == null || b.latitude == null) return 0;
+        return (
+          haversineKm(lat, lng, a.latitude, a.longitude) -
+          haversineKm(lat, lng, b.latitude, b.longitude)
+        );
+      });
   }
 
   async create(dto: CreateRestaurantDto) {
@@ -39,7 +70,6 @@ export class RestaurantsService {
 
   async remove(id: string) {
     await this.findById(id);
-    // TODO: Soft delete — set deletedAt instead of hard delete
     return this.prisma.restaurant.delete({ where: { id } });
   }
 

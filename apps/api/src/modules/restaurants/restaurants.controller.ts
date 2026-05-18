@@ -26,8 +26,22 @@ export class RestaurantsController {
 
   @Get()
   @ApiOperation({ summary: 'Get all restaurants' })
-  findAll() {
-    return this.restaurantsService.findAll();
+  @ApiQuery({ name: 'isOpen', type: Boolean, required: false })
+  @ApiQuery({ name: 'cuisine', type: String, required: false })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'limit', type: Number, required: false })
+  findAll(
+    @Query('isOpen') isOpen?: string,
+    @Query('cuisine') cuisine?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.restaurantsService.findAll({
+      isOpen: isOpen !== undefined ? isOpen === 'true' : undefined,
+      cuisine,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get('nearby')
