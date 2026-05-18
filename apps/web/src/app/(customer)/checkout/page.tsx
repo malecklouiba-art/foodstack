@@ -95,30 +95,18 @@ export default function CheckoutPage() {
     const code = couponCode.toUpperCase();
 
     try {
-      const apiBase =
-        process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+      const data = await (api.post('/coupons/validate', {
+        code,
+        restaurantId: restaurantId ?? '',
+        orderTotal: subtotal(),
+      }) as Promise<{ valid: boolean; code?: string; discount: number; type?: 'percent' | 'fixed'; discountType?: 'percent' | 'fixed'; message?: string }>);
 
-      const response = await fetch(`${apiBase}/api/v1/coupons/validate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code,
-          restaurantId: restaurantId ?? '',
-          orderTotal: subtotal(),
-        }),
-      });
-
-      if (response.ok) {
-        const data = (await response.json()) as {
-          code: string;
-          discount: number;
-          type: 'percent' | 'fixed';
-        };
-        setAppliedCoupon({ code: data.code ?? code, discount: data.discount, type: data.type });
+      if (data.valid) {
+        const type = (data.type ?? data.discountType ?? 'fixed') as 'percent' | 'fixed';
+        setAppliedCoupon({ code: data.code ?? code, discount: data.discount, type });
         toast.success(`Code "${data.code ?? code}" appliqué !`);
       } else {
-        const err = await response.json().catch(() => ({})) as { message?: string };
-        toast.error(err.message ?? 'Code promo invalide ou expiré');
+        toast.error(data.message ?? 'Code promo invalide ou expiré');
       }
     } catch {
       // Network error — fall back to hardcoded demo coupons

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuthStore } from '@/store/auth';
 import {
   Euro, CreditCard, Clock, ArrowDownToLine, TrendingUp,
   Building2, CheckCircle2, AlertCircle, RotateCcw,
@@ -355,20 +356,15 @@ function RefundModal({ tx, onClose, onConfirm }: RefundModalProps) {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function PaymentsPage() {
+  const authUser = useAuthStore((s) => s.user);
   const [period,        setPeriod]        = useState(0);
-  const [role,          setRole]          = useState<string>('owner');
   const [selectedTx,    setSelectedTx]    = useState<Transaction | null>(null);
   const [refundTx,      setRefundTx]      = useState<Transaction | null>(null);
   const [txFilter,      setTxFilter]      = useState<TxFilter>('all');
   const [currentPage,   setCurrentPage]   = useState(1);
   const [refundedIds,   setRefundedIds]   = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const m = document.cookie.match(/(?:^|; )fs_demo=([^;]*)/);
-    if (m) setRole(decodeURIComponent(m[1]));
-  }, []);
-
-  const isAdmin       = role === 'admin';
+  const isAdmin       = authUser?.role === 'super_admin';
   const baseTxs       = isAdmin ? ADMIN_TRANSACTIONS : TRANSACTIONS;
   const activeKPIs    = isAdmin ? ADMIN_KPI_CARDS    : KPI_CARDS;
   const pageTitle     = isAdmin ? 'Paiements Restaurateurs' : 'Paiements';
