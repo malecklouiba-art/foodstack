@@ -1397,19 +1397,11 @@ export default function KioskDesignerPage() {
     async function fetchMenuData() {
       setDataLoading(true);
       try {
-        const [catRes, itemsRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/menu/categories?restaurantId=${restaurantId}`, { headers }),
-          fetch(`${API_BASE}/api/v1/menu/items?restaurantId=${restaurantId}`, { headers }),
-        ]);
-
-        if (catRes.ok) {
-          const catData = (await catRes.json()) as MenuCategory[];
-          if (Array.isArray(catData) && catData.length > 0) setCategories(catData);
-        }
-
-        if (itemsRes.ok) {
-          const itemsData = (await itemsRes.json()) as MenuItem[];
-          if (Array.isArray(itemsData) && itemsData.length > 0) setProducts(itemsData);
+        const res = await fetch(`${API_BASE}/api/v1/menu?restaurantId=${restaurantId}`, { headers });
+        if (res.ok) {
+          const data = (await res.json()) as { categories?: MenuCategory[]; items?: MenuItem[] };
+          if (Array.isArray(data.categories) && data.categories.length > 0) setCategories(data.categories);
+          if (Array.isArray(data.items) && data.items.length > 0) setProducts(data.items);
         }
       } catch {
         // Network error: keep fallback data
