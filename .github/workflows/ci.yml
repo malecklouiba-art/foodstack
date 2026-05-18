@@ -112,6 +112,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run --workspace=@foodstack/database generate
+
       - name: Build all packages
         run: npm run build
         env:
