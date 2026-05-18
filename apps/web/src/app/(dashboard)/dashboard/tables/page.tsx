@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, Edit2, Trash2, Users, QrCode,
@@ -13,6 +13,8 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { QRCodeSVG } from 'qrcode.react';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -841,9 +843,50 @@ function EditorPanel({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TablesPage() {
+  const restaurantId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
   const [tables, setTables] = useState<RestaurantTable[]>(INIT_TABLES);
   const [zones, setZones] = useState<Zone[]>(INIT_ZONES);
   const [tab, setTab] = useState<PageTab>('floor');
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/tables?restaurantId=${restaurantId}`) as Promise<{ id: string; number: number; capacity: number; section?: string; status?: string }[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        const zoneMap = new Map<string, string>();
+        let zIdx = 0;
+        setTables(data.map((t, i) => {
+          const section = t.section ?? 'Salle principale';
+          if (!zoneMap.has(section)) {
+            zoneMap.set(section, `z${++zIdx}`);
+          }
+          return {
+            id: t.id,
+            number: t.number,
+            capacity: t.capacity,
+            status: (t.status ?? 'free') as TableStatus,
+            zoneId: zoneMap.get(section)!,
+            shape: t.capacity <= 2 ? 'circle' : 'rect',
+            x: snap(60 + (i % 6) * 130),
+            y: snap(80 + Math.floor(i / 6) * 130),
+          };
+        }));
+        // Build zones from sections
+        const entries = Array.from(zoneMap.entries());
+        if (entries.length > 0) {
+          setZones(entries.map(([name, id], idx) => ({
+            id,
+            name,
+            x: 40 + idx * 320,
+            y: 60,
+            w: 300,
+            h: 380,
+            color: ['#eff6ff', '#fefce8', '#faf5ff', '#fdf2f8'][idx % 4],
+          })));
+        }
+      })
+      .catch(() => { /* keep mock data */ });
+  }, [restaurantId]);
   const [sectionFilter, setSectionFilter] = useState<string>('Tous');
   const [statusFilter, setStatusFilter] = useState<TableStatus | 'all'>('all');
 
@@ -916,6 +959,9 @@ export default function TablesPage() {
 
   function updateTable(id: string, patch: Partial<RestaurantTable>) {
     setTables(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+    if (patch.status) {
+      (api.patch(`/tables/${id}/status`, { status: patch.status }) as Promise<unknown>).catch(() => {});
+    }
   }
 
   function moveTable(id: string, x: number, y: number) {

@@ -18,6 +18,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
 import { DriversModule } from './modules/drivers/drivers.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { TablesModule } from './modules/tables/tables.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AuditModule } from './modules/audit/audit.module';
     CouponsModule,
     DriversModule,
     SuperAdminModule,
+    TablesModule,
   ],
 })
 export class AppModule {}
