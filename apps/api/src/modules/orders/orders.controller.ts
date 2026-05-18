@@ -60,6 +60,12 @@ export class OrdersController {
     return this.ordersService.findByCustomer(customerId);
   }
 
+  @Get('driver/:driverId')
+  @ApiOperation({ summary: 'Get all orders assigned to a driver' })
+  findByDriver(@Param('driverId') driverId: string) {
+    return this.ordersService.findByDriver(driverId);
+  }
+
   @Patch(':id/status')
   @Roles('super_admin', 'restaurant_owner', 'staff')
   @ApiOperation({ summary: 'Update order status' })

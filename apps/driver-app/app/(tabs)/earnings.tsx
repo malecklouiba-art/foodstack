@@ -95,7 +95,7 @@ function useWeeklyEarnings() {
 
       try {
         const data = await get<ApiOrder[] | { orders?: ApiOrder[] }>(
-          `/api/v1/orders/customer/${driver.id}`
+          `/api/v1/orders/driver/${driver.id}`
         );
         const raw: ApiOrder[] = Array.isArray(data)
           ? data

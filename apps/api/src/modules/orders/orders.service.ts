@@ -155,6 +155,14 @@ export class OrdersService {
     });
   }
 
+  async findByDriver(driverId: string) {
+    return this.prisma.order.findMany({
+      where: { driverId },
+      include: { items: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
     const order = await this.findById(id);
 
