@@ -762,7 +762,7 @@ export default function AnalyticsPage() {
   const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
   const authUser = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const RESTAURANT_ID = authUser?.restaurantIds?.[0] ?? 'demo-restaurant-id';
+  const RESTAURANT_ID = authUser?.restaurantIds?.[0] ?? '';
   const selectedPeriod = PERIOD_API_MAP[period] ?? 'week';
 
   // Detect role from cookie fs_demo
@@ -772,7 +772,7 @@ export default function AnalyticsPage() {
 
   // ── Fetch analytics data ───────────────────────────────────────────────────
   useEffect(() => {
-    if (role === 'admin') {
+    if (role === 'admin' || !RESTAURANT_ID) {
       setLoading(false);
       return;
     }
