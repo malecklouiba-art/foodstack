@@ -63,7 +63,7 @@ describe('CouponsService', () => {
       expect(result.valid).toBe(true);
       expect(result.discount).toBe(5); // 10% of 50
       expect(result.finalTotal).toBe(45);
-      expect(result.coupon).toMatchObject({ id: 'c1' });
+      expect(result.discountType).toBe('percent');
     });
 
     it('should return valid:true with correct fixed discount', async () => {
@@ -156,7 +156,7 @@ describe('CouponsService', () => {
 
       expect(result.valid).toBe(false);
       expect(result.discount).toBe(0);
-      expect(result.coupon).toBeNull();
+      expect(result.message).toBe('Coupon introuvable');
     });
 
     it('should return valid:false when coupon is inactive', async () => {
@@ -169,7 +169,7 @@ describe('CouponsService', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.reason).toBe('Coupon inactif');
+      expect(result.message).toBe('Coupon inactif');
       expect(result.discount).toBe(0);
       expect(result.finalTotal).toBe(50);
     });
@@ -184,7 +184,7 @@ describe('CouponsService', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.reason).toBe('Coupon expiré');
+      expect(result.message).toBe('Coupon expiré');
     });
 
     it('should return valid:false when max uses is reached', async () => {
@@ -201,7 +201,7 @@ describe('CouponsService', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.reason).toBe('Coupon épuisé');
+      expect(result.message).toBe('Coupon épuisé');
     });
 
     it('should return valid:false when order total is below minimum', async () => {
@@ -214,7 +214,7 @@ describe('CouponsService', () => {
       });
 
       expect(result.valid).toBe(false);
-      expect(result.reason).toContain('20');
+      expect(result.message).toContain('20');
     });
 
     it('should NOT increment usedCount when coupon is invalid', async () => {

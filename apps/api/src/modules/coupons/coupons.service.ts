@@ -67,30 +67,25 @@ export class CouponsService {
       },
     });
 
-    if (!coupon) {
-      return { valid: false, reason: 'Coupon introuvable', discount: 0, finalTotal: dto.orderTotal, coupon: null };
-    }
+    const invalid = (message: string) => ({
+      valid: false,
+      message,
+      reason: message,
+      discount: 0,
+      finalTotal: dto.orderTotal,
+      code: dto.code,
+      discountType: null as string | null,
+      discountValue: 0,
+      description: null as string | null,
+      type: null as string | null,
+    });
 
-    if (!coupon.active) {
-      return { valid: false, reason: 'Coupon inactif', discount: 0, finalTotal: dto.orderTotal, coupon };
-    }
-
-    if (coupon.expiresAt && coupon.expiresAt < new Date()) {
-      return { valid: false, reason: 'Coupon expiré', discount: 0, finalTotal: dto.orderTotal, coupon };
-    }
-
-    if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
-      return { valid: false, reason: 'Coupon épuisé', discount: 0, finalTotal: dto.orderTotal, coupon };
-    }
-
+    if (!coupon) return invalid('Coupon introuvable');
+    if (!coupon.active) return invalid('Coupon inactif');
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) return invalid('Coupon expiré');
+    if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) return invalid('Coupon épuisé');
     if (dto.orderTotal < coupon.minOrderValue) {
-      return {
-        valid: false,
-        reason: `Commande minimale de ${coupon.minOrderValue}€ requise`,
-        discount: 0,
-        finalTotal: dto.orderTotal,
-        coupon,
-      };
+      return invalid(`Commande minimale de ${coupon.minOrderValue}€ requise`);
     }
 
     let discount = 0;
@@ -107,6 +102,16 @@ export class CouponsService {
       data: { usedCount: { increment: 1 } },
     });
 
-    return { valid: true, discount, finalTotal, coupon };
+    return {
+      valid: true,
+      discount,
+      finalTotal,
+      code: coupon.code,
+      discountType: coupon.discountType,
+      discountValue: coupon.discountValue,
+      description: coupon.description,
+      type: coupon.discountType,
+      message: null as string | null,
+    };
   }
 }

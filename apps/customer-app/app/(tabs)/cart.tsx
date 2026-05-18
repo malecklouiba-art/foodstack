@@ -12,10 +12,11 @@ import { useApi } from '@/hooks/useApi';
 
 interface CouponResult {
   valid: boolean;
-  discountType?: 'percent' | 'fixed';
+  discount?: number;
+  discountType?: string | null;
   discountValue?: number;
-  description?: string;
-  message?: string;
+  description?: string | null;
+  message?: string | null;
 }
 
 // Saved addresses shape (matches addresses/index.tsx)
@@ -32,7 +33,7 @@ const MOCK_SAVED: SavedAddress[] = [
 ];
 
 export default function CartScreen() {
-  const { items, increment, decrement, remove, clear, total, deliveryFee: storedDeliveryFee, checkout } = useCartStore();
+  const { items, increment, decrement, remove, clear, total, deliveryFee: storedDeliveryFee, checkout, restaurantId } = useCartStore();
   const { pay, loading: payLoading } = useStripePayment();
   const api = useApi();
 
@@ -92,7 +93,8 @@ export default function CartScreen() {
     try {
       const result = await api.post<CouponResult>('/api/v1/coupons/validate', {
         code,
-        amount: subtotal,
+        orderTotal: subtotal,
+        restaurantId: restaurantId ?? '',
       });
 
       if (!result.valid) {
@@ -100,14 +102,14 @@ export default function CartScreen() {
         return;
       }
 
-      let discount = 0;
+      const discount = result.discount ?? 0;
       let label = '';
       if (result.discountType === 'percent' && result.discountValue) {
-        discount = (subtotal * result.discountValue) / 100;
         label = `${result.description ?? code} (−${result.discountValue}%)`;
       } else if (result.discountType === 'fixed' && result.discountValue) {
-        discount = result.discountValue;
         label = `${result.description ?? code} (−${result.discountValue.toFixed(2)}€)`;
+      } else {
+        label = result.description ?? code;
       }
 
       setCouponCode(code);

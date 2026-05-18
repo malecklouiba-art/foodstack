@@ -103,8 +103,8 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
-          restaurantId: restaurantId ?? undefined,
-          orderValue: subtotal(),
+          restaurantId: restaurantId ?? '',
+          orderTotal: subtotal(),
         }),
       });
 
