@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import { ScrollView, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,6 +24,17 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return restaurants;
+    const q = search.toLowerCase();
+    return restaurants.filter(
+      (r) =>
+        r.name.toLowerCase().includes(q) ||
+        r.categories?.some((c) => c.toLowerCase().includes(q)),
+    );
+  }, [restaurants, search]);
 
   const loadRestaurants = useCallback(async (isRefresh = false) => {
     try {
@@ -101,9 +112,24 @@ export default function HomeScreen() {
           ))}
         </View>
 
+        {/* Search */}
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.searchInput}
+            value={search}
+            onChangeText={setSearch}
+            placeholder="🔍  Rechercher un restaurant ou cuisine…"
+            placeholderTextColor={Colors.surface[400]}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+        </View>
+
         {/* Restaurants */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🏪 Restaurants</Text>
+          <Text style={styles.sectionTitle}>
+            {search.trim() ? `Résultats pour "${search}"` : '🏪 Restaurants'}
+          </Text>
 
           {loading && (
             <View style={styles.loadingContainer}>
@@ -122,14 +148,21 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {!loading && !error && restaurants.length === 0 && (
+          {!loading && !error && filtered.length === 0 && (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorEmoji}>🏪</Text>
-              <Text style={styles.errorText}>Aucun restaurant disponible pour le moment.</Text>
+              <Text style={styles.errorEmoji}>{search ? '🔍' : '🏪'}</Text>
+              <Text style={styles.errorText}>
+                {search ? `Aucun résultat pour "${search}".` : 'Aucun restaurant disponible pour le moment.'}
+              </Text>
+              {search ? (
+                <TouchableOpacity style={styles.retryBtn} onPress={() => setSearch('')} activeOpacity={0.8}>
+                  <Text style={styles.retryBtnText}>Effacer la recherche</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           )}
 
-          {!loading && !error && restaurants.map((resto) => (
+          {!loading && !error && filtered.map((resto) => (
             <TouchableOpacity
               key={resto.id}
               style={styles.restaurantCard}
@@ -191,6 +224,13 @@ const styles = StyleSheet.create({
   heroBtn:     { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8 },
   heroBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   heroEmoji:   { fontSize: 56, marginLeft: 8 },
+
+  searchRow: { paddingHorizontal: 16, marginTop: 12 },
+  searchInput: {
+    backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 12,
+    fontSize: 14, color: Colors.surface[900],
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
+  },
 
   strip: {
     flexDirection: 'row', justifyContent: 'space-around',

@@ -6,6 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
+import { ReviewOrderDto } from './dto/review-order.dto';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'En attente',
@@ -16,6 +17,21 @@ const STATUS_LABELS: Record<string, string> = {
   delivered: 'Livrée',
   cancelled: 'Annulée',
   refunded: 'Remboursée',
+};
+
+/**
+ * Allowed forward transitions for order status.
+ * Any status → 'cancelled' is always permitted (handled separately).
+ */
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  pending: ['confirmed', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
+  preparing: ['ready', 'cancelled'],
+  ready: ['delivering', 'cancelled'],
+  delivering: ['delivered', 'cancelled'],
+  delivered: [],
+  cancelled: [],
+  refunded: [],
 };
 
 @Injectable()
@@ -137,6 +153,14 @@ export class OrdersService {
 
   async updateStatus(id: string, dto: UpdateOrderStatusDto) {
     const order = await this.findById(id);
+
+    const allowed = ALLOWED_TRANSITIONS[order.status] ?? [];
+    if (!allowed.includes(dto.status)) {
+      throw new BadRequestException(
+        `Invalid status transition: ${order.status} → ${dto.status}`,
+      );
+    }
+
     const updated = await this.prisma.order.update({
       where: { id },
       data: { status: dto.status as any },
@@ -209,5 +233,31 @@ export class OrdersService {
       where: { id: orderId },
       data: { driverId },
     });
+  }
+
+  async reviewOrder(orderId: string, dto: ReviewOrderDto, userId: string) {
+    const order = await this.findById(orderId);
+
+    if (order.status !== 'delivered') {
+      throw new BadRequestException('Reviews can only be submitted for delivered orders');
+    }
+
+    // Upsert the review linked to this order
+    await this.prisma.review.upsert({
+      where: { orderId },
+      create: {
+        orderId,
+        restaurantId: order.restaurantId,
+        userId,
+        rating: dto.rating,
+        comment: dto.comment,
+      },
+      update: {
+        rating: dto.rating,
+        comment: dto.comment,
+      },
+    });
+
+    return { ok: true };
   }
 }
