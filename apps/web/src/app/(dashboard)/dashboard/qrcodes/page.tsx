@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import {
   QrCode,
@@ -16,8 +18,6 @@ import {
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 
-const RESTAURANT_ID = 'REST_001';
-const RESTAURANT_NAME = 'Le Gourmet Paris';
 const MENU_BASE_URL = 'https://foodstack.app/menu';
 const LOYALTY_BASE_URL = 'https://foodstack.app/loyalty';
 
@@ -39,13 +39,13 @@ const SIZE_OPTIONS: { value: QRSize; label: string }[] = [
 
 const TABLE_COUNT = 12;
 
-function menuUrl(tableId?: number): string {
-  const base = `${MENU_BASE_URL}?r=${RESTAURANT_ID}`;
+function menuUrl(restaurantId: string, tableId?: number): string {
+  const base = `${MENU_BASE_URL}?r=${restaurantId}`;
   return tableId !== undefined ? `${base}&t=TABLE_${tableId}` : base;
 }
 
-function loyaltyUrl(): string {
-  return `${LOYALTY_BASE_URL}?r=${RESTAURANT_ID}`;
+function loyaltyUrl(restaurantId: string): string {
+  return `${LOYALTY_BASE_URL}?r=${restaurantId}`;
 }
 
 /** Download a QR code rendered by QRCodeCanvas as a PNG. */
@@ -203,10 +203,10 @@ function Customizer({ bg, setBg, size, setSize }: CustomizerProps) {
 
 // ─── Menu Tab ────────────────────────────────────────────────────────────────
 
-function MenuTab() {
+function MenuTab({ restaurantId, restaurantName }: { restaurantId: string; restaurantName: string }) {
   const [bg, setBg] = useState<QRBg>('white');
   const [size, setSize] = useState<QRSize>(256);
-  const url = menuUrl();
+  const url = menuUrl(restaurantId);
   const colors = BG_MAP[bg];
   const canvasId = 'qr-canvas-menu';
 
@@ -261,14 +261,14 @@ function MenuTab() {
 
           <div className="w-full space-y-1 text-center">
             <p className="text-base font-semibold text-surface-900 dark:text-surface-50">
-              {RESTAURANT_NAME}
+              {restaurantName}
             </p>
             <p className="break-all text-xs text-surface-400">{url}</p>
           </div>
 
           <QRActions
             canvasId={canvasId}
-            filename={`qr-menu-${RESTAURANT_ID}.png`}
+            filename={`qr-menu-${restaurantId}.png`}
             url={url}
           />
         </Card>
@@ -301,10 +301,10 @@ function MenuTab() {
 
 // ─── Loyalty Tab ──────────────────────────────────────────────────────────────
 
-function LoyaltyTab() {
+function LoyaltyTab({ restaurantId, restaurantName }: { restaurantId: string; restaurantName: string }) {
   const [bg, setBg] = useState<QRBg>('white');
   const [size, setSize] = useState<QRSize>(256);
-  const url = loyaltyUrl();
+  const url = loyaltyUrl(restaurantId);
   const colors = BG_MAP[bg];
   const canvasId = 'qr-canvas-loyalty';
 
@@ -356,14 +356,14 @@ function LoyaltyTab() {
 
           <div className="w-full space-y-1 text-center">
             <p className="text-base font-semibold text-surface-900 dark:text-surface-50">
-              {RESTAURANT_NAME} — Fidélité
+              {restaurantName} — Fidélité
             </p>
             <p className="break-all text-xs text-surface-400">{url}</p>
           </div>
 
           <QRActions
             canvasId={canvasId}
-            filename={`qr-loyalty-${RESTAURANT_ID}.png`}
+            filename={`qr-loyalty-${restaurantId}.png`}
             url={url}
           />
         </Card>
@@ -398,8 +398,8 @@ function LoyaltyTab() {
 
 // ─── Tables Tab ───────────────────────────────────────────────────────────────
 
-function TableQRCard({ tableNumber }: { tableNumber: number }) {
-  const url = menuUrl(tableNumber);
+function TableQRCard({ tableNumber, restaurantId }: { tableNumber: number; restaurantId: string }) {
+  const url = menuUrl(restaurantId, tableNumber);
   const canvasId = `qr-canvas-table-${tableNumber}`;
   const { copied, copy } = useCopyToast();
 
@@ -471,7 +471,7 @@ function TableQRCard({ tableNumber }: { tableNumber: number }) {
   );
 }
 
-function TablesTab() {
+function TablesTab({ restaurantId }: { restaurantId: string }) {
   const [toast, setToast] = useState(false);
   const tableNums = Array.from({ length: TABLE_COUNT }, (_, i) => i + 1);
 
@@ -517,7 +517,7 @@ function TablesTab() {
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6">
         {tableNums.map((n) => (
-          <TableQRCard key={n} tableNumber={n} />
+          <TableQRCard key={n} tableNumber={n} restaurantId={restaurantId} />
         ))}
       </div>
     </div>
@@ -533,7 +533,16 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
 ];
 
 export default function QRCodesPage() {
+  const restaurantId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
+  const [restaurantName, setRestaurantName] = useState('Mon Restaurant');
   const [activeTab, setActiveTab] = useState<Tab>('menu');
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/restaurants/${restaurantId}`) as Promise<{ name: string }>)
+      .then((r) => { if (r.name) setRestaurantName(r.name); })
+      .catch(() => {});
+  }, [restaurantId]);
 
   return (
     <>
@@ -594,9 +603,9 @@ export default function QRCodesPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {activeTab === 'menu'    && <MenuTab />}
-          {activeTab === 'tables'  && <TablesTab />}
-          {activeTab === 'loyalty' && <LoyaltyTab />}
+          {activeTab === 'menu'    && <MenuTab    restaurantId={restaurantId} restaurantName={restaurantName} />}
+          {activeTab === 'tables'  && <TablesTab  restaurantId={restaurantId} />}
+          {activeTab === 'loyalty' && <LoyaltyTab restaurantId={restaurantId} restaurantName={restaurantName} />}
         </motion.div>
       </div>
     </>
