@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -26,8 +26,77 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    // TODO: Used by auth service for login validation
     return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatar: true,
+        role: true,
+        loyaltyPoints: true,
+        loyaltyTier: true,
+        twoFactorEnabled: true,
+        emailVerified: true,
+        createdAt: true,
+        _count: { select: { orders: true } },
+      },
+    });
+    if (!user) throw new NotFoundException(`User #${userId} not found`);
+    return user;
+  }
+
+  async getAddresses(userId: string) {
+    return this.prisma.savedAddress.findMany({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { id: 'asc' }],
+    });
+  }
+
+  async addAddress(
+    userId: string,
+    data: { label: string; street: string; city: string; postalCode: string; isDefault?: boolean },
+  ) {
+    if (data.isDefault) {
+      await this.prisma.savedAddress.updateMany({ where: { userId }, data: { isDefault: false } });
+    }
+    return this.prisma.savedAddress.create({ data: { userId, ...data, isDefault: data.isDefault ?? false } });
+  }
+
+  async updateAddress(
+    userId: string,
+    addressId: string,
+    data: { label?: string; street?: string; city?: string; postalCode?: string; isDefault?: boolean; deleted?: boolean },
+  ) {
+    const addr = await this.prisma.savedAddress.findUnique({ where: { id: addressId } });
+    if (!addr) throw new NotFoundException(`Address #${addressId} not found`);
+    if (addr.userId !== userId) throw new ForbiddenException('Not your address');
+
+    if (data.deleted) {
+      await this.prisma.savedAddress.delete({ where: { id: addressId } });
+      return { ok: true };
+    }
+
+    if (data.isDefault) {
+      await this.prisma.savedAddress.updateMany({ where: { userId }, data: { isDefault: false } });
+    }
+
+    const { deleted: _d, ...updateData } = data;
+    return this.prisma.savedAddress.update({ where: { id: addressId }, data: updateData });
+  }
+
+  async deleteAddress(userId: string, addressId: string) {
+    const addr = await this.prisma.savedAddress.findUnique({ where: { id: addressId } });
+    if (!addr) throw new NotFoundException(`Address #${addressId} not found`);
+    if (addr.userId !== userId) throw new ForbiddenException('Not your address');
+    await this.prisma.savedAddress.delete({ where: { id: addressId } });
+    return { ok: true };
   }
 
   async findById(id: string) {

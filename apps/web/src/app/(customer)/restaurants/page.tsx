@@ -239,7 +239,7 @@ export default function RestaurantsPage() {
                 </div>
                 <div className="flex gap-4 overflow-x-auto pb-2">
                   {featured.map((r, idx) => (
-                    <FeaturedCard key={r.id} restaurant={r} idx={idx} onClick={() => router.push(`/menu?restaurant=${r.id}`)} />
+                    <FeaturedCard key={r.id} restaurant={r} idx={idx} onClick={() => router.push(`/restaurants/${r.id}`)} />
                   ))}
                 </div>
               </div>
@@ -275,7 +275,7 @@ export default function RestaurantsPage() {
                       restaurant={r}
                       idx={idx}
                       gradient={GRADIENT_POOL[idx % GRADIENT_POOL.length]}
-                      onClick={() => router.push(`/menu?restaurant=${r.id}`)}
+                      onClick={() => router.push(`/restaurants/${r.id}`)}
                     />
                   ))}
                 </AnimatePresence>

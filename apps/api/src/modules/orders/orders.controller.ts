@@ -32,6 +32,12 @@ export class OrdersController {
     return this.ordersService.createOrder(dto);
   }
 
+  @Get('me')
+  @ApiOperation({ summary: 'Get own orders' })
+  findMyOrders(@Request() req: any) {
+    return this.ordersService.findByCustomer(req.user.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID' })
   findOne(@Param('id') id: string) {

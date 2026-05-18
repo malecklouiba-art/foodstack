@@ -1,11 +1,15 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Delete,
   Param,
   Body,
+  Request,
   UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -18,6 +22,52 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // ─── Current user (self) ─────────────────────────────────────────────────
+
+  @Get('me')
+  @ApiOperation({ summary: 'Get own profile' })
+  getMe(@Request() req: any) {
+    return this.usersService.getProfile(req.user.id);
+  }
+
+  @Patch('me')
+  @ApiOperation({ summary: 'Update own profile' })
+  updateMe(@Request() req: any, @Body() dto: UpdateUserDto) {
+    return this.usersService.update(req.user.id, dto);
+  }
+
+  @Get('me/addresses')
+  @ApiOperation({ summary: 'Get own saved addresses' })
+  getAddresses(@Request() req: any) {
+    return this.usersService.getAddresses(req.user.id);
+  }
+
+  @Post('me/addresses')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Add a saved address' })
+  addAddress(@Request() req: any, @Body() body: { label: string; street: string; city: string; postalCode: string; isDefault?: boolean }) {
+    return this.usersService.addAddress(req.user.id, body);
+  }
+
+  @Patch('me/addresses/:addressId')
+  @ApiOperation({ summary: 'Update a saved address' })
+  updateAddress(
+    @Request() req: any,
+    @Param('addressId') addressId: string,
+    @Body() body: { label?: string; street?: string; city?: string; postalCode?: string; isDefault?: boolean; deleted?: boolean },
+  ) {
+    return this.usersService.updateAddress(req.user.id, addressId, body);
+  }
+
+  @Delete('me/addresses/:addressId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete a saved address' })
+  deleteAddress(@Request() req: any, @Param('addressId') addressId: string) {
+    return this.usersService.deleteAddress(req.user.id, addressId);
+  }
+
+  // ─── Admin endpoints ─────────────────────────────────────────────────────
 
   @Get()
   @ApiOperation({ summary: 'Get all users' })

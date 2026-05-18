@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   ShoppingBag, ChevronRight, Search, Filter,
   MapPin, Clock, Star, RotateCcw, Eye,
   CheckCircle2, Truck, XCircle, AlertCircle,
-  CreditCard, Smartphone, Coins, Calendar, X, Download,
+  CreditCard, Smartphone, Coins, Calendar, X, Download, RefreshCw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -17,10 +17,67 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { useCartStore } from '@/store/cart';
+import { useAuthStore } from '@/store/auth';
+import api from '@/lib/api';
 import type { Order, OrderStatus } from '@foodstack/shared';
 
-// ── Mock data ──────────────────────────────────────────────────────────────
-const ORDERS: Order[] = [
+// ── Normalize API order shape → shared Order type ──────────────────────────
+interface ApiOrder {
+  id: string;
+  orderNumber: string;
+  restaurantId: string;
+  customerId: string;
+  status: string;
+  total: number;
+  subtotal: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  items: Array<{
+    id: string;
+    menuItemId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    subtotal: number;
+  }>;
+  deliveryAddress?: unknown;
+}
+
+function normaliseOrder(raw: ApiOrder): Order {
+  return {
+    id: raw.id,
+    orderNumber: raw.orderNumber,
+    restaurantId: raw.restaurantId,
+    customerId: raw.customerId,
+    type: 'delivery',
+    status: raw.status as OrderStatus,
+    paymentStatus: 'paid',
+    paymentMethod: 'card',
+    items: raw.items.map((i) => ({
+      id: i.id,
+      menuItemId: i.menuItemId,
+      name: i.name || 'Article',
+      price: i.price,
+      quantity: i.quantity,
+      modifiers: [],
+      subtotal: i.subtotal,
+    })),
+    deliveryAddress: raw.deliveryAddress as any,
+    subtotal: raw.subtotal,
+    deliveryFee: 0,
+    tax: 0,
+    discount: 0,
+    loyaltyPointsUsed: 0,
+    loyaltyPointsEarned: Math.floor(raw.total),
+    total: raw.total,
+    createdAt: new Date(raw.createdAt),
+    updatedAt: new Date(raw.updatedAt),
+  };
+}
+
+// ── Fallback mock data ─────────────────────────────────────────────────────
+const MOCK_ORDERS: Order[] = [
   {
     id: 'o1', orderNumber: 'ORD-8821', restaurantId: 'r1', customerId: 'u1',
     type: 'delivery', status: 'delivered', paymentStatus: 'paid', paymentMethod: 'card',
@@ -45,17 +102,6 @@ const ORDERS: Order[] = [
     subtotal: 28.90, deliveryFee: 2.90, tax: 2.89, discount: 0,
     loyaltyPointsUsed: 0, loyaltyPointsEarned: 29, total: 34.69,
     createdAt: new Date('2026-05-08T19:45:00'), updatedAt: new Date('2026-05-08T20:28:00'),
-    actualDeliveryTime: new Date('2026-05-08T20:28:00'),
-  },
-  {
-    id: 'o3', orderNumber: 'ORD-8754', restaurantId: 'r1', customerId: 'u1',
-    type: 'pickup', status: 'delivered', paymentStatus: 'paid', paymentMethod: 'card',
-    items: [
-      { id: 'oi5', menuItemId: 'i2', name: 'Truffle Burger', price: 22.50, quantity: 1, modifiers: [], subtotal: 22.50 },
-    ],
-    subtotal: 22.50, deliveryFee: 0, tax: 2.25, discount: 2.00,
-    loyaltyPointsUsed: 200, loyaltyPointsEarned: 20, total: 22.75,
-    createdAt: new Date('2026-05-03T12:10:00'), updatedAt: new Date('2026-05-03T12:35:00'),
   },
   {
     id: 'o4', orderNumber: 'ORD-8720', restaurantId: 'r1', customerId: 'u1',
@@ -68,22 +114,9 @@ const ORDERS: Order[] = [
     loyaltyPointsUsed: 0, loyaltyPointsEarned: 0, total: 37.88,
     createdAt: new Date('2026-04-28T20:05:00'), updatedAt: new Date('2026-04-28T20:12:00'),
   },
-  {
-    id: 'o5', orderNumber: 'ORD-8695', restaurantId: 'r1', customerId: 'u1',
-    type: 'delivery', status: 'delivered', paymentStatus: 'paid', paymentMethod: 'google_pay',
-    items: [
-      { id: 'oi7', menuItemId: 'i7', name: 'Salade César', price: 12.50, quantity: 2, modifiers: [], subtotal: 25.00 },
-      { id: 'oi8', menuItemId: 'i8', name: 'Tiramisu', price: 7.50, quantity: 1, modifiers: [], subtotal: 7.50 },
-    ],
-    deliveryAddress: { street: '12 rue de la Paix', city: 'Paris', postalCode: '75001', country: 'FR' },
-    subtotal: 32.50, deliveryFee: 2.90, tax: 3.25, discount: 0,
-    loyaltyPointsUsed: 0, loyaltyPointsEarned: 33, total: 38.65,
-    createdAt: new Date('2026-04-20T13:15:00'), updatedAt: new Date('2026-04-20T14:00:00'),
-    actualDeliveryTime: new Date('2026-04-20T14:00:00'),
-  },
 ];
 
-// ── Scheduled orders mock data ──────────────────────────────────────────────
+// ── Scheduled orders (UI only — not backed by API yet) ─────────────────────
 interface ScheduledOrder {
   id: string;
   orderNumber: string;
@@ -94,32 +127,6 @@ interface ScheduledOrder {
   address?: string;
   status: 'scheduled' | 'cancelled';
 }
-
-const SCHEDULED_ORDERS: ScheduledOrder[] = [
-  {
-    id: 's1', orderNumber: 'ORD-8900',
-    scheduledFor: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 12 * 60 * 60 * 1000),
-    type: 'delivery',
-    items: [
-      { name: 'Classic Burger', quantity: 2, price: 14.90 },
-      { name: 'Frites maison', quantity: 2, price: 4.50 },
-    ],
-    total: 47.58,
-    address: '12 rue de la Paix, 75001 Paris',
-    status: 'scheduled',
-  },
-  {
-    id: 's2', orderNumber: 'ORD-8895',
-    scheduledFor: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000 + 19 * 60 * 60 * 1000),
-    type: 'pickup',
-    items: [
-      { name: 'Margherita', quantity: 1, price: 13.90 },
-      { name: 'Tiramisu', quantity: 2, price: 7.50 },
-    ],
-    total: 31.79,
-    status: 'scheduled',
-  },
-];
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; variant: 'success' | 'warning' | 'brand' | 'info' | 'danger' | 'default'; icon: React.ElementType }> = {
   pending:    { label: 'En attente',      variant: 'default',  icon: Clock },
@@ -153,23 +160,41 @@ type TabView = 'historique' | 'programmees';
 
 export default function OrdersPage() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { addItem, clearCart } = useCartStore();
   const [tab, setTab] = useState<TabView>('historique');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
   const [selected, setSelected] = useState<Order | null>(null);
   const [rated, setRated] = useState<Record<string, number>>({});
-  const [scheduled, setScheduled] = useState<ScheduledOrder[]>(SCHEDULED_ORDERS);
+  const [scheduled, setScheduled] = useState<ScheduledOrder[]>([]);
+  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
-  const filtered = ORDERS.filter((o) => {
+  const loadOrders = useCallback(async () => {
+    try {
+      const data = await api.get<ApiOrder[]>('/orders/me');
+      if (Array.isArray(data) && data.length > 0) {
+        setOrders(data.map(normaliseOrder));
+      }
+    } catch {
+      // keep mock
+    } finally {
+      setLoadingOrders(false);
+    }
+  }, []);
+
+  useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  const filtered = orders.filter((o) => {
     const matchSearch = !search || o.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
       o.items.some((i) => i.name.toLowerCase().includes(search.toLowerCase()));
     const matchStatus = statusFilter === 'all' || o.status === statusFilter;
     return matchSearch && matchStatus;
   });
 
-  const total = ORDERS.reduce((sum, o) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
-  const points = ORDERS.reduce((sum, o) => sum + o.loyaltyPointsEarned, 0);
+  const total = orders.reduce((sum, o) => sum + (o.status !== 'cancelled' ? o.total : 0), 0);
+  const points = orders.reduce((sum, o) => sum + o.loyaltyPointsEarned, 0);
 
   async function downloadInvoice(order: Order) {
     const { default: jsPDF } = await import('jspdf');
@@ -238,13 +263,16 @@ export default function OrdersPage() {
               <ShoppingBag className="h-5 w-5" />
             </Link>
             <ChevronRight className="h-4 w-4 text-gray-300" />
-            <h1 className="text-lg font-bold text-gray-900">Mes commandes</h1>
+            <h1 className="flex-1 text-lg font-bold text-gray-900">Mes commandes</h1>
+            <button onClick={() => loadOrders()} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+              <RefreshCw className={`h-3.5 w-3.5 ${loadingOrders ? 'animate-spin' : ''}`} />
+            </button>
           </div>
 
           {/* Summary strip */}
           <div className="mt-4 grid grid-cols-3 gap-3">
             {[
-              { label: 'Commandes', value: ORDERS.length.toString() },
+              { label: 'Commandes', value: orders.length.toString() },
               { label: 'Total dépensé', value: `${total.toFixed(0)}€` },
               { label: 'Points gagnés', value: `${points} pts` },
             ].map((s) => (

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   User, Mail, Phone, MapPin, Camera, ChevronRight,
   Plus, Pencil, Trash2, ShieldCheck, Bell,
@@ -13,6 +14,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { useAuthStore } from '@/store/auth';
+import api from '@/lib/api';
 import type { LoyaltyTier } from '@foodstack/shared';
 
 // ── types ──
@@ -66,6 +69,9 @@ const TIER_CONFIG: Record<LoyaltyTier, { label: string; color: string; bg: strin
 const EMPTY_ADDR: Omit<Address, 'id'> = { label: '', street: '', city: '', postalCode: '', isDefault: false };
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const { user: authUser, updateUser, clearAuth } = useAuthStore();
+
   const [user, setUser] = useState(MOCK_USER);
   const [addresses, setAddresses] = useState<Address[]>(INIT_ADDRESSES);
   const [saving, setSaving] = useState(false);
@@ -81,12 +87,44 @@ export default function ProfilePage() {
   const [showAddrInlineForm, setShowAddrInlineForm] = useState(false);
   const [inlineAddrForm, setInlineAddrForm] = useState<Omit<Address, 'id'>>(EMPTY_ADDR);
 
+  // ── Load from API ─────────────────────────────────────────────────────────
+  const loadProfile = useCallback(async () => {
+    try {
+      const [profile, addrs] = await Promise.all([
+        api.get('/users/me') as Promise<any>,
+        api.get('/users/me/addresses') as Promise<Address[]>,
+      ]);
+      const p = profile as any;
+      const name = [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email;
+      setUser({
+        name,
+        email: p.email,
+        phone: p.phone ?? '',
+        avatar: p.avatar ?? '',
+        loyaltyPoints: p.loyaltyPoints ?? 0,
+        loyaltyTier: (p.loyaltyTier ?? 'bronze') as LoyaltyTier,
+        orderCount: p._count?.orders ?? 0,
+        memberSince: new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date(p.createdAt)),
+      });
+      setInfoForm({ name, phone: p.phone ?? '' });
+      const a = addrs as Address[];
+      if (Array.isArray(a) && a.length > 0) {
+        setAddresses(a);
+      }
+    } catch {
+      // keep mock data
+    }
+  }, []);
+
+  useEffect(() => { loadProfile(); }, [loadProfile]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   const tier = TIER_CONFIG[user.loyaltyTier];
   const nextPoints = tier.nextPoints ?? 0;
   const progress = tier.nextPoints
     ? Math.min(100, Math.round((user.loyaltyPoints / nextPoints) * 100))
     : 100;
-  // Loyalty card: progress toward next reward (1000 pts)
   const rewardProgress = Math.min(100, Math.round((user.loyaltyPoints / NEXT_REWARD.points) * 100));
   const tierBadge =
     user.loyaltyPoints >= 2500 ? { label: 'Gold', color: 'text-yellow-600', bg: 'bg-yellow-50 border-yellow-200', dot: 'bg-yellow-400' } :
@@ -95,11 +133,18 @@ export default function ProfilePage() {
 
   async function saveInfo() {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
-    setUser((u) => ({ ...u, ...infoForm }));
-    setEditingInfo(false);
-    setSaving(false);
-    toast.success('Profil mis à jour');
+    try {
+      const [firstName, ...rest] = infoForm.name.trim().split(' ');
+      await api.patch('/users/me', { firstName, lastName: rest.join(' ') || '', phone: infoForm.phone });
+      setUser((u) => ({ ...u, ...infoForm }));
+      updateUser({ name: infoForm.name });
+      setEditingInfo(false);
+      toast.success('Profil mis à jour');
+    } catch {
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setSaving(false);
+    }
   }
 
   function openAddrModal(addr?: Address) {
@@ -108,40 +153,61 @@ export default function ProfilePage() {
     setAddrModal(true);
   }
 
-  function saveAddr() {
+  async function saveAddr() {
     if (!addrForm.label || !addrForm.street || !addrForm.city) return;
-    if (editingAddr) {
-      setAddresses((as) => as.map((a) => a.id === editingAddr.id ? { ...a, ...addrForm } : a));
-    } else {
-      const id = `a-${Date.now()}`;
-      const newAddr = { id, ...addrForm };
-      setAddresses((as) => addrForm.isDefault ? [...as.map((a) => ({ ...a, isDefault: false })), newAddr] : [...as, newAddr]);
+    try {
+      if (editingAddr) {
+        await api.patch(`/users/me/addresses/${editingAddr.id}`, addrForm);
+        setAddresses((as) => as.map((a) => a.id === editingAddr.id ? { ...a, ...addrForm } : a));
+      } else {
+        const created = await (api.post('/users/me/addresses', addrForm) as Promise<any>);
+        const id = (created as any).id ?? `a-${Date.now()}`;
+        const newAddr = { id, ...addrForm };
+        setAddresses((as) => addrForm.isDefault ? [...as.map((a) => ({ ...a, isDefault: false })), newAddr] : [...as, newAddr]);
+      }
+      setAddrModal(false);
+      toast.success(editingAddr ? 'Adresse mise à jour' : 'Adresse ajoutée');
+    } catch {
+      toast.error('Erreur lors de la sauvegarde');
     }
-    setAddrModal(false);
-    toast.success(editingAddr ? 'Adresse mise à jour' : 'Adresse ajoutée');
   }
 
-  function deleteAddr(id: string) {
-    setAddresses((as) => as.filter((a) => a.id !== id));
-    toast.success('Adresse supprimée');
+  async function deleteAddr(id: string) {
+    try {
+      await api.delete(`/users/me/addresses/${id}`);
+      setAddresses((as) => as.filter((a) => a.id !== id));
+      toast.success('Adresse supprimée');
+    } catch {
+      toast.error('Erreur lors de la suppression');
+    }
   }
 
-  function setDefault(id: string) {
-    setAddresses((as) => as.map((a) => ({ ...a, isDefault: a.id === id })));
+  async function setDefault(id: string) {
+    try {
+      await api.patch(`/users/me/addresses/${id}`, { isDefault: true });
+      setAddresses((as) => as.map((a) => ({ ...a, isDefault: a.id === id })));
+    } catch {
+      toast.error('Erreur');
+    }
   }
 
-  function saveInlineAddr() {
+  async function saveInlineAddr() {
     if (!inlineAddrForm.label || !inlineAddrForm.street || !inlineAddrForm.city) return;
-    const id = `a-${Date.now()}`;
-    const newAddr = { id, ...inlineAddrForm };
-    setAddresses((as) =>
-      inlineAddrForm.isDefault
-        ? [...as.map((a) => ({ ...a, isDefault: false })), newAddr]
-        : [...as, newAddr]
-    );
-    setShowAddrInlineForm(false);
-    setInlineAddrForm(EMPTY_ADDR);
-    toast.success('Adresse ajoutée');
+    try {
+      const created = await (api.post('/users/me/addresses', inlineAddrForm) as Promise<any>);
+      const id = (created as any).id ?? `a-${Date.now()}`;
+      const newAddr = { id, ...inlineAddrForm };
+      setAddresses((as) =>
+        inlineAddrForm.isDefault
+          ? [...as.map((a) => ({ ...a, isDefault: false })), newAddr]
+          : [...as, newAddr]
+      );
+      setShowAddrInlineForm(false);
+      setInlineAddrForm(EMPTY_ADDR);
+      toast.success('Adresse ajoutée');
+    } catch {
+      toast.error('Erreur lors de l\'ajout');
+    }
   }
 
   function toggleDiet(key: DietPref) {
@@ -499,7 +565,7 @@ export default function ProfilePage() {
               <ChevronRight className="h-4 w-4 text-gray-300" />
             </Link>
             <button
-              onClick={() => toast('Déconnexion…')}
+              onClick={() => { clearAuth(); router.push('/login'); }}
               className="flex w-full items-center gap-3 px-5 py-4 hover:bg-red-50 transition-colors group"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-50 group-hover:bg-red-100">

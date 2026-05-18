@@ -223,8 +223,8 @@ export default function ProfileScreen() {
         {/* Quick actions */}
         <View style={styles.quickActions}>
           {[
-            { emoji: '📍', label: 'Adresses', onPress: () => setSection('addresses') },
-            { emoji: '🔔', label: 'Notifs', onPress: () => setSection('notifications') },
+            { emoji: '📍', label: 'Adresses', onPress: () => router.push('/addresses') },
+            { emoji: '🏆', label: 'Fidélité', onPress: () => router.push('/loyalty') },
             { emoji: '💳', label: 'Paiement', onPress: () => {} },
             { emoji: '❓', label: 'Aide', onPress: () => {} },
           ].map((item) => (
