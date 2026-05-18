@@ -749,7 +749,6 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
 
 export default function AnalyticsPage() {
   const [period, setPeriod] = useState(0);
-  const [role, setRole] = useState<string>('owner');
   const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
 
   // ── API state ──────────────────────────────────────────────────────────────
@@ -765,10 +764,12 @@ export default function AnalyticsPage() {
   const RESTAURANT_ID = authUser?.restaurantIds?.[0] ?? '';
   const selectedPeriod = PERIOD_API_MAP[period] ?? 'week';
 
-  // Detect role from cookie fs_demo
-  useEffect(() => {
-    setRole(parseCookieRole());
-  }, []);
+  // Use real auth role; fall back to cookie for unauthenticated demo mode
+  const [cookieRole, setCookieRole] = useState<string>('owner');
+  useEffect(() => { if (!authUser) setCookieRole(parseCookieRole()); }, [authUser]);
+  const role = authUser
+    ? (authUser.role === 'super_admin' ? 'admin' : 'owner')
+    : cookieRole;
 
   // ── Fetch analytics data ───────────────────────────────────────────────────
   useEffect(() => {
