@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -373,11 +375,62 @@ function DeliveryDetailModal({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+interface ApiDelivery {
+  orderId: string;
+  orderNumber: string;
+  status: string;
+  driverId?: string;
+  driver?: { user?: { firstName?: string; lastName?: string } };
+  customer?: { firstName?: string; lastName?: string };
+  deliveryAddress?: string;
+  pickupTime?: string;
+  estimatedDeliveryTime?: string;
+  distanceKm?: number;
+  createdAt: string;
+}
+
+function apiToDelivery(d: ApiDelivery, idx: number): Delivery {
+  const driverName = d.driver?.user
+    ? [d.driver.user.firstName, d.driver.user.lastName].filter(Boolean).join(' ')
+    : 'N/A';
+  const customerName = d.customer
+    ? [d.customer.firstName, d.customer.lastName].filter(Boolean).join(' ')
+    : 'Client';
+  const status = (['preparing','ready','delivering','delivered','failed'].includes(d.status)
+    ? d.status : 'preparing') as DeliveryStatus;
+  return {
+    id: `DEL-${String(idx + 1).padStart(3, '0')}`,
+    order: d.orderNumber,
+    driver: driverName,
+    customer: customerName,
+    address: d.deliveryAddress ?? '',
+    status,
+    pickupTime: d.pickupTime ? new Date(d.pickupTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--',
+    eta: d.estimatedDeliveryTime ? new Date(d.estimatedDeliveryTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--',
+    distance: d.distanceKm ? `${d.distanceKm.toFixed(1)} km` : '--',
+    createdAt: d.createdAt,
+    notes: [],
+  };
+}
+
 export default function DeliveryPage() {
+  const authUser = useAuthStore((s) => s.user);
   const [deliveries, setDeliveries] = useState<Delivery[]>(DELIVERIES);
   const [search, setSearch] = useState('');
   const [range, setRange] = useState<TimeRange>('today');
   const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const restaurantId = authUser?.restaurantIds?.[0];
+    if (!restaurantId) return;
+    (api.get(`/delivery/active?restaurantId=${restaurantId}`) as Promise<ApiDelivery[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDeliveries(data.map(apiToDelivery));
+        }
+      })
+      .catch(() => { /* keep mock data */ });
+  }, [authUser?.restaurantIds]);
 
   const handleRetry = (id: string) => {
     setDeliveries((prev) =>
