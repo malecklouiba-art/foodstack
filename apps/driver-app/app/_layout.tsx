@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useAuthStore } from '@/store/auth';
+import { syncPushToken } from '@/lib/notifications';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -22,6 +23,7 @@ export default function RootLayout() {
 
     if (isAuthenticated) {
       router.replace('/(tabs)');
+      syncPushToken();
     } else {
       router.replace('/(auth)/login');
     }

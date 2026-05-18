@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import api from '@/lib/api';
 import {
   Store, TrendingUp, Clock, MapPin, Settings,
   Plus, X, ChevronRight, Edit2, Search,
@@ -1333,6 +1334,59 @@ function OwnerView({ restaurant, onUpdate }: { restaurant: Restaurant; onUpdate:
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+interface ApiRestaurant {
+  id: string;
+  name: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  phone: string;
+  email: string;
+  isActive: boolean;
+  isOpen: boolean;
+  siret?: string;
+  rating?: number;
+}
+
+function mergeApiRestaurant(api: ApiRestaurant): Restaurant {
+  const seed = RESTAURANTS_SEED.find((r) => r.id === api.id);
+  const address = `${api.street}, ${api.postalCode} ${api.city}`;
+  const initials = api.name.split(' ').map((w) => w[0] ?? '').join('').toUpperCase().slice(0, 2);
+  const base: Restaurant = seed ?? {
+    id: api.id,
+    name: api.name,
+    address,
+    adresseFacturation: address,
+    cuisine: 'N/A',
+    status: api.isOpen ? 'open' : ('paused' as RestaurantStatus),
+    crmStatus: api.isActive ? 'actif' : ('pause' as CRMStatus),
+    paymentStatus: 'ok',
+    ordersToday: 0,
+    revenue: 0,
+    openTime: '11:00',
+    closeTime: '23:00',
+    image: initials,
+    color: '#6366f1',
+    raisonSociale: api.name,
+    siret: api.siret ?? '',
+    dirigeant: { name: '', email: api.email, tel: api.phone },
+    comptable: { name: '', email: '', tel: '' },
+    abonnement: 'Starter',
+    abonnementMontant: 0,
+    commission: 0,
+    history: [],
+    documents: REQUIRED_DOCS.map((d) => ({ name: d, status: 'manquant' })),
+  };
+  return {
+    ...base,
+    id: api.id,
+    name: api.name,
+    address,
+    status: api.isOpen ? 'open' : ('paused' as RestaurantStatus),
+    crmStatus: api.isActive ? 'actif' : ('pause' as CRMStatus),
+  };
+}
+
 export default function RestaurantsPage() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>(RESTAURANTS_SEED);
   const [showModal, setShowModal]     = useState(false);
@@ -1340,6 +1394,16 @@ export default function RestaurantsPage() {
   const [search, setSearch]           = useState('');
   const [crmFilter, setCrmFilter]     = useState<CRMStatus | 'all'>('all');
   const [role, setRole]               = useState<string | null>(null);
+
+  useEffect(() => {
+    (api.get('/restaurants') as Promise<ApiRestaurant[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setRestaurants(data.map(mergeApiRestaurant));
+        }
+      })
+      .catch(() => { /* keep seed data */ });
+  }, []);
 
   useEffect(() => {
     const val = parseCookie('fs_demo');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Plus, Search, Pencil, Trash2, GripVertical,
   ChevronRight, Clock, Flame, Star, Eye, EyeOff,
@@ -14,6 +14,8 @@ import { Card } from '@/components/ui/Card';
 import { CategoryModal } from '@/components/dashboard/menu/CategoryModal';
 import { ItemModal } from '@/components/dashboard/menu/ItemModal';
 import type { MenuCategory, MenuItem } from '@foodstack/shared';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 const INIT_CATEGORIES: MenuCategory[] = [
@@ -43,11 +45,32 @@ const DIETARY_LABEL: Record<string, string> = {
   kosher: '✡️', dairy_free: '🥛', nut_free: '🥜', spicy: '🌶️',
 };
 
+interface ApiCategory extends MenuCategory {
+  items: MenuItem[];
+}
+
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function MenuPage() {
+  const authUser = useAuthStore((s) => s.user);
   const [categories, setCategories] = useState<MenuCategory[]>(INIT_CATEGORIES);
   const [items, setItems] = useState<MenuItem[]>(INIT_ITEMS);
   const [selectedCatId, setSelectedCatId] = useState<string>(INIT_CATEGORIES[0].id);
+
+  useEffect(() => {
+    const restaurantId = authUser?.restaurantIds?.[0];
+    if (!restaurantId) return;
+    (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<ApiCategory[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const cats = data.map(({ items: _items, ...cat }) => cat as MenuCategory);
+          const allItems = data.flatMap((c) => c.items ?? []);
+          setCategories(cats);
+          setItems(allItems);
+          setSelectedCatId(cats[0]?.id ?? INIT_CATEGORIES[0].id);
+        }
+      })
+      .catch(() => { /* keep mock */ });
+  }, [authUser?.restaurantIds]);
   const [search, setSearch] = useState('');
 
   const [catModalOpen, setCatModalOpen] = useState(false);
