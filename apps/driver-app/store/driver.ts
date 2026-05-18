@@ -1,4 +1,30 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const STORAGE_KEY = 'driver-auth';
+
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return (JSON.parse(raw) as { token?: string }).token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function apiPatch(path: string, body: unknown): Promise<void> {
+  const token = await getAuthToken();
+  await fetch(`${API_URL}/api/v1${path}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+}
 
 export type DeliveryStatus = 'idle' | 'heading_to_restaurant' | 'picked_up' | 'delivering' | 'delivered';
 
@@ -43,7 +69,13 @@ export const useDriverStore = create<DriverStore>((set) => ({
   todayDeliveries: 0,
   rating: 0,
 
-  setOnline: (v) => set({ isOnline: v }),
+  setOnline: (v) => {
+    set({ isOnline: v });
+    apiPatch('/drivers/me/online', { online: v }).catch(() => { /* best-effort */ });
+    if (v) {
+      apiPatch('/drivers/me/availability', { available: true }).catch(() => { /* best-effort */ });
+    }
+  },
 
   acceptDelivery: (delivery) =>
     set({ activeDelivery: { ...delivery, status: 'heading_to_restaurant' } }),

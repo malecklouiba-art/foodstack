@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import { useApi } from '@/hooks/useApi';
 import { useDriverStore } from '@/store/driver';
 import { useAuthStore } from '@/store/auth';
 import { useAvailableOrders } from '@/hooks/useAvailableOrders';
@@ -12,6 +13,7 @@ export default function HomeScreen() {
   const driver = useAuthStore((s) => s.driver);
   const driverId = driver?.id ?? '';
   const { orders: liveOrders, connected, removeOrder } = useAvailableOrders(driverId);
+  const { patch } = useApi();
 
   // Stats strip items — response rate only shown when online
   const stats = [
@@ -193,6 +195,11 @@ export default function HomeScreen() {
                           estimatedMinutes: order.estimatedMinutes ?? 10,
                         });
                         removeOrder(order.orderId);
+                        // Assign this driver to the order on the server
+                        if (driverId) {
+                          patch(`/api/v1/orders/${order.orderId}/assign-driver`, { driverId })
+                            .catch(() => { /* best-effort — delivery proceeds regardless */ });
+                        }
                         router.push(`/delivery/${order.orderId}/active`);
                       }}
                     >
