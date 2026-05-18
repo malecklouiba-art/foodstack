@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Tag,
   Plus,
@@ -25,6 +25,8 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
 import { clsx } from 'clsx';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -225,13 +227,56 @@ function CouponForm({ form, onChange }: CouponFormProps) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+interface ApiCoupon {
+  id: string;
+  code: string;
+  description?: string;
+  discountType: 'percent' | 'fixed';
+  discountValue: number;
+  minOrderValue?: number;
+  maxUses?: number | null;
+  usedCount?: number;
+  expiresAt?: string | null;
+  isActive?: boolean;
+  active?: boolean;
+}
+
+function apiToCoupon(c: ApiCoupon): Coupon {
+  return {
+    id: c.id,
+    code: c.code,
+    description: c.description ?? '',
+    discountType: c.discountType,
+    discountValue: c.discountValue,
+    minOrderValue: c.minOrderValue ?? 0,
+    maxUses: c.maxUses ?? null,
+    usedCount: c.usedCount ?? 0,
+    usedToday: 0,
+    expiresAt: c.expiresAt ?? null,
+    active: c.active ?? c.isActive ?? true,
+    pinned: false,
+  };
+}
+
 export default function CouponsPage() {
+  const authUser = useAuthStore((s) => s.user);
   const [coupons, setCoupons] = useState<Coupon[]>(INIT_COUPONS);
   const [createOpen, setCreateOpen] = useState(false);
   const [editCoupon, setEditCoupon] = useState<Coupon | null>(null);
   const [deleteCoupon, setDeleteCoupon] = useState<Coupon | null>(null);
   const [form, setForm] = useState<CouponFormState>(EMPTY_FORM);
   const [editForm, setEditForm] = useState<CouponFormState>(EMPTY_FORM);
+
+  const restaurantId = authUser?.restaurantIds?.[0];
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/coupons?restaurantId=${restaurantId}`) as Promise<ApiCoupon[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) setCoupons(data.map(apiToCoupon));
+      })
+      .catch(() => { /* keep mock */ });
+  }, [restaurantId]);
 
   // ── Derived data ──────────────────────────────────────────────────────────
 
@@ -247,23 +292,27 @@ export default function CouponsPage() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  function handleCreate() {
+  async function handleCreate() {
     if (!form.code || !form.discountValue) return;
-    const newCoupon: Coupon = {
-      id: Date.now().toString(),
+    const body = {
+      restaurantId: restaurantId ?? 'demo',
       code: form.code.toUpperCase(),
       description: form.description,
       discountType: form.discountType,
       discountValue: parseFloat(form.discountValue),
       minOrderValue: parseFloat(form.minOrderValue) || 0,
       maxUses: form.maxUses ? parseInt(form.maxUses) : null,
-      usedCount: 0,
-      usedToday: 0,
       expiresAt: form.expiresAt || null,
-      active: true,
-      pinned: false,
     };
-    setCoupons((prev) => [newCoupon, ...prev]);
+    try {
+      const created = await (api.post('/coupons', body) as Promise<ApiCoupon>);
+      setCoupons((prev) => [apiToCoupon(created), ...prev]);
+    } catch {
+      const newCoupon: Coupon = {
+        id: Date.now().toString(), ...body, usedCount: 0, usedToday: 0, active: true, pinned: false,
+      };
+      setCoupons((prev) => [newCoupon, ...prev]);
+    }
     setForm(EMPTY_FORM);
     setCreateOpen(false);
   }
@@ -281,39 +330,40 @@ export default function CouponsPage() {
     });
   }
 
-  function handleSaveEdit() {
+  async function handleSaveEdit() {
     if (!editCoupon || !editForm.code || !editForm.discountValue) return;
-    setCoupons((prev) =>
-      prev.map((c) =>
-        c.id === editCoupon.id
-          ? {
-              ...c,
-              code: editForm.code.toUpperCase(),
-              description: editForm.description,
-              discountType: editForm.discountType,
-              discountValue: parseFloat(editForm.discountValue),
-              minOrderValue: parseFloat(editForm.minOrderValue) || 0,
-              maxUses: editForm.maxUses ? parseInt(editForm.maxUses) : null,
-              expiresAt: editForm.expiresAt || null,
-            }
-          : c
-      )
-    );
+    const patch = {
+      code: editForm.code.toUpperCase(),
+      description: editForm.description,
+      discountType: editForm.discountType,
+      discountValue: parseFloat(editForm.discountValue),
+      minOrderValue: parseFloat(editForm.minOrderValue) || 0,
+      maxUses: editForm.maxUses ? parseInt(editForm.maxUses) : null,
+      expiresAt: editForm.expiresAt || null,
+    };
+    setCoupons((prev) => prev.map((c) => c.id === editCoupon.id ? { ...c, ...patch } : c));
     setEditCoupon(null);
+    api.patch(`/coupons/${editCoupon.id}`, patch).catch(() => { /* best-effort */ });
   }
 
   function handleToggleActive(id: string) {
-    setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, active: !c.active } : c)));
+    const coupon = coupons.find((c) => c.id === id);
+    if (!coupon) return;
+    const newActive = !coupon.active;
+    setCoupons((prev) => prev.map((c) => c.id === id ? { ...c, active: newActive } : c));
+    api.patch(`/coupons/${id}`, { active: newActive }).catch(() => { /* best-effort */ });
   }
 
   function handleTogglePinned(id: string) {
     setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, pinned: !c.pinned } : c)));
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteCoupon) return;
-    setCoupons((prev) => prev.filter((c) => c.id !== deleteCoupon.id));
+    const id = deleteCoupon.id;
+    setCoupons((prev) => prev.filter((c) => c.id !== id));
     setDeleteCoupon(null);
+    api.delete(`/coupons/${id}`).catch(() => { /* best-effort */ });
   }
 
   // ── Status helpers ─────────────────────────────────────────────────────────
