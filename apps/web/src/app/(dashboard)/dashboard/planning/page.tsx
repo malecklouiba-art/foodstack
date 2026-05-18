@@ -64,34 +64,6 @@ const EMPLOYEES: Employee[] = [
   { id: 'e7', name: 'Julien Moreau',   role: 'Livreur',   color: 'bg-gray-500' },
 ];
 
-const INIT_SHIFTS: Shift[] = [
-  { id: 's1',  employeeId: 'e1', day: 0, type: 'full',      startTime: '09:00', endTime: '18:00' },
-  { id: 's2',  employeeId: 'e1', day: 1, type: 'morning',   startTime: '07:00', endTime: '14:00' },
-  { id: 's3',  employeeId: 'e1', day: 3, type: 'full',      startTime: '09:00', endTime: '18:00' },
-  { id: 's4',  employeeId: 'e2', day: 0, type: 'morning',   startTime: '07:00', endTime: '14:00' },
-  { id: 's5',  employeeId: 'e2', day: 1, type: 'morning',   startTime: '07:00', endTime: '14:00' },
-  { id: 's6',  employeeId: 'e2', day: 2, type: 'full',      startTime: '09:00', endTime: '18:00' },
-  { id: 's7',  employeeId: 'e2', day: 4, type: 'morning',   startTime: '07:00', endTime: '14:00' },
-  { id: 's8',  employeeId: 'e3', day: 1, type: 'afternoon', startTime: '12:00', endTime: '19:00' },
-  { id: 's9',  employeeId: 'e3', day: 2, type: 'evening',   startTime: '18:00', endTime: '23:00' },
-  { id: 's10', employeeId: 'e3', day: 4, type: 'full',      startTime: '10:00', endTime: '18:00' },
-  { id: 's11', employeeId: 'e3', day: 5, type: 'afternoon', startTime: '12:00', endTime: '19:00' },
-  { id: 's12', employeeId: 'e4', day: 0, type: 'evening',   startTime: '17:00', endTime: '23:00' },
-  { id: 's13', employeeId: 'e4', day: 2, type: 'evening',   startTime: '17:00', endTime: '23:00' },
-  { id: 's14', employeeId: 'e4', day: 5, type: 'full',      startTime: '09:00', endTime: '18:00' },
-  { id: 's15', employeeId: 'e4', day: 6, type: 'full',      startTime: '09:00', endTime: '18:00' },
-  { id: 's16', employeeId: 'e5', day: 3, type: 'afternoon', startTime: '12:00', endTime: '19:00' },
-  { id: 's17', employeeId: 'e5', day: 4, type: 'evening',   startTime: '18:00', endTime: '23:00' },
-  { id: 's18', employeeId: 'e5', day: 6, type: 'full',      startTime: '10:00', endTime: '19:00' },
-  { id: 's19', employeeId: 'e6', day: 0, type: 'full',      startTime: '09:00', endTime: '18:00' },
-  { id: 's20', employeeId: 'e6', day: 2, type: 'morning',   startTime: '07:00', endTime: '13:00' },
-  { id: 's21', employeeId: 'e6', day: 4, type: 'full',      startTime: '09:00', endTime: '18:00' },
-  { id: 's22', employeeId: 'e7', day: 1, type: 'afternoon', startTime: '11:00', endTime: '20:00' },
-  { id: 's23', employeeId: 'e7', day: 3, type: 'afternoon', startTime: '11:00', endTime: '20:00' },
-  { id: 's24', employeeId: 'e7', day: 5, type: 'evening',   startTime: '17:00', endTime: '23:00' },
-  { id: 's25', employeeId: 'e7', day: 6, type: 'full',      startTime: '09:00', endTime: '17:00' },
-];
-
 // ── Shift form ─────────────────────────────────────────────────────────────────
 
 interface ShiftFormState {
@@ -269,7 +241,7 @@ export default function PlanningPage() {
         setShifts(generateShiftsForWeek(weekOffset, employees));
       }
     });
-  }, [weekOffset, employees]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [weekOffset, employees]);
 
   const weekDates = getWeekDates(weekOffset);
   const totalStaff = employees.length;

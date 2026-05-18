@@ -294,7 +294,7 @@ function RestaurantDashboard() {
         }
       })
       .catch(() => {});
-  }, [restaurantId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [restaurantId]);
   const pushEvent = useCallback((ev: FeedEvent) => {
     setFeedEvents((prev) => [ev, ...prev].slice(0, 30));
   }, []);
