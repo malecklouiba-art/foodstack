@@ -172,16 +172,8 @@ export default function NotificationsScreen() {
 
   const markAllRead = useCallback(async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    try {
-      // Best-effort: mark each unread one
-      const unread = notifications.filter((n) => !n.read);
-      await Promise.allSettled(
-        unread.map((n) => api.patch(`/api/v1/notifications/${n.id}/read`, {})),
-      );
-    } catch {
-      // Silently ignore
-    }
-  }, [notifications]); // eslint-disable-line react-hooks/exhaustive-deps
+    api.patch('/api/v1/notifications/read-all', {}).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const grouped = buildGrouped(notifications);

@@ -181,27 +181,29 @@ export default function ActiveDeliveryScreen() {
   const lngDelta = Math.abs(activeDelivery.restaurantLng - activeDelivery.customerLng) * 2.5 + 0.01;
 
   // ── ETA helpers ──────────────────────────────────────────────────────────────
-  // Mock distances: restaurant leg ~0.5 km, customer leg ~2.3 km
-  // Speed assumption: 25 km/h average urban moped speed
-  const MOCK_RESTAURANT_KM = 0.5;
-  const MOCK_CUSTOMER_KM = 2.3;
   const AVG_SPEED_KMH = 25;
+
+  function flatDistKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+    return Math.sqrt(
+      Math.pow((lat2 - lat1) * 111, 2) +
+      Math.pow((lng2 - lng1) * 85, 2),
+    );
+  }
 
   const eta = useMemo(() => {
     const toRestaurantKm = driverCoords
-      ? Math.sqrt(
-          Math.pow((driverCoords.lat - activeDelivery.restaurantLat) * 111, 2) +
-          Math.pow((driverCoords.lng - activeDelivery.restaurantLng) * 85, 2),
-        )
-      : MOCK_RESTAURANT_KM;
-    const toCustomerKm = MOCK_CUSTOMER_KM;
+      ? flatDistKm(driverCoords.lat, driverCoords.lng, activeDelivery.restaurantLat, activeDelivery.restaurantLng)
+      : flatDistKm(activeDelivery.customerLat, activeDelivery.customerLng, activeDelivery.restaurantLat, activeDelivery.restaurantLng);
+    const toCustomerKm = driverCoords
+      ? flatDistKm(driverCoords.lat, driverCoords.lng, activeDelivery.customerLat, activeDelivery.customerLng)
+      : flatDistKm(activeDelivery.restaurantLat, activeDelivery.restaurantLng, activeDelivery.customerLat, activeDelivery.customerLng);
     return {
       restaurantMin: Math.max(1, Math.round((toRestaurantKm / AVG_SPEED_KMH) * 60)),
       customerMin:   Math.max(1, Math.round((toCustomerKm  / AVG_SPEED_KMH) * 60)),
       restaurantKm:  toRestaurantKm.toFixed(1),
       customerKm:    toCustomerKm.toFixed(1),
     };
-  }, [driverCoords, activeDelivery.restaurantLat, activeDelivery.restaurantLng]);
+  }, [driverCoords, activeDelivery.restaurantLat, activeDelivery.restaurantLng, activeDelivery.customerLat, activeDelivery.customerLng]);
 
   const openNavigationMaps = (address: string) => {
     const encoded = encodeURIComponent(address);

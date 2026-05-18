@@ -87,14 +87,19 @@ export default function RestaurantsPage() {
   const fetchRestaurants = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await api.get<Restaurant[]>('/restaurants');
+      const params = new URLSearchParams();
+      if (openOnly) params.set('isOpen', 'true');
+      if (cuisine !== 'Tous') params.set('cuisine', cuisine);
+      params.set('limit', '100');
+      const qs = params.toString();
+      const data = await api.get<Restaurant[]>(`/restaurants${qs ? `?${qs}` : ''}`);
       setRestaurants(Array.isArray(data) && data.length > 0 ? data : MOCK_RESTAURANTS);
     } catch {
       setRestaurants(MOCK_RESTAURANTS);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [openOnly, cuisine]);
 
   useEffect(() => { fetchRestaurants(); }, [fetchRestaurants]);
 

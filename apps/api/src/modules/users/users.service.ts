@@ -6,10 +6,33 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
+  private readonly favoritesStore = new Map<string, Set<string>>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
+
+  async getFavorites(userId: string) {
+    const ids = Array.from(this.favoritesStore.get(userId) ?? []);
+    if (ids.length === 0) return [];
+    const restaurants = await this.prisma.restaurant.findMany({
+      where: { id: { in: ids } },
+    });
+    return restaurants.map((r) => ({ restaurantId: r.id, restaurant: r }));
+  }
+
+  addFavorite(userId: string, restaurantId: string): { ok: boolean } {
+    const set = this.favoritesStore.get(userId) ?? new Set<string>();
+    set.add(restaurantId);
+    this.favoritesStore.set(userId, set);
+    return { ok: true };
+  }
+
+  removeFavorite(userId: string, restaurantId: string): { ok: boolean } {
+    this.favoritesStore.get(userId)?.delete(restaurantId);
+    return { ok: true };
+  }
 
   async findAll() {
     return this.prisma.user.findMany({
@@ -213,8 +236,10 @@ export class UsersService {
 
   async remove(id: string) {
     await this.findById(id);
-    // TODO: Soft delete instead of hard delete
-    const deleted = await this.prisma.user.delete({ where: { id } });
+    const deleted = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
 
     // Audit log — fire-and-forget
     this.audit.log({

@@ -34,7 +34,7 @@ export class MenuService {
   async deleteCategory(id: string) {
     const category = await this.prisma.menuCategory.findUnique({ where: { id } });
     if (!category) throw new NotFoundException(`Category #${id} not found`);
-    // TODO: Check if category has items before deleting, or cascade
+    await this.prisma.menuItem.deleteMany({ where: { categoryId: id } });
     return this.prisma.menuCategory.delete({ where: { id } });
   }
 

@@ -30,16 +30,11 @@ interface UserProfile {
   phone?: string;
 }
 
-const MOCK_ADDRESSES = [
-  { id: 'a1', label: 'Maison', address: '12 rue de la Paix, 75001 Paris', isDefault: true },
-  { id: 'a2', label: 'Bureau', address: '45 avenue des Champs, 75008 Paris', isDefault: false },
-];
-
 export default function ProfileScreen() {
   const api = useApi();
   const [notifOrders, setNotifOrders] = useState(true);
   const [notifPromo, setNotifPromo] = useState(true);
-  const [section, setSection] = useState<'main' | 'addresses' | 'notifications'>('main');
+  const [section, setSection] = useState<'main' | 'notifications'>('main');
 
   const [points, setPoints] = useState(0);
   const [userName, setUserName] = useState('');
@@ -108,37 +103,6 @@ export default function ProfileScreen() {
       },
     ]);
   };
-
-  if (section === 'addresses') {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.navHeader}>
-          <TouchableOpacity onPress={() => setSection('main')}>
-            <Text style={styles.backBtn}>← Retour</Text>
-          </TouchableOpacity>
-          <Text style={styles.navTitle}>Mes adresses</Text>
-          <View style={{ width: 60 }} />
-        </View>
-        <ScrollView contentContainerStyle={styles.addressList}>
-          {MOCK_ADDRESSES.map((addr) => (
-            <View key={addr.id} style={styles.addressCard}>
-              <View style={styles.addressLeft}>
-                <Text style={styles.addressLabel}>{addr.label}</Text>
-                {addr.isDefault && <Text style={styles.defaultBadge}>Par défaut</Text>}
-                <Text style={styles.addressText}>{addr.address}</Text>
-              </View>
-              <TouchableOpacity style={styles.editBtn}>
-                <Text style={styles.editBtnText}>Modifier</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          <TouchableOpacity style={styles.addAddressBtn} activeOpacity={0.8}>
-            <Text style={styles.addAddressBtnText}>+ Ajouter une adresse</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
 
   if (section === 'notifications') {
     return (

@@ -118,7 +118,7 @@ function formatTime(iso: string): string {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function NotificationsScreen() {
-  const { get } = useApi();
+  const api = useApi();
   const [notifications, setNotifications] = useState<DriverNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,7 +127,7 @@ export default function NotificationsScreen() {
     setLoading(true);
     setError(null);
     try {
-      const data = await get<DriverNotification[]>('/api/v1/notifications');
+      const data = await api.get<DriverNotification[]>('/api/v1/notifications');
       setNotifications(data);
     } catch {
       // Fallback to mock data when API is unavailable
@@ -135,7 +135,7 @@ export default function NotificationsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [get]);
+  }, [api]);
 
   useEffect(() => {
     void fetchNotifications();
@@ -147,11 +147,13 @@ export default function NotificationsScreen() {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
-  }, []);
+    api.patch(`/api/v1/notifications/${id}/read`, {}).catch(() => {});
+  }, [api]);
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    api.patch('/api/v1/notifications/read-all', {}).catch(() => {});
+  }, [api]);
 
   // ── Render states ────────────────────────────────────────────────────────
 

@@ -75,6 +75,28 @@ export class UsersController {
     return this.usersService.deleteAddress(req.user.id, addressId);
   }
 
+  // ─── Favorites ────────────────────────────────────────────────────────────
+
+  @Get('favorites')
+  @ApiOperation({ summary: 'Get own favourite restaurants' })
+  getFavorites(@Request() req: any) {
+    return this.usersService.getFavorites(req.user.id);
+  }
+
+  @Post('favorites/:restaurantId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Add a restaurant to favourites' })
+  addFavorite(@Request() req: any, @Param('restaurantId') restaurantId: string) {
+    return this.usersService.addFavorite(req.user.id, restaurantId);
+  }
+
+  @Delete('favorites/:restaurantId')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Remove a restaurant from favourites' })
+  removeFavorite(@Request() req: any, @Param('restaurantId') restaurantId: string) {
+    return this.usersService.removeFavorite(req.user.id, restaurantId);
+  }
+
   // ─── Admin endpoints ─────────────────────────────────────────────────────
 
   @Get('customers')
