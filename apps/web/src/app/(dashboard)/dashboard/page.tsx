@@ -19,6 +19,8 @@ import { HourlyChart } from '@/components/dashboard/HourlyChart';
 import { LiveFeed, type FeedEvent } from '@/components/dashboard/LiveFeed';
 import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
 import { useRealtimeInventory, type InventoryEvent } from '@/hooks/useRealtimeInventory';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -106,10 +108,23 @@ const STATUS_COLORS: Record<string, string> = {
 // ── Super Admin Dashboard ─────────────────────────────────────────────────────
 
 function SuperAdminDashboard() {
-  const totalMRR = PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').reduce((s, r) => s + r.mrr, 0);
-  const activeRestaurants = PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').length;
+  const [platformStats, setPlatformStats] = useState<{
+    totalRestaurants?: number; activeRestaurants?: number;
+    totalOrders?: number; totalRevenue?: number; totalUsers?: number;
+  }>({});
+
+  useEffect(() => {
+    (api.get('/super-admin/stats') as Promise<typeof platformStats>)
+      .then((s) => setPlatformStats(s))
+      .catch(() => {});
+  }, []);
+
+  const totalMRR = platformStats.totalRevenue
+    ? Math.round(platformStats.totalRevenue / 12)
+    : PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').reduce((s, r) => s + r.mrr, 0);
+  const activeRestaurants = platformStats.activeRestaurants ?? PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').length;
+  const totalClients = platformStats.totalUsers ?? 14872;
   const avgCommission = 12.4;
-  const totalClients = 14872;
 
   const kpis = [
     {
@@ -118,7 +133,7 @@ function SuperAdminDashboard() {
     },
     {
       label: 'Restaurants actifs', value: String(activeRestaurants),
-      sub: `${PLATFORM_RESTAURANTS.length} total`, icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-600',
+      sub: `${platformStats.totalRestaurants ?? PLATFORM_RESTAURANTS.length} total`, icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-600',
     },
     {
       label: 'Clients totaux', value: totalClients.toLocaleString('fr-FR'),
@@ -248,18 +263,45 @@ function SuperAdminDashboard() {
 // ── Restaurant Dashboard ──────────────────────────────────────────────────────
 
 function RestaurantDashboard() {
+  const authUser = useAuthStore((s) => s.user);
+  const restaurantId = authUser?.restaurantIds?.[0] ?? 'r1';
+
   const [ordersCount,    incOrders   ] = useCounter(BASE_STATS.orders);
   const [revenue,        incRevenue  ] = useCounter(BASE_STATS.revenue);
   const [deliveriesCount,incDeliveries] = useCounter(BASE_STATS.deliveries);
   const [feedEvents, setFeedEvents]    = useState<FeedEvent[]>([]);
   const [liveOrders, setLiveOrders]    = useState(LIVE_ORDERS_INIT);
+
+  useEffect(() => {
+    (api.get(`/analytics/${restaurantId}/sales`) as Promise<{ totalOrders?: number; totalRevenue?: number }>)
+      .then((s) => {
+        if (s.totalOrders) incOrders(s.totalOrders - BASE_STATS.orders);
+        if (s.totalRevenue) incRevenue(Math.round(s.totalRevenue) - BASE_STATS.revenue);
+      })
+      .catch(() => {});
+    (api.get(`/orders/restaurant/${restaurantId}`) as Promise<{ id: string; orderNumber?: string; status: string; total?: number; items?: unknown[] }[]>)
+      .then((orders) => {
+        if (Array.isArray(orders) && orders.length > 0) {
+          const live = orders.slice(0, 4).map((o) => ({
+            id: o.orderNumber ?? o.id,
+            customer: 'Client',
+            items: Array.isArray(o.items) ? o.items.length : 1,
+            total: o.total ?? 0,
+            status: o.status,
+            time: '—',
+          }));
+          setLiveOrders(live);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId]); // eslint-disable-line react-hooks/exhaustive-deps
   const pushEvent = useCallback((ev: FeedEvent) => {
     setFeedEvents((prev) => [ev, ...prev].slice(0, 30));
   }, []);
 
   // ── Socket hooks ────────────────────────────────────────────────────────────
   useRealtimeOrders({
-    restaurantId: 'r1',
+    restaurantId,
     onOrderCreated: useCallback((e: OrderEvent) => {
       incOrders();
       incRevenue(Math.round(e.total ?? 0));
@@ -278,7 +320,7 @@ function RestaurantDashboard() {
   });
 
   useRealtimeInventory({
-    restaurantId: 'r1',
+    restaurantId,
     onLowStock: useCallback((e: InventoryEvent) => {
       pushEvent(makeEvent('inventory_low', `Stock bas : ${e.name}`, `${e.currentStock} restant (min. ${e.minStock})`));
     }, [pushEvent]),
