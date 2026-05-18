@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useApi } from '@/hooks/useApi';
 
@@ -122,7 +123,7 @@ export default function OrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
 
   // Rating feature
   const [ratedOrders, setRatedOrders] = useState<Set<string>>(new Set());
@@ -246,7 +247,9 @@ export default function OrdersScreen() {
         ListHeaderComponent={
           <>
             {activeOrders.map((o) => (
-              <ActiveOrderBanner key={o.id} order={o} />
+              <TouchableOpacity key={o.id} onPress={() => router.push(`/order/${o.id}`)} activeOpacity={0.85}>
+                <ActiveOrderBanner order={o} />
+              </TouchableOpacity>
             ))}
             {pastOrders.length > 0 && (
               <Text style={styles.sectionLabel}>Historique</Text>
@@ -264,7 +267,7 @@ export default function OrdersScreen() {
         renderItem={({ item: order }) => (
           <TouchableOpacity
             style={styles.orderCard}
-            onPress={() => setSelectedOrder(order)}
+            onPress={() => router.push(`/order/${order.id}`)}
             activeOpacity={0.8}
           >
             <View style={styles.orderCardHeader}>
@@ -358,64 +361,6 @@ export default function OrdersScreen() {
         )}
       </Modal>
 
-      {/* Order Detail Modal */}
-      <Modal
-        visible={!!selectedOrder}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedOrder(null)}
-      >
-        {selectedOrder && (
-          <SafeAreaView style={styles.modalSafe} edges={['top']}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Commande {selectedOrder.number}</Text>
-              <TouchableOpacity onPress={() => setSelectedOrder(null)}>
-                <Text style={styles.modalClose}>✕</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView contentContainerStyle={styles.modalContent}>
-              <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[selectedOrder.status] + '20', alignSelf: 'flex-start', marginBottom: 20 }]}>
-                <Text style={[styles.statusText, { color: STATUS_COLORS[selectedOrder.status], fontSize: 15 }]}>
-                  {STATUS_EMOJI[selectedOrder.status]} {STATUS_LABELS[selectedOrder.status]}
-                </Text>
-              </View>
-
-              <Text style={styles.modalSection}>Articles</Text>
-              {selectedOrder.items.map((item, idx) => (
-                <View key={idx} style={styles.modalItemRow}>
-                  <Text style={styles.modalItemQty}>{item.qty}×</Text>
-                  <Text style={styles.modalItemName}>{item.name}</Text>
-                  <Text style={styles.modalItemPrice}>{(item.qty * item.price).toFixed(2)}€</Text>
-                </View>
-              ))}
-
-              <View style={styles.divider} />
-              <View style={styles.modalItemRow}>
-                <Text style={[styles.modalItemName, { color: Colors.surface[500] }]}>Sous-total</Text>
-                <Text style={styles.modalItemPrice}>{(selectedOrder.subtotal ?? 0).toFixed(2)}€</Text>
-              </View>
-              <View style={styles.modalItemRow}>
-                <Text style={[styles.modalItemName, { color: Colors.surface[500] }]}>Livraison</Text>
-                <Text style={styles.modalItemPrice}>{(selectedOrder.deliveryFee ?? 0).toFixed(2)}€</Text>
-              </View>
-              <View style={[styles.modalItemRow, { marginTop: 6 }]}>
-                <Text style={[styles.modalItemName, { fontWeight: '800', fontSize: 16, color: Colors.surface[900] }]}>Total</Text>
-                <Text style={[styles.modalItemPrice, { fontWeight: '800', fontSize: 16, color: Colors.brand[600] }]}>{(selectedOrder.total ?? 0).toFixed(2)}€</Text>
-              </View>
-
-              <View style={styles.divider} />
-              <Text style={[styles.modalSection, { marginTop: 0 }]}>Informations</Text>
-              <Text style={styles.modalMeta}>Passée le {selectedOrder.createdAt}</Text>
-
-              {selectedOrder.status === 'delivered' && (
-                <TouchableOpacity style={styles.reorderBtn} activeOpacity={0.85}>
-                  <Text style={styles.reorderBtnText}>🔁 Commander à nouveau</Text>
-                </TouchableOpacity>
-              )}
-            </ScrollView>
-          </SafeAreaView>
-        )}
-      </Modal>
     </SafeAreaView>
   );
 }

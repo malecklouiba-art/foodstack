@@ -1,17 +1,110 @@
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { useState } from 'react';
+import {
+  View, Text, FlatList, TouchableOpacity, StyleSheet, Alert,
+  ActivityIndicator, TextInput, Keyboard,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { useCartStore } from '@/store/cart';
 import { router } from 'expo-router';
 import { useStripePayment } from '@/hooks/useStripePayment';
+import { useApi } from '@/hooks/useApi';
+
+interface CouponResult {
+  valid: boolean;
+  discountType?: 'percent' | 'fixed';
+  discountValue?: number;
+  description?: string;
+  message?: string;
+}
 
 export default function CartScreen() {
   const { items, increment, decrement, remove, clear, total, deliveryFee: storedDeliveryFee } = useCartStore();
   const { pay, loading: payLoading } = useStripePayment();
+  const api = useApi();
+
   const subtotal = total();
   const deliveryFee = items.length > 0 ? storedDeliveryFee : 0;
-  const grandTotal = subtotal + deliveryFee;
 
+  // ── Promo code ───────────────────────────────────────────────────────────────
+  const [couponCode, setCouponCode] = useState('');
+  const [couponInput, setCouponInput] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponLabel, setCouponLabel] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState('');
+
+  const discountAmount =
+    couponDiscount > 0
+      ? Math.min(couponDiscount, subtotal)
+      : 0;
+  const grandTotal = Math.max(0, subtotal + deliveryFee - discountAmount);
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+    Keyboard.dismiss();
+    setCouponLoading(true);
+    setCouponError('');
+
+    try {
+      const result = await api.post<CouponResult>('/api/v1/coupons/validate', {
+        code,
+        amount: subtotal,
+      });
+
+      if (!result.valid) {
+        setCouponError(result.message ?? 'Code invalide.');
+        return;
+      }
+
+      let discount = 0;
+      let label = '';
+      if (result.discountType === 'percent' && result.discountValue) {
+        discount = (subtotal * result.discountValue) / 100;
+        label = `${result.description ?? code} (−${result.discountValue}%)`;
+      } else if (result.discountType === 'fixed' && result.discountValue) {
+        discount = result.discountValue;
+        label = `${result.description ?? code} (−${result.discountValue.toFixed(2)}€)`;
+      }
+
+      setCouponCode(code);
+      setCouponDiscount(discount);
+      setCouponLabel(label);
+      setCouponInput('');
+    } catch {
+      // Fallback mock validation for demo/offline
+      const MOCK_CODES: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
+        'BIENVENUE10': { type: 'percent', value: 10, label: 'Nouveau client (−10%)' },
+        'WEEKEND10':   { type: 'percent', value: 10, label: 'Promo week-end (−10%)' },
+        'FIDELE20':    { type: 'percent', value: 20, label: 'Client fidèle (−20%)' },
+        'FLASH15':     { type: 'percent', value: 15, label: 'Offre flash (−15%)' },
+        'GRATUIT8':    { type: 'fixed',   value: 8,  label: 'Livraison offerte (−8€)' },
+      };
+      const mock = MOCK_CODES[code];
+      if (mock) {
+        const discount = mock.type === 'percent' ? (subtotal * mock.value) / 100 : mock.value;
+        setCouponCode(code);
+        setCouponDiscount(discount);
+        setCouponLabel(mock.label);
+        setCouponInput('');
+      } else {
+        setCouponError('Code invalide ou expiré.');
+      }
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setCouponCode('');
+    setCouponDiscount(0);
+    setCouponLabel('');
+    setCouponError('');
+    setCouponInput('');
+  };
+
+  // ── Checkout ─────────────────────────────────────────────────────────────────
   const handleCheckout = async () => {
     const amountCents = Math.round(grandTotal * 100);
     const orderId = `ORD-${Date.now()}`;
@@ -61,6 +154,7 @@ export default function CartScreen() {
         data={items}
         keyExtractor={(i) => i.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         renderItem={({ item }) => (
           <View style={styles.cartItem}>
             <View style={styles.itemImage}>
@@ -83,19 +177,74 @@ export default function CartScreen() {
           </View>
         )}
         ListFooterComponent={
-          <View style={styles.summary}>
-            <Text style={styles.summaryTitle}>Récapitulatif</Text>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Sous-total</Text>
-              <Text style={styles.summaryValue}>{subtotal.toFixed(2)}€</Text>
+          <View>
+            {/* Promo code */}
+            <View style={styles.couponCard}>
+              <Text style={styles.couponTitle}>🏷️ Code promo</Text>
+              {couponCode ? (
+                <View style={styles.couponApplied}>
+                  <View style={styles.couponAppliedLeft}>
+                    <Text style={styles.couponAppliedCode}>{couponCode}</Text>
+                    <Text style={styles.couponAppliedLabel}>{couponLabel}</Text>
+                  </View>
+                  <TouchableOpacity onPress={removeCoupon} style={styles.couponRemoveBtn}>
+                    <Text style={styles.couponRemoveText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <>
+                  <View style={styles.couponRow}>
+                    <TextInput
+                      style={styles.couponInput}
+                      value={couponInput}
+                      onChangeText={(t) => {
+                        setCouponInput(t.toUpperCase());
+                        setCouponError('');
+                      }}
+                      placeholder="Entrez votre code"
+                      placeholderTextColor={Colors.surface[400]}
+                      autoCapitalize="characters"
+                      returnKeyType="done"
+                      onSubmitEditing={applyCoupon}
+                    />
+                    <TouchableOpacity
+                      style={[styles.couponApplyBtn, (!couponInput.trim() || couponLoading) && styles.couponApplyBtnDisabled]}
+                      onPress={applyCoupon}
+                      disabled={!couponInput.trim() || couponLoading}
+                      activeOpacity={0.8}
+                    >
+                      {couponLoading
+                        ? <ActivityIndicator color="#fff" size="small" />
+                        : <Text style={styles.couponApplyText}>Appliquer</Text>
+                      }
+                    </TouchableOpacity>
+                  </View>
+                  {couponError ? <Text style={styles.couponError}>{couponError}</Text> : null}
+                </>
+              )}
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Livraison</Text>
-              <Text style={styles.summaryValue}>{deliveryFee.toFixed(2)}€</Text>
-            </View>
-            <View style={[styles.summaryRow, styles.totalRow]}>
-              <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>{grandTotal.toFixed(2)}€</Text>
+
+            {/* Order summary */}
+            <View style={styles.summary}>
+              <Text style={styles.summaryTitle}>Récapitulatif</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Sous-total</Text>
+                <Text style={styles.summaryValue}>{subtotal.toFixed(2)}€</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Livraison</Text>
+                <Text style={styles.summaryValue}>{deliveryFee.toFixed(2)}€</Text>
+              </View>
+              {discountAmount > 0 && (
+                <View style={styles.summaryRow}>
+                  <Text style={[styles.summaryLabel, styles.discountLabel]}>Réduction</Text>
+                  <Text style={styles.discountValue}>−{discountAmount.toFixed(2)}€</Text>
+                </View>
+              )}
+              <View style={[styles.summaryRow, styles.totalRow]}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalValue}>{grandTotal.toFixed(2)}€</Text>
+              </View>
             </View>
           </View>
         }
@@ -164,14 +313,45 @@ const styles = StyleSheet.create({
   qtyBtnText: { fontSize: 18, color: Colors.surface[900], fontWeight: '700', lineHeight: 22 },
   qtyValue:   { fontSize: 14, fontWeight: '700', color: Colors.surface[900], minWidth: 16, textAlign: 'center' },
 
+  couponCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginTop: 8, marginBottom: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
+  },
+  couponTitle: { fontSize: 14, fontWeight: '700', color: Colors.surface[900], marginBottom: 10 },
+  couponRow:   { flexDirection: 'row', gap: 8 },
+  couponInput: {
+    flex: 1, height: 44, borderRadius: 10, borderWidth: 1.5, borderColor: Colors.surface[200],
+    paddingHorizontal: 12, fontSize: 14, fontWeight: '700', color: Colors.surface[900],
+    letterSpacing: 1,
+  },
+  couponApplyBtn: {
+    backgroundColor: Colors.brand[500], borderRadius: 10, paddingHorizontal: 16,
+    alignItems: 'center', justifyContent: 'center', minWidth: 96,
+  },
+  couponApplyBtnDisabled: { opacity: 0.5 },
+  couponApplyText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  couponError: { fontSize: 12, color: Colors.danger, marginTop: 6, fontWeight: '500' },
+  couponApplied: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: Colors.brand[50], borderRadius: 10, padding: 10,
+    borderWidth: 1, borderColor: Colors.brand[100],
+  },
+  couponAppliedLeft: { flex: 1 },
+  couponAppliedCode: { fontSize: 14, fontWeight: '800', color: Colors.brand[700], letterSpacing: 1 },
+  couponAppliedLabel: { fontSize: 12, color: Colors.brand[600], marginTop: 2 },
+  couponRemoveBtn: { padding: 4 },
+  couponRemoveText: { fontSize: 16, color: Colors.surface[400], fontWeight: '700' },
+
   summary: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginTop: 8,
+    backgroundColor: '#fff', borderRadius: 16, padding: 16, marginTop: 0,
     shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 1,
   },
   summaryTitle: { fontSize: 16, fontWeight: '700', color: Colors.surface[900], marginBottom: 12 },
   summaryRow:   { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   summaryLabel: { fontSize: 14, color: Colors.surface[500] },
   summaryValue: { fontSize: 14, color: Colors.surface[700], fontWeight: '600' },
+  discountLabel:{ color: Colors.success },
+  discountValue:{ fontSize: 14, fontWeight: '700', color: Colors.success },
   totalRow:     { borderTopWidth: 1, borderTopColor: Colors.surface[100], paddingTop: 10, marginTop: 4, marginBottom: 0 },
   totalLabel:   { fontSize: 16, fontWeight: '800', color: Colors.surface[900] },
   totalValue:   { fontSize: 18, fontWeight: '800', color: Colors.brand[600] },
