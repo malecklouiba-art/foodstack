@@ -133,7 +133,7 @@ export default function ActiveDeliveryScreen() {
 
   const updateStatusOnApi = async (newStatus: string) => {
     try {
-      await patch(`/api/v1/deliveries/${activeDelivery.orderId}/status`, { status: newStatus });
+      await patch(`/api/v1/delivery/orders/${activeDelivery.orderId}/status`, { status: newStatus });
     } catch {
       // Non-blocking — local state and socket already updated
     }
