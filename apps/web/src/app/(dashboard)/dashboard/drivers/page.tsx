@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import api from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bike, Star, Phone, MapPin, Clock, TrendingUp,
@@ -359,6 +360,40 @@ function DriverDetailModal({ driver, onClose }: { driver: Driver; onClose: () =>
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+interface ApiDriver {
+  id: string;
+  isOnline: boolean;
+  isAvailable: boolean;
+  vehicleType?: string;
+  vehiclePlate?: string;
+  latitude?: number;
+  longitude?: number;
+  createdAt: string;
+  user: { firstName?: string; lastName?: string; email?: string; phone?: string };
+}
+
+function apiDriverToDriver(d: ApiDriver): Driver {
+  const name = [d.user.firstName, d.user.lastName].filter(Boolean).join(' ') || d.user.email || 'Livreur';
+  const initials = name.split(' ').map((w) => w[0] ?? '').join('').toUpperCase().slice(0, 2);
+  const status: DriverStatus = !d.isOnline ? 'offline' : d.isAvailable ? 'online' : 'delivering';
+  return {
+    id: d.id,
+    name,
+    avatar: initials,
+    phone: d.user.phone ?? '',
+    vehicle: [d.vehicleType, d.vehiclePlate].filter(Boolean).join(' · ') || 'N/A',
+    zone: d.latitude && d.longitude ? `${d.latitude.toFixed(3)}, ${d.longitude.toFixed(3)}` : 'N/A',
+    status,
+    rating: 4.5,
+    deliveriesToday: 0,
+    earningsToday: 0,
+    ordersPerWeek: 0,
+    avgDeliveryMin: 0,
+    joinedAt: new Date(d.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: '2-digit' }),
+    docs: { license: 'valid', insurance: 'valid', id: 'valid' },
+  };
+}
+
 export default function DriversPage() {
   const [drivers, setDrivers]     = useState<Driver[]>(SEED);
   const [search, setSearch]       = useState('');
@@ -368,6 +403,16 @@ export default function DriversPage() {
   const [deleteId, setDeleteId]   = useState<string | null>(null);
   const [expanded, setExpanded]   = useState<string | null>(null);
   const [menuOpen, setMenuOpen]   = useState<string | null>(null);
+
+  useEffect(() => {
+    (api.get('/drivers') as Promise<ApiDriver[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDrivers(data.map(apiDriverToDriver));
+        }
+      })
+      .catch(() => { /* keep mock data */ });
+  }, []);
 
   const filtered = useMemo(() => drivers.filter(d => {
     if (statusFilter !== 'all' && d.status !== statusFilter) return false;

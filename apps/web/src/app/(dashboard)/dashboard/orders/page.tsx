@@ -14,6 +14,7 @@ import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
 import { getSocket } from '@/lib/socket';
 import type { KanbanOrder, OrderStatus } from '@/components/dashboard/orders/OrderCard';
 import type {} from 'jspdf-autotable';
+import api from '@/lib/api';
 
 // ── Sound alert (Web Audio API — no extra dep) ──────────────────────────────
 
@@ -337,6 +338,36 @@ function BigOrderCard({ order, onAdvance, onCancel, onSelect, onDragStart, kitch
 
 type ViewMode = 'kanban' | 'kitchen' | 'list';
 
+interface ApiOrder {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  total: number;
+  deliveryAddress?: string;
+  type?: string;
+  createdAt: string;
+  customer?: { firstName?: string; lastName?: string; phone?: string; email?: string };
+  driver?: { user?: { firstName?: string; lastName?: string } };
+  items: Array<{ name: string; quantity: number; price: number }>;
+}
+
+function normaliseOrder(o: ApiOrder): KanbanOrder {
+  return {
+    id: o.orderNumber ?? o.id,
+    customer: o.customer
+      ? [o.customer.firstName, o.customer.lastName].filter(Boolean).join(' ') || o.customer.email || 'Client'
+      : 'Client',
+    phone: o.customer?.phone ?? '',
+    items: o.items.map((i) => ({ name: i.name || 'Article', quantity: i.quantity, price: i.price })),
+    total: o.total,
+    status: o.status,
+    type: (o.type as KanbanOrder['type']) ?? 'delivery',
+    address: o.deliveryAddress,
+    driver: o.driver?.user ? [o.driver.user.firstName, o.driver.user.lastName].filter(Boolean).join(' ') : undefined,
+    createdAt: new Date(o.createdAt),
+  };
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<KanbanOrder[]>(INITIAL_ORDERS);
   const [view, setView] = useState<ViewMode>('kanban');
@@ -351,6 +382,16 @@ export default function OrdersPage() {
   const draggedOrderRef = useRef<string | null>(null);
   const soundRef = useRef(sound);
   soundRef.current = sound;
+
+  useEffect(() => {
+    (api.get('/orders') as Promise<ApiOrder[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setOrders(data.map(normaliseOrder));
+        }
+      })
+      .catch(() => { /* keep mock data on error */ });
+  }, []);
 
   useEffect(() => {
     const socket = getSocket();

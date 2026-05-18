@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StripeProvider } from '@stripe/stripe-react-native';
 import { STRIPE_PK, setupStripe } from '@/lib/stripe';
 import { useAuthStore } from '@/store/auth';
+import { syncPushToken } from '@/lib/notifications';
 
 export default function RootLayout() {
   const { loadStoredAuth, isAuthenticated, isLoading } = useAuthStore();
@@ -19,6 +20,7 @@ export default function RootLayout() {
     if (isLoading) return;
     if (isAuthenticated) {
       router.replace('/(tabs)');
+      syncPushToken();
     } else {
       router.replace('/(auth)/login');
     }
