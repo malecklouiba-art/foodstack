@@ -264,7 +264,7 @@ function SuperAdminDashboard() {
 
 function RestaurantDashboard() {
   const authUser = useAuthStore((s) => s.user);
-  const restaurantId = authUser?.restaurantIds?.[0] ?? 'r1';
+  const restaurantId = authUser?.restaurantIds?.[0] ?? '';
 
   const [ordersCount,    incOrders   ] = useCounter(BASE_STATS.orders);
   const [revenue,        incRevenue  ] = useCounter(BASE_STATS.revenue);
@@ -273,6 +273,7 @@ function RestaurantDashboard() {
   const [liveOrders, setLiveOrders]    = useState(LIVE_ORDERS_INIT);
 
   useEffect(() => {
+    if (!restaurantId) return;
     (api.get(`/analytics/${restaurantId}/sales`) as Promise<{ totalOrders?: number; totalRevenue?: number }>)
       .then((s) => {
         if (s.totalOrders) incOrders(s.totalOrders - BASE_STATS.orders);
@@ -1040,19 +1041,26 @@ function StaffDashboard() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [role, setRole] = useState<string | null>(null);
+  const authUser = useAuthStore((s) => s.user);
 
+  // Fall back to fs_demo cookie for users who aren't logged in yet (dev/demo)
+  const [cookieRole, setCookieRole] = useState<string | null>(null);
   useEffect(() => {
-    const val = parseCookie('fs_demo');
-    setRole(val ?? 'restaurant');
-  }, []);
+    if (!authUser) {
+      const val = parseCookie('fs_demo');
+      setCookieRole(val ?? 'restaurant');
+    }
+  }, [authUser]);
+
+  const role = authUser
+    ? authUser.role
+    : cookieRole;
 
   if (role === null) {
-    // Waiting for cookie parse — render nothing or a skeleton
     return <div className="p-6 text-surface-400 text-sm">Chargement…</div>;
   }
 
-  if (role === 'admin') {
+  if (role === 'super_admin' || role === 'admin') {
     return <SuperAdminDashboard />;
   }
 

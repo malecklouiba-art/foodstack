@@ -1,15 +1,26 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Bell, Search, X, CheckCircle2, AlertTriangle,
   ShoppingBag, Package, Users, Info, Check,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import api from '@/lib/api';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _Unused = typeof ShoppingBag; // icons used via ICON_MAP lookup
+type _Unused = typeof ShoppingBag | typeof Package; // icons used via ICON_MAP lookup
+
+interface ApiNotif {
+  id: string;
+  type?: string;
+  title?: string;
+  body?: string;
+  read?: boolean;
+  isRead?: boolean;
+  createdAt?: string;
+}
 
 type NotifType = 'order' | 'stock' | 'user' | 'system' | 'success';
 
@@ -70,6 +81,15 @@ function relativeTime(date: Date): string {
   return `Il y a ${Math.floor(diff / 86400)} j`;
 }
 
+function normaliseType(raw?: string): NotifType {
+  if (!raw) return 'system';
+  if (raw.includes('order') || raw.includes('ORDER')) return 'order';
+  if (raw.includes('stock') || raw.includes('inventory')) return 'stock';
+  if (raw.includes('user')) return 'user';
+  if (raw.includes('success')) return 'success';
+  return 'system';
+}
+
 export function DashboardHeader() {
   const pathname = usePathname();
   const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS);
@@ -81,7 +101,26 @@ export function DashboardHeader() {
   const unread = notifs.filter((n) => !n.read).length;
   const pageLabel = PAGE_LABELS[pathname] ?? 'Dashboard';
 
+  const fetchNotifs = useCallback(async () => {
+    try {
+      const data = await api.get<ApiNotif[]>('/notifications');
+      if (Array.isArray(data) && data.length > 0) {
+        setNotifs(data.map((n) => ({
+          id: n.id,
+          type: normaliseType(n.type),
+          title: n.title ?? 'Notification',
+          body: n.body ?? '',
+          ts: n.createdAt ? new Date(n.createdAt) : new Date(),
+          read: n.read ?? n.isRead ?? false,
+        })));
+      }
+    } catch {
+      // keep mock data
+    }
+  }, []);
+
   useEffect(() => {
+    fetchNotifs();
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -89,18 +128,21 @@ export function DashboardHeader() {
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  }, [fetchNotifs]);
 
   function markAllRead() {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    api.patch('/notifications/read-all', {}).catch(() => {});
   }
 
   function markRead(id: string) {
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    api.patch(`/notifications/${id}/read`, {}).catch(() => {});
   }
 
   function dismiss(id: string) {
     setNotifs((prev) => prev.filter((n) => n.id !== id));
+    api.delete(`/notifications/${id}`).catch(() => {});
   }
 
   return (
