@@ -12,7 +12,6 @@ export class UsersService {
   ) {}
 
   async findAll() {
-    // TODO: Add pagination, filtering by role, sorting
     return this.prisma.user.findMany({
       select: {
         id: true,
@@ -23,6 +22,46 @@ export class UsersService {
         createdAt: true,
       },
     });
+  }
+
+  async findCustomers() {
+    const users = await this.prisma.user.findMany({
+      where: { role: 'customer' },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatar: true,
+        loyaltyPoints: true,
+        loyaltyTier: true,
+        isActive: true,
+        createdAt: true,
+        _count: { select: { orders: true } },
+        orders: {
+          select: { total: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return users.map((u) => ({
+      id: u.id,
+      name: [u.firstName, u.lastName].filter(Boolean).join(' '),
+      email: u.email,
+      phone: u.phone,
+      avatar: u.avatar,
+      loyaltyPoints: u.loyaltyPoints,
+      loyaltyTier: u.loyaltyTier,
+      orderCount: u._count.orders,
+      totalSpent: 0,
+      lastOrderAt: u.orders[0]?.createdAt ?? null,
+      isActive: u.isActive,
+      joinedAt: u.createdAt,
+    }));
   }
 
   async findByEmail(email: string) {

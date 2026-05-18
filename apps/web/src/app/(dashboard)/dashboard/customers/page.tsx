@@ -12,6 +12,7 @@ import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { useSearchParams } from 'next/navigation';
+import api from '@/lib/api';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -263,7 +264,38 @@ function CustomerPanel({ customer, onClose }: { customer: Customer; onClose: () 
 export default function CustomersPage() {
   const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
   const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [selected, setSelected] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    setLoadingCustomers(true);
+    (api.get('/users/customers') as Promise<any[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const tierMap: Record<string, Customer['tier']> = {
+            bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum',
+          };
+          setCustomers(data.map((u: any) => ({
+            id: u.id,
+            name: u.name || u.email,
+            email: u.email,
+            phone: u.phone ?? '',
+            orders: u.orderCount ?? 0,
+            spent: u.totalSpent ?? 0,
+            lastOrder: u.lastOrderAt
+              ? new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(
+                  -Math.round((Date.now() - new Date(u.lastOrderAt).getTime()) / 86400000), 'day'
+                )
+              : 'Jamais',
+            tier: (tierMap[u.loyaltyTier] ?? 'Bronze') as Customer['tier'],
+            joinedAt: new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(new Date(u.joinedAt)),
+            status: u.isActive ? 'active' : 'inactive',
+          })));
+        }
+      })
+      .catch(() => { /* keep mock */ })
+      .finally(() => setLoadingCustomers(false));
+  }, []);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterOption>('Tous');
   const [showFilter, setShowFilter] = useState(false);

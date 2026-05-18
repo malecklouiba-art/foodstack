@@ -69,6 +69,12 @@ export class UsersController {
 
   // ─── Admin endpoints ─────────────────────────────────────────────────────
 
+  @Get('customers')
+  @ApiOperation({ summary: 'Get all customers with order stats' })
+  findCustomers() {
+    return this.usersService.findCustomers();
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all users' })
   findAll() {
