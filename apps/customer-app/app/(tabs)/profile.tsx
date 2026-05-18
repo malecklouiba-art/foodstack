@@ -242,7 +242,7 @@ export default function ProfileScreen() {
             {[
               { icon: '👤', label: 'Modifier le profil', action: () => {} },
               { icon: '🔒', label: 'Changer le mot de passe', action: () => {} },
-              { icon: '📍', label: 'Mes adresses', action: () => setSection('addresses') },
+              { icon: '📍', label: 'Mes adresses', action: () => router.push('/addresses') },
               { icon: '🔔', label: 'Notifications', action: () => setSection('notifications') },
             ].map((item, idx, arr) => (
               <TouchableOpacity

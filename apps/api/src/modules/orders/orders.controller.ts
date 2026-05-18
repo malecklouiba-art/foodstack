@@ -7,12 +7,14 @@ import {
   Body,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { OrderFiltersDto } from './dto/order-filters.dto';
+import { ReviewOrderDto } from './dto/review-order.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -70,5 +72,15 @@ export class OrdersController {
   @ApiOperation({ summary: 'Assign a driver to an order' })
   assignDriver(@Param('id') id: string, @Body('driverId') driverId: string) {
     return this.ordersService.assignDriver(id, driverId);
+  }
+
+  @Post(':id/review')
+  @ApiOperation({ summary: 'Submit a review for a delivered order' })
+  reviewOrder(
+    @Param('id') id: string,
+    @Body() dto: ReviewOrderDto,
+    @Request() req: any,
+  ) {
+    return this.ordersService.reviewOrder(id, dto, req.user.id);
   }
 }
