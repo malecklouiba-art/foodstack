@@ -15,6 +15,7 @@ import { getSocket } from '@/lib/socket';
 import type { KanbanOrder, OrderStatus } from '@/components/dashboard/orders/OrderCard';
 import type {} from 'jspdf-autotable';
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 // ── Sound alert (Web Audio API — no extra dep) ──────────────────────────────
 
@@ -369,6 +370,8 @@ function normaliseOrder(o: ApiOrder): KanbanOrder {
 }
 
 export default function OrdersPage() {
+  const authUser = useAuthStore((s) => s.user);
+  const restaurantId = authUser?.restaurantIds?.[0] ?? 'r1';
   const [orders, setOrders] = useState<KanbanOrder[]>(INITIAL_ORDERS);
   const [view, setView] = useState<ViewMode>('kanban');
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
@@ -384,14 +387,17 @@ export default function OrdersPage() {
   soundRef.current = sound;
 
   useEffect(() => {
-    (api.get('/orders') as Promise<ApiOrder[]>)
+    const endpoint = restaurantId !== 'r1'
+      ? `/orders/restaurant/${restaurantId}`
+      : '/orders';
+    (api.get(endpoint) as Promise<ApiOrder[]>)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setOrders(data.map(normaliseOrder));
         }
       })
       .catch(() => { /* keep mock data on error */ });
-  }, []);
+  }, [restaurantId]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -432,7 +438,7 @@ export default function OrdersPage() {
   }, []);
 
   useRealtimeOrders({
-    restaurantId: 'r1',
+    restaurantId,
     onOrderCreated: handleOrderCreated,
     onStatusUpdated: handleStatusUpdated,
     showToasts: true,
@@ -441,9 +447,9 @@ export default function OrdersPage() {
   const emitStatus = useCallback((orderId: string, nextStatus: OrderStatus) => {
     const socket = getSocket();
     socket.emit('delivery:status_update', {
-      orderId, orderNumber: orderId, restaurantId: 'r1', driverId: '', status: nextStatus,
+      orderId, orderNumber: orderId, restaurantId, driverId: '', status: nextStatus,
     });
-  }, []);
+  }, [restaurantId]);
 
   const advanceOrder = useCallback((orderId: string, nextStatus: OrderStatus) => {
     setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: nextStatus } : o));
