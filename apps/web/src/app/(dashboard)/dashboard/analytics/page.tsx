@@ -14,6 +14,7 @@ import {
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { AIInsights } from '@/components/analytics/AIInsights';
 import { useAuthStore } from '@/store/auth';
+import api from '@/lib/api';
 import type {} from 'jspdf-autotable';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -758,9 +759,7 @@ export default function AnalyticsPage() {
   const [deliveryStats, setDeliveryStats] = useState<ApiDeliveryStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
   const authUser = useAuthStore((s) => s.user);
-  const accessToken = useAuthStore((s) => s.accessToken);
   const RESTAURANT_ID = authUser?.restaurantIds?.[0] ?? '';
   const selectedPeriod = PERIOD_API_MAP[period] ?? 'week';
 
@@ -780,15 +779,13 @@ export default function AnalyticsPage() {
 
     async function fetchAll() {
       setLoading(true);
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
       try {
         const [sales, revenue, items, delivery] = await Promise.allSettled([
-          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/sales`, { headers }).then((r) => r.json()),
-          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/revenue?period=${selectedPeriod}`, { headers }).then((r) => r.json()),
-          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/top-items?limit=5`, { headers }).then((r) => r.json()),
-          fetch(`${API_BASE}/api/v1/analytics/${RESTAURANT_ID}/delivery-performance`, { headers }).then((r) => r.json()),
+          api.get(`/analytics/${RESTAURANT_ID}/sales`) as Promise<any>,
+          api.get(`/analytics/${RESTAURANT_ID}/revenue?period=${selectedPeriod}`) as Promise<any>,
+          api.get(`/analytics/${RESTAURANT_ID}/top-items?limit=5`) as Promise<any>,
+          api.get(`/analytics/${RESTAURANT_ID}/delivery-performance`) as Promise<any>,
         ]);
 
         if (sales.status === 'fulfilled' && sales.value && !sales.value.error) {
@@ -819,7 +816,7 @@ export default function AnalyticsPage() {
     }
 
     void fetchAll();
-  }, [selectedPeriod, RESTAURANT_ID, role, accessToken, API_BASE]);
+  }, [selectedPeriod, RESTAURANT_ID, role]);
 
   // Derived data for export handlers (computed from live state)
   const kpiCardsForExport = [

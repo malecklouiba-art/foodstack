@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/store/auth';
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import api from '@/lib/api';
 
 const VAPID_PUBLIC_KEY =
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? '';
@@ -80,14 +78,10 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       };
 
       // 4. Save subscription on the backend
-      await fetch(`${API_BASE}/api/v1/notifications/push/subscribe`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          endpoint: subJson.endpoint,
-          keys: subJson.keys,
-        }),
+      await api.post('/notifications/push/subscribe', {
+        userId,
+        endpoint: subJson.endpoint,
+        keys: subJson.keys,
       });
 
       setSubscribed(true);

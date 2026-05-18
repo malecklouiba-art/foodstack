@@ -10,8 +10,7 @@ import {
   Globe, Upload, Smile,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import api from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1382,7 +1381,7 @@ const DEFAULT_LANG: LangConfig = {
 };
 
 export default function KioskDesignerPage() {
-  const { accessToken, user } = useAuthStore();
+  const { user } = useAuthStore();
   const restaurantId = user?.restaurantIds?.[0] ?? '';
 
   const [products, setProducts] = useState<MenuItem[]>(FALLBACK_PRODUCTS);
@@ -1390,19 +1389,14 @@ export default function KioskDesignerPage() {
   const [dataLoading, setDataLoading] = useState(false);
 
   useEffect(() => {
-    if (!restaurantId || !accessToken) return;
-
-    const headers = { Authorization: `Bearer ${accessToken}` };
+    if (!restaurantId) return;
 
     async function fetchMenuData() {
       setDataLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/api/v1/menu?restaurantId=${restaurantId}`, { headers });
-        if (res.ok) {
-          const data = (await res.json()) as { categories?: MenuCategory[]; items?: MenuItem[] };
-          if (Array.isArray(data.categories) && data.categories.length > 0) setCategories(data.categories);
-          if (Array.isArray(data.items) && data.items.length > 0) setProducts(data.items);
-        }
+        const data = await (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<{ categories?: MenuCategory[]; items?: MenuItem[] }>);
+        if (Array.isArray(data.categories) && data.categories.length > 0) setCategories(data.categories);
+        if (Array.isArray(data.items) && data.items.length > 0) setProducts(data.items);
       } catch {
         // Network error: keep fallback data
       } finally {
@@ -1411,7 +1405,7 @@ export default function KioskDesignerPage() {
     }
 
     void fetchMenuData();
-  }, [restaurantId, accessToken]);
+  }, [restaurantId]);
 
   const [theme, setTheme] = useState<KioskTheme>(MINIMAL_THEME);
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);

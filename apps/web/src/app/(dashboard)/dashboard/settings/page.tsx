@@ -13,8 +13,7 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/store/auth';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import api from '@/lib/api';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -32,7 +31,6 @@ interface RestaurantData {
 
 interface TabProps {
   restaurantId: string;
-  accessToken: string;
 }
 
 interface DaySchedule {
@@ -82,7 +80,7 @@ const INIT_NOTIFS: NotifSetting[] = [
 
 // ── Sub-tab components ─────────────────────────────────────────────────────────
 
-function GeneralTab({ restaurantId, accessToken }: TabProps) {
+function GeneralTab({ restaurantId }: TabProps) {
   const [form, setForm] = useState({
     name:    '',
     desc:    '',
@@ -94,14 +92,8 @@ function GeneralTab({ restaurantId, accessToken }: TabProps) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!restaurantId || !accessToken) { setLoading(false); return; }
-    fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<RestaurantData>;
-      })
+    if (!restaurantId) { setLoading(false); return; }
+    (api.get(`/restaurants/${restaurantId}`) as Promise<RestaurantData>)
       .then((data) => {
         setForm({
           name:    data.name    ?? '',
@@ -113,30 +105,22 @@ function GeneralTab({ restaurantId, accessToken }: TabProps) {
       })
       .catch(() => toast.error('Impossible de charger les informations du restaurant'))
       .finally(() => setLoading(false));
-  }, [restaurantId, accessToken]);
+  }, [restaurantId]);
 
   const setField = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   async function handleSave() {
-    if (!restaurantId || !accessToken) return;
+    if (!restaurantId) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          name:        form.name,
-          description: form.desc,
-          email:       form.email,
-          phone:       form.phone,
-          address:     form.address,
-        }),
+      await api.patch(`/restaurants/${restaurantId}`, {
+        name:        form.name,
+        description: form.desc,
+        email:       form.email,
+        phone:       form.phone,
+        address:     form.address,
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       toast.success('Informations enregistrées !');
     } catch {
       toast.error('Erreur lors de la sauvegarde');
@@ -230,20 +214,14 @@ function GeneralTab({ restaurantId, accessToken }: TabProps) {
   );
 }
 
-function HorairesTab({ restaurantId, accessToken }: TabProps) {
+function HorairesTab({ restaurantId }: TabProps) {
   const [schedule, setSchedule] = useState(INIT_SCHEDULE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!restaurantId || !accessToken) { setLoading(false); return; }
-    fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<RestaurantData>;
-      })
+    if (!restaurantId) { setLoading(false); return; }
+    (api.get(`/restaurants/${restaurantId}`) as Promise<RestaurantData>)
       .then((data) => {
         if (data.openingHours && Object.keys(data.openingHours).length > 0) {
           setSchedule(data.openingHours as Record<string, DaySchedule>);
@@ -251,7 +229,7 @@ function HorairesTab({ restaurantId, accessToken }: TabProps) {
       })
       .catch(() => toast.error('Impossible de charger les horaires'))
       .finally(() => setLoading(false));
-  }, [restaurantId, accessToken]);
+  }, [restaurantId]);
 
   const setDay = (day: string, field: keyof DaySchedule, value: boolean | string) =>
     setSchedule((prev) => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
@@ -264,18 +242,10 @@ function HorairesTab({ restaurantId, accessToken }: TabProps) {
   }
 
   async function handleSave() {
-    if (!restaurantId || !accessToken) return;
+    if (!restaurantId) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/restaurants/${restaurantId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ openingHours: schedule }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      await api.patch(`/restaurants/${restaurantId}`, { openingHours: schedule });
       toast.success('Horaires enregistrés !');
     } catch {
       toast.error('Erreur lors de la sauvegarde');
@@ -1012,15 +982,15 @@ function PeripheriquesTab() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const { accessToken, user } = useAuthStore();
+  const { user } = useAuthStore();
   const restaurantId = user?.restaurantIds?.[0] ?? '';
 
   const [activeTab, setActiveTab] = useState<TabId>('general');
 
   function renderContent() {
     switch (activeTab) {
-      case 'general':       return <GeneralTab restaurantId={restaurantId} accessToken={accessToken ?? ''} />;
-      case 'horaires':      return <HorairesTab restaurantId={restaurantId} accessToken={accessToken ?? ''} />;
+      case 'general':       return <GeneralTab restaurantId={restaurantId} />;
+      case 'horaires':      return <HorairesTab restaurantId={restaurantId} />;
       case 'notifications': return <NotificationsTab />;
       case 'livraison':     return <LivraisonTab />;
       case 'paiements':     return <PaiementsTab />;
