@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import twilio from 'twilio';
 import type { Twilio } from 'twilio';
+import { PrismaService } from '../../database/prisma.service';
 
 interface OrderConfirmationData {
   orderNumber: string;
@@ -29,7 +30,10 @@ export class NotificationsService {
   private readonly resend: Resend | null;
   private twilioClient: Twilio | null = null;
 
-  constructor(private config: ConfigService) {
+  constructor(
+    private config: ConfigService,
+    private prisma: PrismaService,
+  ) {
     const apiKey = this.config.get<string>('RESEND_API_KEY');
     if (!apiKey) {
       this.logger.warn('RESEND_API_KEY is not configured — emails will be skipped');
@@ -44,6 +48,72 @@ export class NotificationsService {
       this.logger.warn('Twilio credentials not configured — SMS will be skipped');
     }
   }
+
+  // ─── In-app notification CRUD ────────────────────────────────
+
+  async createNotification(
+    userId: string,
+    type: string,
+    title: string,
+    body: string,
+    orderId?: string,
+  ) {
+    return this.prisma.notification.create({
+      data: {
+        userId,
+        type,
+        title,
+        body,
+        channel: 'push',
+        data: orderId ? { orderId } : undefined,
+      },
+    });
+  }
+
+  async listForUser(userId: string) {
+    return this.prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async unreadCount(userId: string): Promise<{ count: number }> {
+    const count = await this.prisma.notification.count({
+      where: { userId, read: false },
+    });
+    return { count };
+  }
+
+  async markRead(id: string, userId: string): Promise<{ ok: boolean }> {
+    const notification = await this.prisma.notification.findUnique({ where: { id } });
+    if (!notification || notification.userId !== userId) {
+      throw new NotFoundException(`Notification ${id} not found`);
+    }
+    await this.prisma.notification.update({
+      where: { id },
+      data: { read: true, readAt: new Date() },
+    });
+    return { ok: true };
+  }
+
+  async markAllRead(userId: string): Promise<{ count: number }> {
+    const result = await this.prisma.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true, readAt: new Date() },
+    });
+    return { count: result.count };
+  }
+
+  async deleteNotification(id: string, userId: string): Promise<{ ok: boolean }> {
+    const notification = await this.prisma.notification.findUnique({ where: { id } });
+    if (!notification || notification.userId !== userId) {
+      throw new NotFoundException(`Notification ${id} not found`);
+    }
+    await this.prisma.notification.delete({ where: { id } });
+    return { ok: true };
+  }
+
+  // ─── Email / SMS senders ─────────────────────────────────────
 
   async sendOrderConfirmation(to: string, orderData: OrderConfirmationData): Promise<void> {
     const itemRows = orderData.items

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -180,6 +180,36 @@ export default function ActiveDeliveryScreen() {
   const latDelta = Math.abs(activeDelivery.restaurantLat - activeDelivery.customerLat) * 2.5 + 0.01;
   const lngDelta = Math.abs(activeDelivery.restaurantLng - activeDelivery.customerLng) * 2.5 + 0.01;
 
+  // ── ETA helpers ──────────────────────────────────────────────────────────────
+  // Mock distances: restaurant leg ~0.5 km, customer leg ~2.3 km
+  // Speed assumption: 25 km/h average urban moped speed
+  const MOCK_RESTAURANT_KM = 0.5;
+  const MOCK_CUSTOMER_KM = 2.3;
+  const AVG_SPEED_KMH = 25;
+
+  const eta = useMemo(() => {
+    const toRestaurantKm = driverCoords
+      ? Math.sqrt(
+          Math.pow((driverCoords.lat - activeDelivery.restaurantLat) * 111, 2) +
+          Math.pow((driverCoords.lng - activeDelivery.restaurantLng) * 85, 2),
+        )
+      : MOCK_RESTAURANT_KM;
+    const toCustomerKm = MOCK_CUSTOMER_KM;
+    return {
+      restaurantMin: Math.max(1, Math.round((toRestaurantKm / AVG_SPEED_KMH) * 60)),
+      customerMin:   Math.max(1, Math.round((toCustomerKm  / AVG_SPEED_KMH) * 60)),
+      restaurantKm:  toRestaurantKm.toFixed(1),
+      customerKm:    toCustomerKm.toFixed(1),
+    };
+  }, [driverCoords, activeDelivery.restaurantLat, activeDelivery.restaurantLng]);
+
+  const openNavigationMaps = (address: string) => {
+    const encoded = encodeURIComponent(address);
+    Linking.openURL(`https://maps.google.com/?daddr=${encoded}`).catch(() =>
+      Linking.openURL(`maps://?daddr=${encoded}`),
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* ── Top step indicator ─────────────────────────────────────────────── */}
@@ -233,9 +263,12 @@ export default function ActiveDeliveryScreen() {
         showsUserLocation={false}
         showsMyLocationButton={false}
       >
-        <Marker coordinate={restaurantCoord} title={activeDelivery.restaurantName} pinColor="#ef4444" />
-        <Marker coordinate={customerCoord} title={activeDelivery.customerName ?? 'Client'} pinColor={Colors.brand[500]} />
+        {/* Green marker — restaurant */}
+        <Marker coordinate={restaurantCoord} title={activeDelivery.restaurantName} pinColor="#22c55e" />
+        {/* Red marker — customer */}
+        <Marker coordinate={customerCoord} title={activeDelivery.customerName ?? 'Client'} pinColor="#ef4444" />
 
+        {/* Blue marker — driver current position */}
         {driverCoords && (
           <Marker
             coordinate={{ latitude: driverCoords.lat, longitude: driverCoords.lng }}
@@ -325,6 +358,46 @@ export default function ActiveDeliveryScreen() {
               </View>
             </View>
           </View>
+
+          {/* ETA card */}
+          <View style={styles.etaCard}>
+            <Text style={styles.etaCardTitle}>Temps estimé</Text>
+            <View style={styles.etaRow}>
+              {/* Restaurant leg */}
+              <View style={styles.etaLeg}>
+                <View style={[styles.etaDot, { backgroundColor: '#22c55e' }]} />
+                <View style={styles.etaInfo}>
+                  <Text style={styles.etaLegLabel}>Restaurant</Text>
+                  <Text style={styles.etaLegTime}>~{eta.restaurantMin} min</Text>
+                  <Text style={styles.etaLegDist}>{eta.restaurantKm} km</Text>
+                </View>
+              </View>
+              <View style={styles.etaSeparator} />
+              {/* Customer leg */}
+              <View style={styles.etaLeg}>
+                <View style={[styles.etaDot, { backgroundColor: '#ef4444' }]} />
+                <View style={styles.etaInfo}>
+                  <Text style={styles.etaLegLabel}>Livraison</Text>
+                  <Text style={styles.etaLegTime}>~{eta.customerMin} min</Text>
+                  <Text style={styles.etaLegDist}>{eta.customerKm} km</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Navigation button */}
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={() => openNavigationMaps(
+              activeDelivery.status === 'delivering'
+                ? activeDelivery.customerAddress
+                : activeDelivery.restaurantAddress,
+            )}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.navBtnEmoji}>🗺️</Text>
+            <Text style={styles.navBtnText}>Ouvrir dans Maps</Text>
+          </TouchableOpacity>
 
           {/* Items */}
           {activeDelivery.items.length > 0 && (
@@ -581,6 +654,81 @@ const styles = StyleSheet.create({
     width: 1,
     height: 20,
     backgroundColor: Colors.surface[200],
+  },
+
+  // ── ETA card
+  etaCard: {
+    backgroundColor: Colors.surface[50],
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+  },
+  etaCardTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.surface[400],
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  etaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  etaLeg: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  etaDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  etaInfo: { flex: 1 },
+  etaLegLabel: {
+    fontSize: 11,
+    color: Colors.surface[400],
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  etaLegTime: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.surface[900],
+  },
+  etaLegDist: {
+    fontSize: 12,
+    color: Colors.surface[500],
+    marginTop: 1,
+  },
+  etaSeparator: {
+    width: 1,
+    height: 40,
+    backgroundColor: Colors.surface[200],
+    marginHorizontal: 12,
+  },
+
+  // ── Navigation button
+  navBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#eff6ff',
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  navBtnEmoji: { fontSize: 18 },
+  navBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2563eb',
   },
 
   // ── Items card

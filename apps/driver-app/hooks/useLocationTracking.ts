@@ -54,7 +54,13 @@ export function useLocationTracking({ driverId, orderId, active, onLocation }: O
             lng: loc.coords.longitude,
             heading: loc.coords.heading ?? undefined,
           };
-          socket.emit('driver:location_update', { driverId, orderId, ...coords });
+          socket.emit('driver_location_update', {
+            driverId,
+            orderId,
+            lat: coords.lat,
+            lng: coords.lng,
+            heading: coords.heading ?? null,
+          });
           onLocationRef.current?.(coords);
         },
       );
