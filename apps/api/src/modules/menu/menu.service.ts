@@ -10,12 +10,15 @@ export class MenuService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getMenu(restaurantId: string) {
-    // TODO: Return categories with nested items, sorted by sortOrder
-    return this.prisma.menuCategory.findMany({
+    const cats = await this.prisma.menuCategory.findMany({
       where: { restaurantId },
       include: { items: { orderBy: { position: 'asc' } } },
       orderBy: { position: 'asc' },
     });
+    // Return both the flat structure (categories + items) AND the nested array
+    // so both web dashboard and mobile apps can consume this endpoint.
+    const items = cats.flatMap((c) => c.items);
+    return { categories: cats, items };
   }
 
   async createCategory(dto: CreateCategoryDto) {

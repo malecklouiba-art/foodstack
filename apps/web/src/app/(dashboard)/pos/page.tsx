@@ -441,8 +441,10 @@ export default function POSPage() {
   useEffect(() => {
     const restaurantId = authUser?.restaurantIds?.[0];
     if (!restaurantId) return;
-    (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<{ id: string; name: string; items: { id: string; name: string; price: number; category?: string }[] }[]>)
-      .then((cats) => {
+    type RawCat = { id: string; name: string; items: { id: string; name: string; price: number }[] };
+    (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<{ categories: RawCat[] } | RawCat[]>)
+      .then((resp) => {
+        const cats: RawCat[] = Array.isArray(resp) ? resp : (resp as { categories: RawCat[] }).categories ?? [];
         const items: POSItem[] = cats.flatMap((cat) =>
           cat.items.map((it) => ({
             id: it.id,

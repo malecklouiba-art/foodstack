@@ -59,11 +59,12 @@ export default function MenuPage() {
   useEffect(() => {
     const restaurantId = authUser?.restaurantIds?.[0];
     if (!restaurantId) return;
-    (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<ApiCategory[]>)
+    (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<{ categories: ApiCategory[]; items: MenuItem[] } | ApiCategory[]>)
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
-          const cats = data.map(({ items: _items, ...cat }) => cat as MenuCategory);
-          const allItems = data.flatMap((c) => c.items ?? []);
+        const rawCats: ApiCategory[] = Array.isArray(data) ? data : (data as { categories: ApiCategory[] }).categories ?? [];
+        if (rawCats.length > 0) {
+          const cats = rawCats.map(({ items: _items, ...cat }) => cat as MenuCategory);
+          const allItems = rawCats.flatMap((c) => c.items ?? []);
           setCategories(cats);
           setItems(allItems);
           setSelectedCatId(cats[0]?.id ?? INIT_CATEGORIES[0].id);

@@ -90,7 +90,7 @@ export default function RestaurantDetailScreen() {
 
         const [restoData, menuData] = await Promise.all([
           api.get<RestaurantDetail>(`/api/v1/restaurants/${id}`),
-          api.get<MenuResponse>(`/api/v1/menus?restaurantId=${id}`),
+          api.get<MenuResponse>(`/api/v1/menu?restaurantId=${id}`),
         ]);
 
         setRestaurant(restoData);
