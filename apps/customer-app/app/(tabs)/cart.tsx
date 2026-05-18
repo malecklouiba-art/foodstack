@@ -52,7 +52,7 @@ export default function CartScreen() {
   const openCheckoutModal = async () => {
     // Try to fetch saved addresses
     try {
-      const data = await api.get<SavedAddress[]>('/api/v1/users/addresses');
+      const data = await api.get<SavedAddress[]>('/api/v1/users/me/addresses');
       if (Array.isArray(data) && data.length > 0) {
         setSavedAddresses(data);
         setSelectedAddressId(data.find((a) => a.isDefault)?.id ?? data[0].id);

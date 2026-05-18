@@ -70,7 +70,7 @@ export default function AddressesScreen() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<Address[]>('/api/v1/users/addresses');
+      const data = await api.get<Address[]>('/api/v1/users/me/addresses');
       setAddresses(data);
     } catch {
       // API unavailable — fall back to mock data
@@ -99,7 +99,7 @@ export default function AddressesScreen() {
       prev.map((a) => ({ ...a, isDefault: a.id === addr.id })),
     );
     api
-      .patch<Address>(`/api/v1/users/addresses/${addr.id}`, { isDefault: true })
+      .patch<Address>(`/api/v1/users/me/addresses/${addr.id}`, { isDefault: true })
       .catch(() => {
         // Revert on failure
         setAddresses((prev) =>
@@ -124,7 +124,7 @@ export default function AddressesScreen() {
             // Optimistic update
             setAddresses((prev) => prev.filter((a) => a.id !== addr.id));
             api
-              .patch<Address>(`/api/v1/users/addresses/${addr.id}`, { deleted: true })
+              .patch<Address>(`/api/v1/users/me/addresses/${addr.id}`, { deleted: true })
               .catch(() => {
                 // Revert on failure
                 setAddresses((prev) => [...prev, addr].sort((a, b) => a.id.localeCompare(b.id)));
@@ -171,7 +171,7 @@ export default function AddressesScreen() {
         const updated: Address = { ...editingAddress, label: formLabel, address: formAddress.trim() };
         setAddresses((prev) => prev.map((a) => (a.id === editingAddress.id ? updated : a)));
         closeModal();
-        await api.patch<Address>(`/api/v1/users/addresses/${editingAddress.id}`, {
+        await api.patch<Address>(`/api/v1/users/me/addresses/${editingAddress.id}`, {
           label: formLabel,
           address: formAddress.trim(),
         });
@@ -186,7 +186,7 @@ export default function AddressesScreen() {
         };
         setAddresses((prev) => [...prev, tempAddr]);
         closeModal();
-        const created = await api.post<Address>('/api/v1/users/addresses', {
+        const created = await api.post<Address>('/api/v1/users/me/addresses', {
           label: formLabel,
           address: formAddress.trim(),
         });

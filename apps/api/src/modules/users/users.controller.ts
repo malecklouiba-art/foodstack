@@ -46,8 +46,14 @@ export class UsersController {
   @Post('me/addresses')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Add a saved address' })
-  addAddress(@Request() req: any, @Body() body: { label: string; street: string; city: string; postalCode: string; isDefault?: boolean }) {
-    return this.usersService.addAddress(req.user.id, body);
+  addAddress(
+    @Request() req: any,
+    @Body() body: { label: string; address?: string; street?: string; city?: string; postalCode?: string; isDefault?: boolean },
+  ) {
+    const street = body.street ?? body.address ?? '';
+    const city = body.city ?? '';
+    const postalCode = body.postalCode ?? '';
+    return this.usersService.addAddress(req.user.id, { label: body.label, street, city, postalCode, isDefault: body.isDefault });
   }
 
   @Patch('me/addresses/:addressId')
@@ -55,9 +61,11 @@ export class UsersController {
   updateAddress(
     @Request() req: any,
     @Param('addressId') addressId: string,
-    @Body() body: { label?: string; street?: string; city?: string; postalCode?: string; isDefault?: boolean; deleted?: boolean },
+    @Body() body: { label?: string; address?: string; street?: string; city?: string; postalCode?: string; isDefault?: boolean; deleted?: boolean },
   ) {
-    return this.usersService.updateAddress(req.user.id, addressId, body);
+    const { address, ...rest } = body;
+    const updateBody = address ? { ...rest, street: address } : rest;
+    return this.usersService.updateAddress(req.user.id, addressId, updateBody);
   }
 
   @Delete('me/addresses/:addressId')
