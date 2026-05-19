@@ -383,7 +383,7 @@ export default function PaymentsPage() {
         const txs: Transaction[] = data.map((o) => ({
           id: `TXN-${o.orderNumber ?? o.id.slice(-6)}`,
           order: `ORD-${o.orderNumber ?? o.id.slice(-6)}`,
-          customer: o.customerName ?? o.customer?.name ?? o.customer ?? 'Client',
+          customer: o.customerName ?? ([o.customer?.firstName, o.customer?.lastName].filter(Boolean).join(' ') || 'Client'),
           amount: o.total ?? 0,
           method: o.paymentMethod ?? 'Carte',
           status: o.status === 'delivered' ? 'completed' : o.status === 'cancelled' ? 'refunded' : 'pending',

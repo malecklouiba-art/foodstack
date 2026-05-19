@@ -288,22 +288,22 @@ function RestaurantDashboard() {
 
   useEffect(() => {
     if (!restaurantId) return;
-    (api.get(`/analytics/${restaurantId}/sales`) as Promise<{ totalOrders?: number; totalRevenue?: number }>)
+    (api.get(`/analytics/${restaurantId}/sales`) as Promise<{ orderCount?: number; revenue?: number }>)
       .then((s) => {
-        if (s.totalOrders) incOrders(s.totalOrders - BASE_STATS.orders);
-        if (s.totalRevenue) incRevenue(Math.round(s.totalRevenue) - BASE_STATS.revenue);
+        if (s.orderCount != null) incOrders(s.orderCount - BASE_STATS.orders);
+        if (s.revenue != null) incRevenue(Math.round(s.revenue) - BASE_STATS.revenue);
       })
       .catch(() => {});
-    (api.get(`/orders/restaurant/${restaurantId}`) as Promise<{ id: string; orderNumber?: string; status: string; total?: number; items?: unknown[] }[]>)
+    (api.get(`/orders/restaurant/${restaurantId}`) as Promise<{ id: string; orderNumber?: string; status: string; total?: number; items?: unknown[]; customer?: { firstName?: string; lastName?: string }; createdAt?: string }[]>)
       .then((orders) => {
         if (Array.isArray(orders) && orders.length > 0) {
           const live = orders.slice(0, 4).map((o) => ({
             id: o.orderNumber ?? o.id,
-            customer: 'Client',
+            customer: [o.customer?.firstName, o.customer?.lastName].filter(Boolean).join(' ') || 'Client',
             items: Array.isArray(o.items) ? o.items.length : 1,
             total: o.total ?? 0,
             status: o.status,
-            time: '—',
+            time: o.createdAt ? new Date(o.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—',
           }));
           setLiveOrders(live);
         }
