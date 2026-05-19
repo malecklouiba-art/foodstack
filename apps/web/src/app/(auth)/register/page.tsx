@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createClient } from '@/lib/supabase';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 const passwordRules = [
   { label: 'Au moins 8 caractères', test: (p: string) => p.length >= 8 },
@@ -13,8 +14,14 @@ const passwordRules = [
   { label: 'Un chiffre', test: (p: string) => /\d/.test(p) },
 ];
 
+function setDemoCookie(role: string) {
+  const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
+  document.cookie = `fs_demo=${role}; path=/; expires=${expires}; SameSite=Lax`;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
+  const { setUser } = useAuthStore();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,23 +36,29 @@ export default function RegisterPage() {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        data: { name: form.name, role },
-        emailRedirectTo: `${location.origin}/auth/callback`,
-      },
-    });
-    if (error) {
-      toast.error(error.message);
+    try {
+      const data = await (api.post('/auth/register', {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        role,
+      }) as Promise<any>);
+      setUser({
+        id: data.user.id,
+        email: data.user.email,
+        name: ([data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email) as string,
+        role: data.user.role,
+        avatar: data.user.avatar ?? undefined,
+        loyaltyPoints: data.user.loyaltyPoints,
+        restaurantIds: (data.user.restaurantIds ?? []) as string[],
+      }, data.accessToken);
+      setDemoCookie(role === 'restaurant_owner' ? 'owner' : 'customer');
+      toast.success('Compte créé ! Bienvenue sur FoodStack.');
+      router.push('/dashboard');
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Erreur lors de la création du compte');
       setLoading(false);
-      return;
     }
-    toast.success('Compte créé ! Vérifiez votre email pour confirmer.');
-    router.push('/dashboard');
-    setLoading(false);
   };
 
   return (

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 interface User {
   id: string;
@@ -58,10 +58,18 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw new Error(errorData.message ?? 'Identifiants incorrects.');
       }
 
-      const data = (await response.json()) as { accessToken: string; refreshToken: string; user: User };
-      await persistAuth(data.accessToken, data.refreshToken, data.user);
+      const data = (await response.json()) as { accessToken: string; refreshToken: string; user: any };
+      const user: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name ?? [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email,
+        role: data.user.role,
+        loyaltyPoints: data.user.loyaltyPoints,
+        loyaltyTier: data.user.loyaltyTier,
+      };
+      await persistAuth(data.accessToken, data.refreshToken, user);
       set({
-        user: data.user,
+        user,
         token: data.accessToken,
         refreshToken: data.refreshToken,
         isAuthenticated: true,
@@ -95,10 +103,18 @@ export const useAuthStore = create<AuthState>((set) => ({
         throw new Error(errorData.message ?? 'Erreur lors de la création du compte.');
       }
 
-      const data = (await response.json()) as { accessToken: string; refreshToken: string; user: User };
-      await persistAuth(data.accessToken, data.refreshToken, data.user);
+      const data = (await response.json()) as { accessToken: string; refreshToken: string; user: any };
+      const user: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name ?? [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email,
+        role: data.user.role,
+        loyaltyPoints: data.user.loyaltyPoints,
+        loyaltyTier: data.user.loyaltyTier,
+      };
+      await persistAuth(data.accessToken, data.refreshToken, user);
       set({
-        user: data.user,
+        user,
         token: data.accessToken,
         refreshToken: data.refreshToken,
         isAuthenticated: true,

@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import {
   Plus,
   MapPin,
@@ -126,18 +128,33 @@ const INITIAL_ZONES: Zone[] = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ZonesPage() {
+  const { user: authUser } = useAuthStore();
+  const restaurantId = authUser?.restaurantIds?.[0] ?? '';
+
   const [zones, setZones] = useState<Zone[]>(INITIAL_ZONES);
   const [showAddModal, setShowAddModal] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing'>('synced');
   const [lastSyncAt, setLastSyncAt] = useState<string>(() => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
 
-  function syncToApps() {
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/restaurants/${restaurantId}/zones`) as Promise<any>)
+      .then((data: any[]) => { if (data?.length) setZones(data); })
+      .catch(() => { /* keep seed zones */ });
+  }, [restaurantId]);
+
+  const syncToApps = useCallback(async () => {
     setSyncStatus('syncing');
-    setTimeout(() => {
-      setSyncStatus('synced');
-      setLastSyncAt(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
-    }, 1800);
-  }
+    try {
+      if (restaurantId) {
+        await (api.put(`/restaurants/${restaurantId}/zones`, zones) as Promise<any>);
+      }
+    } catch {
+      // best-effort
+    }
+    setSyncStatus('synced');
+    setLastSyncAt(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+  }, [restaurantId, zones]);
   const [editZone, setEditZone] = useState<Zone | null>(null);
   const [editForm, setEditForm] = useState<{ name: string; feeEuros: string; radiusKm: string }>({
     name: '', feeEuros: '', radiusKm: '',

@@ -80,4 +80,17 @@ export class RestaurantsService {
       data: { isOpen: !restaurant.isOpen },
     });
   }
+
+  async getZones(id: string): Promise<any[]> {
+    const restaurant = await this.findById(id);
+    const settings = (restaurant.settings ?? {}) as Record<string, any>;
+    return settings['deliveryZones'] ?? [];
+  }
+
+  async updateZones(id: string, zones: any[]): Promise<any[]> {
+    const restaurant = await this.findById(id);
+    const settings = { ...((restaurant.settings ?? {}) as Record<string, any>), deliveryZones: zones };
+    await this.prisma.restaurant.update({ where: { id }, data: { settings } });
+    return zones;
+  }
 }

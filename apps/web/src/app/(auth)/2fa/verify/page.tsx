@@ -4,11 +4,14 @@ import { useState, useRef, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 function TwoFactorVerifyInner() {
   const router = useRouter();
   const params = useSearchParams();
   const userId = params.get('userId') ?? '';
+  const { setUser } = useAuthStore();
 
   const [digits, setDigits] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
@@ -57,23 +60,21 @@ function TwoFactorVerifyInner() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/2fa/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, token }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Code invalide');
-      }
-      const data = await res.json();
-      if (data.accessToken) {
-        localStorage.setItem('accessToken', data.accessToken);
-        if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+      const data = await (api.post('/auth/2fa/verify', { userId, token }) as Promise<any>);
+      if (data.accessToken && data.user) {
+        setUser({
+          id: data.user.id,
+          email: data.user.email,
+          name: ([data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email) as string,
+          role: data.user.role,
+          avatar: data.user.avatar ?? undefined,
+          loyaltyPoints: data.user.loyaltyPoints,
+          restaurantIds: (data.user.restaurantIds ?? []) as string[],
+        }, data.accessToken);
       }
       router.push('/dashboard');
     } catch (e: any) {
-      setError(e.message);
+      setError(e?.message ?? 'Code invalide');
       setDigits(['', '', '', '', '', '']);
       setLoading(false);
       inputRefs.current[0]?.focus();

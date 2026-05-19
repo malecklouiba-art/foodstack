@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = 'driver-auth';
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export interface Driver {
   id: string;
@@ -56,20 +56,27 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const data = (await response.json()) as {
         accessToken: string;
         refreshToken: string;
-        user: Driver;
+        user: any;
+      };
+
+      const driver: Driver = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name ?? [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email,
+        role: data.user.role,
       };
 
       const stored = JSON.stringify({
         token: data.accessToken,
         refreshToken: data.refreshToken,
-        driver: data.user,
+        driver,
       });
       await AsyncStorage.setItem(STORAGE_KEY, stored);
 
       set({
         token: data.accessToken,
         refreshToken: data.refreshToken,
-        driver: data.user,
+        driver,
         isAuthenticated: true,
         isLoading: false,
       });

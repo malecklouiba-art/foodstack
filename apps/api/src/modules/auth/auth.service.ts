@@ -29,6 +29,7 @@ export class AuthService {
   }
 
   async login(user: any) {
+    const restaurantIds = await this.usersService.getRestaurantIds(user.id);
     const payload = { sub: user.id, email: user.email, role: user.role };
     return {
       accessToken: this.jwtService.sign(payload),
@@ -36,7 +37,7 @@ export class AuthService {
         secret: this.config.get('JWT_REFRESH_SECRET'),
         expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
       }),
-      user,
+      user: { ...user, restaurantIds },
     };
   }
 

@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  Put,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
@@ -89,5 +90,18 @@ export class RestaurantsController {
   @ApiOperation({ summary: 'Toggle the open/closed status of a restaurant' })
   toggleOpen(@Param('id') id: string) {
     return this.restaurantsService.toggleOpen(id);
+  }
+
+  @Get(':id/zones')
+  @ApiOperation({ summary: 'Get delivery zones for a restaurant' })
+  getZones(@Param('id') id: string) {
+    return this.restaurantsService.getZones(id);
+  }
+
+  @Put(':id/zones')
+  @Roles('restaurant_owner', 'super_admin')
+  @ApiOperation({ summary: 'Replace delivery zones for a restaurant' })
+  updateZones(@Param('id') id: string, @Body() zones: any[]) {
+    return this.restaurantsService.updateZones(id, zones);
   }
 }

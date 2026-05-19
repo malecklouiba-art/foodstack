@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, CheckCircle, Copy, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import api from '@/lib/api';
 
 export default function TwoFactorSetupPage() {
   const router = useRouter();
@@ -22,9 +23,7 @@ export default function TwoFactorSetupPage() {
 
   async function initSetup() {
     try {
-      const res = await fetch('/api/auth/2fa/setup', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to initialize 2FA');
-      const data = await res.json();
+      const data = await (api.post('/auth/2fa/setup') as Promise<any>);
       setQrCodeDataUrl(data.qrCodeDataUrl);
       setSecret(data.secret);
       setStep('setup');
@@ -42,18 +41,10 @@ export default function TwoFactorSetupPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/2fa/enable', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Code invalide');
-      }
+      await (api.post('/auth/2fa/enable', { token }) as Promise<any>);
       setStep('done');
     } catch (e: any) {
-      setError(e.message);
+      setError(e?.message ?? 'Code invalide');
     } finally {
       setLoading(false);
     }

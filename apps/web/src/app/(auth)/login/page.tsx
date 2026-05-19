@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 
 // Demo accounts — bypass Supabase when these credentials are used
 const DEMO_ACCOUNTS = [
@@ -29,8 +31,32 @@ function setDemoCookie(role: string) {
   document.cookie = `fs_demo=${role}; path=/; expires=${expires}; SameSite=Lax`;
 }
 
+function roleToCookie(role: string): string {
+  const map: Record<string, string> = {
+    super_admin: 'admin',
+    restaurant_owner: 'owner',
+    staff: 'staff',
+    driver: 'driver',
+    customer: 'customer',
+  };
+  return map[role] ?? role;
+}
+
+function mapApiUser(u: any) {
+  return {
+    id: u.id as string,
+    email: u.email as string,
+    name: ([u.firstName, u.lastName].filter(Boolean).join(' ') || u.email) as string,
+    role: u.role as any,
+    avatar: u.avatar ?? undefined,
+    loyaltyPoints: u.loyaltyPoints,
+    restaurantIds: (u.restaurantIds ?? []) as string[],
+  };
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const { setUser } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -45,42 +71,64 @@ export default function LoginPage() {
     }
     setLoading(true);
 
-    // Demo bypass — no Supabase needed
-    const demo = DEMO_ACCOUNTS.find(
+    const demoMatch = DEMO_ACCOUNTS.find(
       (a) => a.email === email.trim().toLowerCase() && a.password === password
     );
-    if (demo) {
-      setDemoCookie(demo.role);
-      toast.success(`Connecté en tant que ${demo.label}`);
-      router.push(demo.redirect);
-      router.refresh();
-      return;
-    }
 
-    // Real Supabase auth
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast.error(
-          error.message === 'Invalid login credentials'
-            ? 'Email ou mot de passe incorrect'
-            : error.message
-        );
-        setLoading(false);
-        return;
-      }
-      toast.success('Connexion réussie !');
-      router.push('/dashboard');
+      const data = await (api.post('/auth/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      }) as Promise<any>);
+      setUser(mapApiUser(data.user), data.accessToken);
+      setDemoCookie(roleToCookie(data.user.role));
+      toast.success(demoMatch ? `Connecté en tant que ${demoMatch.label}` : 'Connexion réussie !');
+      router.push(demoMatch?.redirect ?? '/dashboard');
       router.refresh();
-    } catch {
-      toast.error('Erreur de connexion. Réessayez.');
-      setLoading(false);
+    } catch (err: any) {
+      if (demoMatch) {
+        // API unavailable — fall back to cookie-only demo mode
+        setDemoCookie(demoMatch.role);
+        toast.success(`Connecté en tant que ${demoMatch.label}`);
+        router.push(demoMatch.redirect);
+        router.refresh();
+      } else {
+        // Try Supabase as fallback for non-demo accounts
+        try {
+          const supabase = createClient();
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) {
+            toast.error(
+              error.message === 'Invalid login credentials'
+                ? 'Email ou mot de passe incorrect'
+                : error.message
+            );
+            setLoading(false);
+            return;
+          }
+          toast.success('Connexion réussie !');
+          router.push('/dashboard');
+          router.refresh();
+        } catch {
+          toast.error(err?.message ?? 'Erreur de connexion. Réessayez.');
+          setLoading(false);
+        }
+      }
     }
   };
 
-  const loginAs = (account: typeof DEMO_ACCOUNTS[number]) => {
-    setDemoCookie(account.role);
+  const loginAs = async (account: typeof DEMO_ACCOUNTS[number]) => {
+    try {
+      const data = await (api.post('/auth/login', {
+        email: account.email,
+        password: account.password,
+      }) as Promise<any>);
+      setUser(mapApiUser(data.user), data.accessToken);
+      setDemoCookie(roleToCookie(data.user.role));
+    } catch {
+      // API unavailable — cookie-only fallback
+      setDemoCookie(account.role);
+    }
     toast.success(`Connecté en tant que ${account.label}`);
     router.push(account.redirect);
     router.refresh();

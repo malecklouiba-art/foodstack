@@ -223,6 +223,14 @@ export class UsersService {
     return user;
   }
 
+  async getRestaurantIds(userId: string): Promise<string[]> {
+    const rows = await this.prisma.restaurant.findMany({
+      where: { ownerId: userId },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
   async updateUser(id: string, data: Partial<{ twoFactorSecret: string | null; twoFactorEnabled: boolean }>) {
     return this.prisma.user.update({ where: { id }, data });
   }
