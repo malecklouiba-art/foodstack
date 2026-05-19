@@ -106,7 +106,9 @@ interface PlatformRestaurant {
 function SuperAdminDashboard() {
   const [platformStats, setPlatformStats] = useState<{
     totalRestaurants?: number; activeRestaurants?: number;
-    totalOrders?: number; totalRevenue?: number; totalUsers?: number;
+    totalOrders?: number; ordersCount?: number;
+    monthlyRevenue?: number; totalUsers?: number;
+    revenueGrowthRate?: number | null; ordersGrowthRate?: number | null;
   }>({});
   const [platformRestaurants, setPlatformRestaurants] = useState<PlatformRestaurant[]>([]);
 
@@ -119,9 +121,10 @@ function SuperAdminDashboard() {
       .catch(() => {});
   }, []);
 
-  const totalMRR = platformStats.totalRevenue
-    ? Math.round(platformStats.totalRevenue / 12)
+  const totalMRR = platformStats.monthlyRevenue
+    ? Math.round(platformStats.monthlyRevenue)
     : 0;
+  const revenueGrowthPct = platformStats.revenueGrowthRate != null ? `+${platformStats.revenueGrowthRate}%` : '+—%';
   const activeRestaurants = platformStats.activeRestaurants ?? platformRestaurants.filter(r => r.isActive).length;
   const totalClients = platformStats.totalUsers ?? 0;
   const avgCommission = 12.4;
@@ -129,7 +132,7 @@ function SuperAdminDashboard() {
   const kpis = [
     {
       label: 'MRR Plateforme', value: `${totalMRR.toLocaleString('fr-FR')} €`,
-      sub: '+18% vs mois dernier', icon: Euro, iconBg: 'bg-brand-50', iconColor: 'text-brand-600',
+      sub: `${revenueGrowthPct} vs mois dernier`, icon: Euro, iconBg: 'bg-brand-50', iconColor: 'text-brand-600',
     },
     {
       label: 'Restaurants actifs', value: String(activeRestaurants),
