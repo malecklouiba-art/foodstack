@@ -92,7 +92,7 @@ function normaliseType(raw?: string): NotifType {
 
 export function DashboardHeader() {
   const pathname = usePathname();
-  const [notifs, setNotifs] = useState<Notification[]>(INITIAL_NOTIFS);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);

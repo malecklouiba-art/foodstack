@@ -293,13 +293,9 @@ function MenuPageInner() {
       if (restaurantId) {
         setActiveRestaurantId(restaurantId);
         await fetchMenu(restaurantId);
-      } else {
-        // API completely unavailable — use mock data
-        setMenuItems(MOCK_ITEMS);
       }
     } catch {
-      setMenuItems(MOCK_ITEMS);
-      setError(null);
+      setMenuItems([]);
     } finally {
       setLoading(false);
     }
