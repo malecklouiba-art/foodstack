@@ -29,8 +29,6 @@ interface Restaurant {
   image?: string;
 }
 
-// ── Fallback mocks ─────────────────────────────────────────────────────────
-
 const GRADIENT_POOL = [
   'from-orange-400 to-red-500',
   'from-rose-400 to-pink-600',
@@ -40,17 +38,6 @@ const GRADIENT_POOL = [
   'from-purple-400 to-violet-600',
   'from-teal-400 to-cyan-600',
   'from-amber-400 to-yellow-600',
-];
-
-const MOCK_RESTAURANTS: Restaurant[] = [
-  { id: 'r1', name: 'Burger Palace',  cuisine: 'Fast Food',   rating: 4.8, reviewCount: 234, deliveryTime: '20-30min', deliveryFee: 2.5, minOrder: 15, isOpen: true,  isFeatured: true,  tags: ['Bestseller', 'Livraison rapide'] },
-  { id: 'r2', name: 'Sushi Zen',      cuisine: 'Japonais',    rating: 4.9, reviewCount: 189, deliveryTime: '25-35min', deliveryFee: 0,   minOrder: 20, isOpen: true,  isFeatured: true,  tags: ['Top noté', 'Livraison offerte'] },
-  { id: 'r3', name: 'Pizza Roma',     cuisine: 'Italien',     rating: 4.6, reviewCount: 312, deliveryTime: '15-25min', deliveryFee: 1.9, minOrder: 12, isOpen: true,  isFeatured: false, tags: ['Populaire'] },
-  { id: 'r4', name: 'Thai Garden',    cuisine: 'Thaïlandais', rating: 4.7, reviewCount: 98,  deliveryTime: '30-40min', deliveryFee: 2.9, minOrder: 18, isOpen: false, isFeatured: false, tags: ['Authentique'] },
-  { id: 'r5', name: 'Le Bistrot',     cuisine: 'Français',    rating: 4.5, reviewCount: 156, deliveryTime: '20-30min', deliveryFee: 2,   minOrder: 15, isOpen: true,  isFeatured: false, tags: ['Traditionnel'] },
-  { id: 'r6', name: 'Tacos Express',  cuisine: 'Mexicain',    rating: 4.4, reviewCount: 445, deliveryTime: '15-20min', deliveryFee: 1.5, minOrder: 10, isOpen: true,  isFeatured: false, tags: ['Rapide'] },
-  { id: 'r7', name: 'Crêpe Bretonne', cuisine: 'Crêperie',    rating: 4.7, reviewCount: 203, deliveryTime: '20-25min', deliveryFee: 0,   minOrder: 8,  isOpen: true,  isFeatured: true,  tags: ['Livraison offerte'] },
-  { id: 'r8', name: 'Kebab Sultan',   cuisine: 'Turc',        rating: 4.3, reviewCount: 567, deliveryTime: '10-20min', deliveryFee: 1,   minOrder: 8,  isOpen: true,  isFeatured: false, tags: ['Ultra rapide'] },
 ];
 
 const CUISINE_FILTERS = ['Tous', 'Fast Food', 'Japonais', 'Italien', 'Thaïlandais', 'Français', 'Mexicain', 'Crêperie', 'Turc'];

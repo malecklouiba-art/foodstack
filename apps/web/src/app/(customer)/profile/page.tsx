@@ -42,7 +42,6 @@ const DIET_LABELS: Record<DietPref, string> = {
 // Next reward config
 const NEXT_REWARD = { points: 1000, label: 'Burger offert' } as const;
 
-// ── mock data ──
 const MOCK_USER = {
   name: '',
   email: '',

@@ -103,13 +103,6 @@ const REWARDS = [
   { id: 'r6', label: 'Repas offert', points: 2000, emoji: '🎁' },
 ];
 
-const MOCK_TRANSACTIONS: Transaction[] = [
-  { id: 't1', points: 45, type: 'earn', reason: 'Commande ORD-8821 livrée', createdAt: new Date('2026-05-11T15:01:00').toISOString(), orderId: 'o1' },
-  { id: 't2', points: 34, type: 'earn', reason: 'Commande ORD-8790 livrée', createdAt: new Date('2026-05-08T20:28:00').toISOString(), orderId: 'o2' },
-  { id: 't3', points: -200, type: 'redeem', reason: 'Points utilisés à la caisse', createdAt: new Date('2026-05-03T12:10:00').toISOString() },
-  { id: 't4', points: 50, type: 'earn', reason: 'Bonus inscription', createdAt: new Date('2026-01-15T09:00:00').toISOString() },
-];
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function relativeDate(iso: string) {

@@ -55,67 +55,6 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
-// ── Mock data fallback ─────────────────────────────────────────────────────────
-
-function makeMockRestaurant(id: string): Restaurant {
-  return {
-    id,
-    name: 'Burger Palace',
-    description: 'Les meilleurs burgers artisanaux de Paris, préparés avec des ingrédients frais et locaux.',
-    cuisine: 'Américain',
-    rating: 4.7,
-    reviewCount: 842,
-    deliveryTime: 25,
-    deliveryFee: 2.5,
-    minOrder: 12,
-    isOpen: true,
-    address: '42 rue de la République, 75011 Paris',
-    phone: '01 42 33 44 55',
-    openingHours: '11h30 – 23h00',
-    tags: ['Burger', 'Fast-food', 'Américain'],
-    coverImage: '',
-    logo: '',
-  };
-}
-
-const MOCK_MENU: MenuCategory[] = [
-  {
-    id: 'c1',
-    name: '🔥 Populaires',
-    items: [
-      { id: 'i1', name: 'Classic Burger', description: 'Steak haché, cheddar, laitue, tomate, cornichons, sauce maison', price: 14.90, isPopular: true, calories: 650, categoryId: 'c1' },
-      { id: 'i2', name: 'Truffle Burger', description: 'Steak Angus, cheddar affiné, champignons, huile de truffe', price: 22.50, isPopular: true, calories: 720, categoryId: 'c1' },
-      { id: 'i3', name: 'Veggie Burger', description: 'Steak de légumes, avocat, roquette, sauce yaourt-citron', price: 13.50, calories: 480, categoryId: 'c1' },
-    ],
-  },
-  {
-    id: 'c2',
-    name: '🍟 Accompagnements',
-    items: [
-      { id: 'i4', name: 'Frites maison', description: 'Frites fraîches, sel de mer, romarin', price: 4.50, calories: 380, categoryId: 'c2' },
-      { id: 'i5', name: 'Onion rings', description: 'Oignons caramélisés panés, sauce barbecue', price: 5.50, calories: 420, categoryId: 'c2' },
-      { id: 'i6', name: 'Coleslaw', description: 'Salade crémeuse de chou, carottes, mayo citron', price: 3.90, calories: 180, categoryId: 'c2' },
-    ],
-  },
-  {
-    id: 'c3',
-    name: '🥤 Boissons',
-    items: [
-      { id: 'i7', name: 'Coca-Cola', price: 3.50, calories: 150, categoryId: 'c3' },
-      { id: 'i8', name: 'Limonade artisanale', description: 'Citron, menthe, eau gazeuse', price: 4.50, calories: 90, categoryId: 'c3' },
-      { id: 'i9', name: 'Milkshake vanille', description: 'Glace artisanale, lait entier', price: 6.50, calories: 520, categoryId: 'c3' },
-    ],
-  },
-  {
-    id: 'c4',
-    name: '🍮 Desserts',
-    items: [
-      { id: 'i10', name: 'Brownie fondant', description: 'Chocolat noir 70%, noix de pécan', price: 5.90, calories: 430, categoryId: 'c4' },
-      { id: 'i11', name: 'Cheesecake NY', description: 'Fromage à la crème, coulis de fruits rouges', price: 6.90, calories: 480, categoryId: 'c4' },
-    ],
-  },
-];
-
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function QuantityBadge({ count, onAdd, onRemove }: { count: number; onAdd: () => void; onRemove: () => void }) {

@@ -62,23 +62,6 @@ function normaliseNotif(raw: ApiNotif): Notification {
   };
 }
 
-// ── Fallback mocks ─────────────────────────────────────────────────────────
-
-const MOCK_NOTIFS: Notification[] = [
-  { id: 'n1',  type: 'order',  title: 'Commande #8821 livrée ✅',                      time: 'Il y a 5 min',  read: false },
-  { id: 'n2',  type: 'order',  title: 'Votre commande #8820 est en route 🛵',          time: 'Il y a 18 min', read: false },
-  { id: 'n3',  type: 'promo',  title: 'Promotion : -20% ce weekend 🎉',                time: 'Il y a 2h',     read: true  },
-  { id: 'n4',  type: 'order',  title: 'Points fidélité : +47 points gagnés ⭐',        time: 'Il y a 3h',     read: false },
-  { id: 'n5',  type: 'system', title: 'Nouveau restaurant disponible dans votre zone', time: 'Il y a 1j',     read: true  },
-  { id: 'n6',  type: 'order',  title: 'Commande #8815 annulée',                        time: 'Hier',          read: true  },
-  { id: 'n7',  type: 'promo',  title: 'Offre spéciale burger du mois 🍔',              time: 'Il y a 2j',     read: true  },
-  { id: 'n8',  type: 'system', title: 'Mise à jour des CGU',                           time: 'Il y a 3j',     read: true  },
-  { id: 'n9',  type: 'order',  title: 'Commande #8810 livrée ✅',                      time: 'Il y a 4j',     read: true  },
-  { id: 'n10', type: 'promo',  title: '-15% sur votre prochaine commande 🎁',          time: 'Il y a 5j',     read: true  },
-  { id: 'n11', type: 'system', title: 'Rappel : votre adresse a été mise à jour',      time: 'Il y a 1sem',   read: true  },
-  { id: 'n12', type: 'system', title: 'Bienvenue chez FoodStack ! 🎉',                 time: 'Il y a 2sem',   read: true  },
-];
-
 type FilterTab = 'all' | NotifType;
 
 const TABS: { key: FilterTab; label: string }[] = [

@@ -76,46 +76,6 @@ function normaliseOrder(raw: ApiOrder): Order {
   };
 }
 
-// ── Fallback mock data ─────────────────────────────────────────────────────
-const MOCK_ORDERS: Order[] = [
-  {
-    id: 'o1', orderNumber: 'ORD-8821', restaurantId: 'r1', customerId: 'u1',
-    type: 'delivery', status: 'delivered', paymentStatus: 'paid', paymentMethod: 'card',
-    items: [
-      { id: 'oi1', menuItemId: 'i1', name: 'Classic Burger', price: 14.90, quantity: 2, modifiers: [], subtotal: 29.80 },
-      { id: 'oi2', menuItemId: 'i3', name: 'Frites maison', price: 4.50, quantity: 2, modifiers: [], subtotal: 9.00 },
-    ],
-    deliveryAddress: { street: '12 rue de la Paix', city: 'Paris', postalCode: '75001', country: 'FR' },
-    subtotal: 38.80, deliveryFee: 2.90, tax: 3.88, discount: 0,
-    loyaltyPointsUsed: 0, loyaltyPointsEarned: 39, total: 45.58,
-    createdAt: new Date('2026-05-11T14:23:00'), updatedAt: new Date('2026-05-11T15:01:00'),
-    actualDeliveryTime: new Date('2026-05-11T15:01:00'),
-  },
-  {
-    id: 'o2', orderNumber: 'ORD-8790', restaurantId: 'r1', customerId: 'u1',
-    type: 'delivery', status: 'delivered', paymentStatus: 'paid', paymentMethod: 'apple_pay',
-    items: [
-      { id: 'oi3', menuItemId: 'i5', name: 'Margherita', price: 13.90, quantity: 1, modifiers: [], subtotal: 13.90 },
-      { id: 'oi4', menuItemId: 'i8', name: 'Tiramisu', price: 7.50, quantity: 2, modifiers: [], subtotal: 15.00 },
-    ],
-    deliveryAddress: { street: '12 rue de la Paix', city: 'Paris', postalCode: '75001', country: 'FR' },
-    subtotal: 28.90, deliveryFee: 2.90, tax: 2.89, discount: 0,
-    loyaltyPointsUsed: 0, loyaltyPointsEarned: 29, total: 34.69,
-    createdAt: new Date('2026-05-08T19:45:00'), updatedAt: new Date('2026-05-08T20:28:00'),
-  },
-  {
-    id: 'o4', orderNumber: 'ORD-8720', restaurantId: 'r1', customerId: 'u1',
-    type: 'delivery', status: 'cancelled', paymentStatus: 'refunded', paymentMethod: 'card',
-    items: [
-      { id: 'oi6', menuItemId: 'i6', name: 'Diavola', price: 15.90, quantity: 2, modifiers: [], subtotal: 31.80 },
-    ],
-    deliveryAddress: { street: '12 rue de la Paix', city: 'Paris', postalCode: '75001', country: 'FR' },
-    subtotal: 31.80, deliveryFee: 2.90, tax: 3.18, discount: 0,
-    loyaltyPointsUsed: 0, loyaltyPointsEarned: 0, total: 37.88,
-    createdAt: new Date('2026-04-28T20:05:00'), updatedAt: new Date('2026-04-28T20:12:00'),
-  },
-];
-
 // ── Scheduled orders (UI only — not backed by API yet) ─────────────────────
 interface ScheduledOrder {
   id: string;

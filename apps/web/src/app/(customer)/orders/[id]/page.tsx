@@ -74,34 +74,6 @@ function formatDate(d: Date | string) {
   }).format(new Date(d));
 }
 
-// ── Mock fallback (used when API is unreachable in dev) ───────────────────
-
-const MOCK_ORDER: Order = {
-  id: 'mock',
-  orderNumber: 'ORD-1234',
-  restaurantId: 'r1',
-  customerId: 'u1',
-  type: 'delivery',
-  status: 'delivering',
-  paymentStatus: 'paid',
-  paymentMethod: 'card',
-  items: [
-    { id: 'oi1', menuItemId: 'i1', name: 'Classic Burger', price: 14.90, quantity: 2, modifiers: [], subtotal: 29.80 },
-    { id: 'oi2', menuItemId: 'i3', name: 'Frites maison',  price: 4.50,  quantity: 2, modifiers: [], subtotal: 9.00 },
-  ],
-  deliveryAddress: { street: '12 rue de la Paix', city: 'Paris', postalCode: '75001', country: 'FR' },
-  subtotal: 38.80,
-  deliveryFee: 2.90,
-  tax: 3.88,
-  discount: 0,
-  loyaltyPointsUsed: 0,
-  loyaltyPointsEarned: 39,
-  total: 45.58,
-  estimatedDeliveryTime: new Date(Date.now() + 15 * 60 * 1000),
-  createdAt: new Date('2026-05-11T14:23:00'),
-  updatedAt: new Date(),
-};
-
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {

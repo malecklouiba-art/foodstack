@@ -3,6 +3,22 @@ import { PrismaService } from '../../database/prisma.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 
+function enrichRestaurant(r: Record<string, any>) {
+  const s = (r.settings ?? {}) as Record<string, any>;
+  const prepTime = s['prepTime'] ?? 20;
+  return {
+    ...r,
+    deliveryFee:  s['deliveryFee']     ?? 0,
+    deliveryTime: `${prepTime}-${prepTime + 10}min`,
+    minOrder:     s['minOrderAmount']  ?? 0,
+    cuisine:      s['cuisine']         ?? null,
+    tags:         s['tags']            ?? [],
+    isFeatured:   s['isFeatured']      ?? false,
+    address:      [r.street, r.city, r.postalCode].filter(Boolean).join(', '),
+    openingHours: s['openingHours']    ?? null,
+  };
+}
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -22,21 +38,30 @@ export class RestaurantsService {
   async findAll(options?: { isOpen?: boolean; cuisine?: string; page?: number; limit?: number }) {
     const page  = options?.page  ?? 1;
     const limit = options?.limit ?? 50;
-    return this.prisma.restaurant.findMany({
+    const rows = await this.prisma.restaurant.findMany({
       where: {
         ...(options?.isOpen !== undefined ? { isOpen: options.isOpen } : {}),
-        ...(options?.cuisine ? { name: { contains: options.cuisine, mode: 'insensitive' as const } } : {}),
       },
       orderBy: { rating: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     });
+    const enriched = rows.map(enrichRestaurant);
+    if (options?.cuisine) {
+      const q = options.cuisine.toLowerCase();
+      return enriched.filter((r) => (r.cuisine ?? '').toLowerCase().includes(q));
+    }
+    return enriched;
   }
 
-  async findById(id: string) {
+  private async findByIdRaw(id: string) {
     const restaurant = await this.prisma.restaurant.findUnique({ where: { id } });
     if (!restaurant) throw new NotFoundException(`Restaurant #${id} not found`);
     return restaurant;
+  }
+
+  async findById(id: string) {
+    return enrichRestaurant((await this.findByIdRaw(id)) as Record<string, any>);
   }
 
   async findNearby(lat: number, lng: number, radiusM: number) {
@@ -56,7 +81,8 @@ export class RestaurantsService {
           haversineKm(lat, lng, a.latitude, a.longitude) -
           haversineKm(lat, lng, b.latitude, b.longitude)
         );
-      });
+      })
+      .map(enrichRestaurant);
   }
 
   async create(dto: CreateRestaurantDto & { address?: string; phone?: string; email?: string; settings?: Record<string, unknown> }) {
@@ -85,7 +111,7 @@ export class RestaurantsService {
   }
 
   async update(id: string, dto: UpdateRestaurantDto) {
-    const existing = await this.findById(id);
+    const existing = await this.findByIdRaw(id);
     const { settings: newSettings, address, logoUrl, cuisine, ...rest } = dto as any;
     const mergedSettings = newSettings
       ? { ...((existing.settings ?? {}) as Record<string, unknown>), ...newSettings }
@@ -102,12 +128,12 @@ export class RestaurantsService {
   }
 
   async remove(id: string) {
-    await this.findById(id);
+    await this.findByIdRaw(id);
     return this.prisma.restaurant.delete({ where: { id } });
   }
 
   async toggleOpen(id: string) {
-    const restaurant = await this.findById(id);
+    const restaurant = await this.findByIdRaw(id);
     return this.prisma.restaurant.update({
       where: { id },
       data: { isOpen: !restaurant.isOpen },
@@ -115,13 +141,13 @@ export class RestaurantsService {
   }
 
   async getZones(id: string): Promise<any[]> {
-    const restaurant = await this.findById(id);
+    const restaurant = await this.findByIdRaw(id);
     const settings = (restaurant.settings ?? {}) as Record<string, any>;
     return settings['deliveryZones'] ?? [];
   }
 
   async updateZones(id: string, zones: any[]): Promise<any[]> {
-    const restaurant = await this.findById(id);
+    const restaurant = await this.findByIdRaw(id);
     const settings = { ...((restaurant.settings ?? {}) as Record<string, any>), deliveryZones: zones };
     await this.prisma.restaurant.update({ where: { id }, data: { settings } });
     return zones;

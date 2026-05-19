@@ -32,20 +32,6 @@ const EMOJI_BG: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Hardcoded mock items — used as fallback when the API is unreachable
-// ---------------------------------------------------------------------------
-const MOCK_ITEMS: MenuItem[] = [
-  { id: '1', menuItemId: 'mi-1', restaurantId: 'r-1', name: 'Classic Smash Burger',   description: 'Double smash patty, cheddar fondu, sauce maison',        price: 14.90, category: 'burgers',  image: null, rating: 4.8, reviewCount: 234, prepTime: 12, tags: ['Bestseller'], allergens: ['gluten', 'lactose'], calories: 650 },
-  { id: '2', menuItemId: 'mi-2', restaurantId: 'r-1', name: 'Truffle Cheeseburger',   description: 'Beef wagyu, fromage de chèvre, huile de truffe',          price: 22.50, category: 'burgers',  image: null, rating: 4.9, reviewCount: 189, prepTime: 15, tags: ['Premium'],    allergens: ['gluten', 'lactose'], calories: 780 },
-  { id: '3', menuItemId: 'mi-3', restaurantId: 'r-1', name: 'Margherita Napoletana',  description: 'Sauce tomate San Marzano, mozzarella, basilic',           price: 13.90, category: 'pizza',    image: null, rating: 4.7, reviewCount: 312, prepTime: 20, tags: ['Végétarien'], allergens: ['gluten', 'lactose'], calories: 820 },
-  { id: '4', menuItemId: 'mi-4', restaurantId: 'r-1', name: 'Salade César Premium',   description: 'Poulet grillé, romaine, parmesan, sauce César',           price: 12.50, category: 'salads',   image: null, rating: 4.6, reviewCount: 156, prepTime:  8, tags: ['Healthy'],    allergens: ['gluten', 'lactose'], calories: 420 },
-  { id: '5', menuItemId: 'mi-5', restaurantId: 'r-1', name: 'Frites Maison',          description: 'Pommes de terre fraîches, fleur de sel',                  price:  4.50, category: 'sides',    image: null, rating: 4.5, reviewCount: 445, prepTime:  8, tags: ['Vegan'],      allergens: [],                   calories: 340 },
-  { id: '6', menuItemId: 'mi-6', restaurantId: 'r-1', name: 'Tiramisu Classique',     description: 'Mascarpone, espresso, biscuits Savoiardi',                price:  7.50, category: 'desserts', image: null, rating: 4.9, reviewCount:  98, prepTime: 10, tags: ['Maison'],     allergens: ['gluten', 'lactose'], calories: 380 },
-  { id: '7', menuItemId: 'mi-7', restaurantId: 'r-1', name: 'Limonade Artisanale',    description: 'Citrons pressés, menthe, sirop de canne',                 price:  4.90, category: 'drinks',   image: null, rating: 4.7, reviewCount: 203, prepTime:  5, tags: ['Frais'],      allergens: [],                   calories: 120 },
-  { id: '8', menuItemId: 'mi-8', restaurantId: 'r-1', name: 'Diavola Épicée',         description: 'Salami piquant, piment, mozzarella',                     price: 16.50, category: 'pizza',    image: null, rating: 4.8, reviewCount: 174, prepTime: 20, tags: ['Épicé'],      allergens: ['gluten', 'lactose'], calories: 920 },
-  { id: '9', menuItemId: 'mi-9', restaurantId: 'r-1', name: 'Chicken Burger Crispy',  description: 'Poulet frit croustillant, coleslaw, sauce sriracha',      price: 13.90, category: 'burgers',  image: null, rating: 4.7, reviewCount: 287, prepTime: 12, tags: ['Populaire'],  allergens: ['gluten'],            calories: 590 },
-];
-
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------

@@ -31,8 +31,6 @@ interface FavoriteRestaurant {
   gradient: string;
 }
 
-// ── Mock fallback (used when API is unavailable) ───────────────────────────
-
 const GRADIENT_POOL = [
   'from-orange-400 to-red-500',
   'from-rose-400 to-pink-600',
@@ -42,39 +40,6 @@ const GRADIENT_POOL = [
   'from-purple-400 to-violet-600',
   'from-teal-400 to-cyan-600',
   'from-amber-400 to-yellow-600',
-];
-
-const MOCK_FAVORITES: FavoriteRestaurant[] = [
-  {
-    id: 'r1', name: 'Burger Palace',  cuisine: 'Fast Food',    rating: 4.8,
-    deliveryTime: '20-30min', minOrder: 15, open: true,
-    gradient: 'from-orange-400 to-red-500',
-  },
-  {
-    id: 'r2', name: 'Sushi Zen',      cuisine: 'Japonais',     rating: 4.9,
-    deliveryTime: '25-35min', minOrder: 20, open: true,
-    gradient: 'from-rose-400 to-pink-600',
-  },
-  {
-    id: 'r3', name: 'Pizza Roma',     cuisine: 'Italien',      rating: 4.6,
-    deliveryTime: '15-25min', minOrder: 12, open: true,
-    gradient: 'from-green-400 to-emerald-600',
-  },
-  {
-    id: 'r4', name: 'Thai Garden',    cuisine: 'Thaïlandais',  rating: 4.7,
-    deliveryTime: '30-40min', minOrder: 18, open: false,
-    gradient: 'from-yellow-400 to-orange-500',
-  },
-  {
-    id: 'r5', name: 'Le Bistrot',     cuisine: 'Français',     rating: 4.5,
-    deliveryTime: '20-30min', minOrder: 15, open: true,
-    gradient: 'from-blue-400 to-indigo-600',
-  },
-  {
-    id: 'r6', name: 'Tacos Express',  cuisine: 'Mexicain',     rating: 4.4,
-    deliveryTime: '15-20min', minOrder: 10, open: true,
-    gradient: 'from-purple-400 to-violet-600',
-  },
 ];
 
 // ── API response shape (may vary per backend) ────────────────────────────
