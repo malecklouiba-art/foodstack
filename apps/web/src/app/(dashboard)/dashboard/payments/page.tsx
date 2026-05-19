@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/auth';
+import api from '@/lib/api';
 import {
   Euro, CreditCard, Clock, ArrowDownToLine, TrendingUp,
   Building2, CheckCircle2, AlertCircle, RotateCcw,
@@ -363,9 +364,35 @@ export default function PaymentsPage() {
   const [txFilter,      setTxFilter]      = useState<TxFilter>('all');
   const [currentPage,   setCurrentPage]   = useState(1);
   const [refundedIds,   setRefundedIds]   = useState<Set<string>>(new Set());
+  const [apiTxs,        setApiTxs]        = useState<Transaction[] | null>(null);
 
   const isAdmin       = authUser?.role === 'super_admin';
-  const baseTxs       = isAdmin ? ADMIN_TRANSACTIONS : TRANSACTIONS;
+  const restaurantId  = authUser?.restaurantIds?.[0] ?? '';
+
+  useEffect(() => {
+    const endpoint = isAdmin
+      ? '/orders'
+      : restaurantId ? `/orders/restaurant/${restaurantId}` : null;
+    if (!endpoint) return;
+    (api.get(endpoint) as Promise<any[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        const txs: Transaction[] = data.map((o) => ({
+          id: `TXN-${o.orderNumber ?? o.id.slice(-6)}`,
+          order: `ORD-${o.orderNumber ?? o.id.slice(-6)}`,
+          customer: o.customerName ?? o.customer?.name ?? o.customer ?? 'Client',
+          amount: o.total ?? 0,
+          method: o.paymentMethod ?? 'Carte',
+          status: o.status === 'delivered' ? 'completed' : o.status === 'cancelled' ? 'refunded' : 'pending',
+          time: new Date(o.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          type: 'payment',
+        }));
+        setApiTxs(txs);
+      })
+      .catch(() => { /* keep mock */ });
+  }, [isAdmin, restaurantId]);
+
+  const baseTxs = apiTxs ?? (isAdmin ? ADMIN_TRANSACTIONS : TRANSACTIONS);
   const activeKPIs    = isAdmin ? ADMIN_KPI_CARDS    : KPI_CARDS;
   const pageTitle     = isAdmin ? 'Paiements Restaurateurs' : 'Paiements';
   const pageSubtitle  = isAdmin
