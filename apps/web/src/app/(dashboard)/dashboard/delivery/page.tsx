@@ -333,23 +333,21 @@ function DeliveryDetailModal({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 interface ApiDelivery {
-  orderId: string;
+  id: string;
   orderNumber: string;
   status: string;
   driverId?: string;
-  driver?: { user?: { firstName?: string; lastName?: string } };
   customer?: { firstName?: string; lastName?: string };
-  deliveryAddress?: string;
-  pickupTime?: string;
+  deliveryAddress?: unknown;
   estimatedDeliveryTime?: string;
-  distanceKm?: number;
   createdAt: string;
 }
 
 function apiToDelivery(d: ApiDelivery, idx: number): Delivery {
-  const driverName = d.driver?.user
-    ? [d.driver.user.firstName, d.driver.user.lastName].filter(Boolean).join(' ')
-    : 'N/A';
+  const driverName = 'N/A';
+  const addr = typeof d.deliveryAddress === 'string'
+    ? d.deliveryAddress
+    : (d.deliveryAddress as any)?.street ?? '';
   const customerName = d.customer
     ? [d.customer.firstName, d.customer.lastName].filter(Boolean).join(' ')
     : 'Client';
@@ -357,15 +355,15 @@ function apiToDelivery(d: ApiDelivery, idx: number): Delivery {
     ? d.status : 'preparing') as DeliveryStatus;
   return {
     id: `DEL-${String(idx + 1).padStart(3, '0')}`,
-    orderId: d.orderId,
+    orderId: d.id,
     order: d.orderNumber,
     driver: driverName,
     customer: customerName,
-    address: d.deliveryAddress ?? '',
+    address: addr,
     status,
-    pickupTime: d.pickupTime ? new Date(d.pickupTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--',
+    pickupTime: '--',
     eta: d.estimatedDeliveryTime ? new Date(d.estimatedDeliveryTime).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '--',
-    distance: d.distanceKm ? `${d.distanceKm.toFixed(1)} km` : '--',
+    distance: '--',
     createdAt: d.createdAt,
     notes: [],
   };

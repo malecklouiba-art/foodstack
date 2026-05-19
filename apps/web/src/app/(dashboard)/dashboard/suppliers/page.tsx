@@ -137,8 +137,7 @@ export default function SuppliersPage() {
     if (!silent) setLoading(true);
     (api.get(`/suppliers?restaurantId=${restaurantId}`) as Promise<Supplier[]>)
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) setSuppliers(data);
-        else setSuppliers(SEED);
+        setSuppliers(Array.isArray(data) ? data : []);
       })
       .catch(() => { setSuppliers(SEED); })
       .finally(() => setLoading(false));

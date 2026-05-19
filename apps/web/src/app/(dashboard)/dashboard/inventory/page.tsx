@@ -178,7 +178,7 @@ export default function InventoryPage() {
     setItems((prev) => prev.map((i) => i.id === adjustItem.id ? { ...i, currentStock: newStock } : i));
     setAdjustItem(null);
     setAdjustQty('');
-    api.patch(`/inventory/${adjustItem.id}/adjust-stock`, { delta }).catch(() => { /* best-effort */ });
+    api.patch(`/inventory/${adjustItem.id}/adjust-stock`, { quantity: delta }).catch(() => { /* best-effort */ });
     setSaving(false);
   }
 
