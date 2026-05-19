@@ -11,6 +11,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -199,12 +201,16 @@ const EMPLOYEE_COLORS = [
 ];
 
 export default function PlanningPage() {
+  const ctxId = useRestaurantId();
+  const authUser = useAuthStore((s) => s.user);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [weekOffset, setWeekOffset] = useState(0);
   const [shifts, setShifts] = useState<Shift[]>([]);
 
   useEffect(() => {
-    (api.get('/users/staff') as Promise<{ id: string; name: string; role: string }[]>)
+    const restaurantId = ctxId || authUser?.restaurantIds?.[0];
+    const url = restaurantId ? `/users/staff?restaurantId=${restaurantId}` : '/users/staff';
+    (api.get(url) as Promise<{ id: string; name: string; role: string }[]>)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           const mapped: Employee[] = data.map((u, i) => ({
@@ -218,7 +224,7 @@ export default function PlanningPage() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [ctxId, authUser?.restaurantIds]);
   // Per-week overrides: user edits are stored keyed by weekOffset
   const [weekEdits, setWeekEdits] = useState<Record<number, Shift[]>>({});
   const [isLoadingWeek, startWeekTransition] = useTransition();

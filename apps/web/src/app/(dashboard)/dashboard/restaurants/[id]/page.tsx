@@ -7,6 +7,7 @@ import {
   ShoppingBag, UtensilsCrossed, Users, Bike, Truck, Package,
   CreditCard, BarChart3, TableIcon, MapPin, Tag, Settings,
   ArrowLeft, Store, Loader2, ChevronDown, Check,
+  CalendarDays, Award,
 } from 'lucide-react';
 import { RestaurantProvider } from '@/contexts/restaurant-context';
 import api from '@/lib/api';
@@ -25,6 +26,8 @@ const TablesTab    = dynamic(() => import('../../tables/page'),    { ssr: false,
 const ZonesTab     = dynamic(() => import('../../zones/page'),     { ssr: false, loading: () => <TabLoader /> });
 const CouponsTab   = dynamic(() => import('../../coupons/page'),   { ssr: false, loading: () => <TabLoader /> });
 const SettingsTab  = dynamic(() => import('../../settings/page'),  { ssr: false, loading: () => <TabLoader /> });
+const PlanningTab  = dynamic(() => import('../../planning/page'),  { ssr: false, loading: () => <TabLoader /> });
+const LoyaltyTab   = dynamic(() => import('../../loyalty/page'),   { ssr: false, loading: () => <TabLoader /> });
 
 function TabLoader() {
   return (
@@ -37,8 +40,8 @@ function TabLoader() {
 // ── Tab definitions ───────────────────────────────────────────────────────────
 type TabKey =
   | 'commandes' | 'menu' | 'staff' | 'livreurs' | 'livraisons'
-  | 'inventaire' | 'clients' | 'paiements' | 'analytiques'
-  | 'tables' | 'zones' | 'coupons' | 'parametres';
+  | 'inventaire' | 'clients' | 'fidelite' | 'paiements' | 'analytiques'
+  | 'tables' | 'zones' | 'coupons' | 'planning' | 'parametres';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'commandes',   label: 'Commandes',   icon: ShoppingBag    },
@@ -48,11 +51,13 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'livraisons',  label: 'Livraisons',  icon: Truck          },
   { key: 'inventaire',  label: 'Inventaire',  icon: Package        },
   { key: 'clients',     label: 'Clients',     icon: Users          },
+  { key: 'fidelite',    label: 'Fidélité',    icon: Award          },
   { key: 'paiements',   label: 'Paiements',   icon: CreditCard     },
   { key: 'analytiques', label: 'Analytiques', icon: BarChart3      },
   { key: 'tables',      label: 'Tables',      icon: TableIcon      },
   { key: 'zones',       label: 'Zones',       icon: MapPin         },
   { key: 'coupons',     label: 'Codes Promo', icon: Tag            },
+  { key: 'planning',    label: 'Planning',    icon: CalendarDays   },
   { key: 'parametres',  label: 'Paramètres',  icon: Settings       },
 ];
 
@@ -100,11 +105,13 @@ export default function RestaurantHubPage({ params }: { params: { id: string } }
       case 'livraisons':  return <DeliveryTab />;
       case 'inventaire':  return <InventoryTab />;
       case 'clients':     return <CustomersTab />;
+      case 'fidelite':    return <LoyaltyTab />;
       case 'paiements':   return <PaymentsTab />;
       case 'analytiques': return <AnalyticsTab />;
       case 'tables':      return <TablesTab />;
       case 'zones':       return <ZonesTab />;
       case 'coupons':     return <CouponsTab />;
+      case 'planning':    return <PlanningTab />;
       case 'parametres':  return <SettingsTab />;
       default:            return null;
     }

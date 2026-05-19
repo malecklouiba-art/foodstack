@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -52,6 +54,8 @@ const SEED_CUSTOMERS: LoyaltyCustomer[] = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LoyaltyPage() {
+  const ctxId = useRestaurantId();
+  const authUser = useAuthStore((s) => s.user);
   const [customers, setCustomers] = useState<LoyaltyCustomer[]>([]);
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState<LoyaltyTier | 'all'>('all');
@@ -61,8 +65,10 @@ export default function LoyaltyPage() {
   const [saving, setSaving] = useState(false);
 
   const load = useCallback((silent = false) => {
+    const restaurantId = ctxId || authUser?.restaurantIds?.[0];
     if (!silent) setLoading(true);
-    (api.get('/users/customers') as Promise<LoyaltyCustomer[]>)
+    const url = restaurantId ? `/users/customers?restaurantId=${restaurantId}` : '/users/customers';
+    (api.get(url) as Promise<LoyaltyCustomer[]>)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setCustomers(data);
@@ -70,7 +76,7 @@ export default function LoyaltyPage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+  }, [ctxId, authUser?.restaurantIds]);
 
   useEffect(() => { load(); }, [load]);
 
