@@ -365,6 +365,7 @@ export default function PaymentsPage() {
   const [currentPage,   setCurrentPage]   = useState(1);
   const [refundedIds,   setRefundedIds]   = useState<Set<string>>(new Set());
   const [apiTxs,        setApiTxs]        = useState<Transaction[] | null>(null);
+  const [apiRevenue,    setApiRevenue]    = useState<{ day: string; revenue: number }[] | null>(null);
 
   const isAdmin       = authUser?.role === 'super_admin';
   const restaurantId  = authUser?.restaurantIds?.[0] ?? '';
@@ -388,6 +389,26 @@ export default function PaymentsPage() {
           type: 'payment',
         }));
         setApiTxs(txs);
+      })
+      .catch(() => { /* keep mock */ });
+  }, [isAdmin, restaurantId]);
+
+  useEffect(() => {
+    if (isAdmin || !restaurantId) return;
+    (api.get(`/analytics/${restaurantId}/revenue?period=week`) as Promise<{ data: { total: number; createdAt: string }[] }>)
+      .then(({ data }) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        const DAY_LABELS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+        const buckets: Record<string, number> = {};
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          buckets[DAY_LABELS[d.getDay()]] = 0;
+        }
+        for (const o of data) {
+          const label = DAY_LABELS[new Date(o.createdAt).getDay()];
+          if (label in buckets) buckets[label] = (buckets[label] ?? 0) + o.total;
+        }
+        setApiRevenue(Object.entries(buckets).map(([day, revenue]) => ({ day, revenue })));
       })
       .catch(() => { /* keep mock */ });
   }, [isAdmin, restaurantId]);
@@ -512,7 +533,7 @@ export default function PaymentsPage() {
               <CardTitle>Chiffre d&apos;affaires — 7 derniers jours</CardTitle>
             </CardHeader>
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={REVENUE_DATA} barSize={32} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <BarChart data={apiRevenue ?? REVENUE_DATA} barSize={32} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}€`} />
