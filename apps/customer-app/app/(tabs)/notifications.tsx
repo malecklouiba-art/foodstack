@@ -141,8 +141,7 @@ export default function NotificationsScreen() {
       const data = await api.get<AppNotification[]>('/api/v1/notifications');
       setNotifications(data);
     } catch {
-      // API unavailable — use mock data
-      setNotifications(MOCK_NOTIFICATIONS);
+      setError('Impossible de charger les notifications');
     } finally {
       setLoading(false);
       setRefreshing(false);

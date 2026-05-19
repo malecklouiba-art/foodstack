@@ -25,7 +25,9 @@ interface LoyaltyData {
 
 interface UserProfile {
   id: string;
-  name: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
 }
@@ -60,7 +62,9 @@ export default function ProfileScreen() {
       }
 
       if (userProfile.status === 'fulfilled') {
-        setUserName(userProfile.value.name);
+        const p = userProfile.value;
+        const computedName = p.name ?? [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email;
+        setUserName(computedName);
       } else if (storedUser?.name) {
         // Fallback to locally stored name
         setUserName(storedUser.name);

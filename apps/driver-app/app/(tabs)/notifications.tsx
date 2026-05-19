@@ -130,8 +130,7 @@ export default function NotificationsScreen() {
       const data = await api.get<DriverNotification[]>('/api/v1/notifications');
       setNotifications(data);
     } catch {
-      // Fallback to mock data when API is unavailable
-      setNotifications(MOCK_NOTIFICATIONS);
+      setError('Impossible de charger les notifications');
     } finally {
       setLoading(false);
     }

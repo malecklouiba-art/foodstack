@@ -213,7 +213,8 @@ export class UsersService {
         lastName: true,
         phone: true,
         role: true,
-        twoFactorSecret: true,
+        avatar: true,
+        isActive: true,
         twoFactorEnabled: true,
         createdAt: true,
         updatedAt: true,
@@ -229,6 +230,28 @@ export class UsersService {
       select: { id: true },
     });
     return rows.map((r) => r.id);
+  }
+
+  async findByIdWithSecret(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        avatar: true,
+        isActive: true,
+        twoFactorEnabled: true,
+        twoFactorSecret: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!user) throw new NotFoundException(`User #${id} not found`);
+    return user;
   }
 
   async updateUser(id: string, data: Partial<{ twoFactorSecret: string | null; twoFactorEnabled: boolean }>) {

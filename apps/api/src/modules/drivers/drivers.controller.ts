@@ -72,6 +72,12 @@ export class DriversController {
     return this.driversService.findOne(id);
   }
 
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update driver profile' })
+  update(@Param('id') id: string, @Body() body: { vehicleType?: string; vehiclePlate?: string }) {
+    return this.driversService.update(id, body);
+  }
+
   @Patch(':id/location')
   @ApiOperation({ summary: 'Update driver GPS location' })
   updateLocation(@Param('id') id: string, @Body() dto: UpdateLocationDto) {

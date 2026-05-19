@@ -95,7 +95,7 @@ export default function OrderDetailScreen() {
     if (!id) return;
     api.get<OrderDetail>(`/api/v1/orders/${id}`)
       .then(setOrder)
-      .catch(() => setOrder(makeMock(id)))
+      .catch(() => setError('Impossible de charger cette commande'))
       .finally(() => setLoading(false));
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 

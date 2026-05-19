@@ -12,7 +12,7 @@ export class DriversService {
       where: { restaurantId },
       include: {
         user: {
-          select: { firstName: true, lastName: true, email: true },
+          select: { firstName: true, lastName: true, email: true, phone: true },
         },
       },
     });
@@ -74,6 +74,10 @@ export class DriversService {
       where: { id },
       data: { isOnline: online },
     });
+  }
+
+  update(id: string, data: { vehicleType?: string; vehiclePlate?: string }) {
+    return this.prisma.driver.update({ where: { id }, data });
   }
 
   remove(id: string) {

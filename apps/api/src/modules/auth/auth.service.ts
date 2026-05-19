@@ -86,7 +86,7 @@ export class AuthService {
   }
 
   async enable2FA(userId: string, token: string) {
-    const user = await this.usersService.findById(userId);
+    const user = await this.usersService.findByIdWithSecret(userId);
     if (!user.twoFactorSecret) throw new UnauthorizedException('2FA not initialized');
     const isValid = authenticator.verify({ token, secret: user.twoFactorSecret });
     if (!isValid) throw new UnauthorizedException('Code TOTP invalide');
@@ -100,7 +100,7 @@ export class AuthService {
   }
 
   async verify2FA(userId: string, token: string) {
-    const user = await this.usersService.findById(userId);
+    const user = await this.usersService.findByIdWithSecret(userId);
     if (!user.twoFactorEnabled || !user.twoFactorSecret) {
       throw new UnauthorizedException('2FA non activé');
     }
