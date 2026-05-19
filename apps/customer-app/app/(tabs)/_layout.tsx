@@ -38,7 +38,7 @@ function NotifTabIcon({ focused }: { focused: boolean }) {
     let mounted = true;
     const fetchUnread = async () => {
       try {
-        const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+        const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
         const token = await AsyncStorage.getItem('auth_token').catch(() => null);
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;

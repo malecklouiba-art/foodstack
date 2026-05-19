@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useStripe } from '@stripe/stripe-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export function useStripePayment() {
   const { initPaymentSheet, presentPaymentSheet } = useStripe();

@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useAuthStore } from '@/store/auth';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 type VehicleType = 'scooter' | 'bike' | 'car';
 

@@ -66,12 +66,21 @@ export default function AddressesScreen() {
 
   // ─── Data loading ───────────────────────────────────────────────────────────
 
+  function mapAddr(a: any): Address {
+    return {
+      id: a.id,
+      label: a.label as AddressLabel,
+      address: a.address ?? [a.street, a.city, a.postalCode].filter(Boolean).join(', '),
+      isDefault: a.isDefault,
+    };
+  }
+
   const loadAddresses = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<Address[]>('/api/v1/users/me/addresses');
-      setAddresses(data);
+      const data = await api.get<any[]>('/api/v1/users/me/addresses');
+      setAddresses(data.map(mapAddr));
     } catch {
       // API unavailable — fall back to mock data
       setAddresses(MOCK_ADDRESSES);
@@ -186,12 +195,12 @@ export default function AddressesScreen() {
         };
         setAddresses((prev) => [...prev, tempAddr]);
         closeModal();
-        const created = await api.post<Address>('/api/v1/users/me/addresses', {
+        const created = await api.post<any>('/api/v1/users/me/addresses', {
           label: formLabel,
           address: formAddress.trim(),
         });
         // Replace temp with real
-        setAddresses((prev) => prev.map((a) => (a.id === tempId ? created : a)));
+        setAddresses((prev) => prev.map((a) => (a.id === tempId ? mapAddr(created) : a)));
       }
     } catch {
       Alert.alert('Erreur', 'Impossible d\'enregistrer l\'adresse.');

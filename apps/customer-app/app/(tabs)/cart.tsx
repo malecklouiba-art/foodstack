@@ -51,12 +51,17 @@ export default function CartScreen() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   const openCheckoutModal = async () => {
-    // Try to fetch saved addresses
     try {
-      const data = await api.get<SavedAddress[]>('/api/v1/users/me/addresses');
+      const data = await api.get<any[]>('/api/v1/users/me/addresses');
       if (Array.isArray(data) && data.length > 0) {
-        setSavedAddresses(data);
-        setSelectedAddressId(data.find((a) => a.isDefault)?.id ?? data[0].id);
+        const mapped: SavedAddress[] = data.map((a) => ({
+          id: a.id,
+          label: a.label,
+          address: a.address ?? [a.street, a.city, a.postalCode].filter(Boolean).join(', '),
+          isDefault: a.isDefault,
+        }));
+        setSavedAddresses(mapped);
+        setSelectedAddressId(mapped.find((a) => a.isDefault)?.id ?? mapped[0].id);
       }
     } catch {
       // Keep mocks
