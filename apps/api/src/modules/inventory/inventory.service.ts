@@ -19,9 +19,11 @@ export class InventoryService {
   }
 
   async findLowStock(restaurantId: string) {
-    return this.prisma.inventoryItem.findMany({
+    const items = await this.prisma.inventoryItem.findMany({
       where: { restaurantId },
+      orderBy: { currentStock: 'asc' },
     });
+    return items.filter((i) => i.currentStock <= i.minStock);
   }
 
   async findById(id: string) {

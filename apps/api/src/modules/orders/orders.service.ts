@@ -179,6 +179,7 @@ export class OrdersService {
         delivery: { include: { driver: { select: { firstName: true, lastName: true } } } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     });
   }
 
@@ -190,6 +191,7 @@ export class OrdersService {
         restaurant: { select: { id: true, name: true, logo: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 50,
     });
   }
 

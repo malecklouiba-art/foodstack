@@ -225,11 +225,21 @@ export class UsersService {
   }
 
   async getRestaurantIds(userId: string): Promise<string[]> {
-    const rows = await this.prisma.restaurant.findMany({
-      where: { ownerId: userId },
-      select: { id: true },
-    });
-    return rows.map((r) => r.id);
+    const [owned, staffed] = await Promise.all([
+      this.prisma.restaurant.findMany({
+        where: { ownerId: userId },
+        select: { id: true },
+      }),
+      this.prisma.restaurantStaff.findMany({
+        where: { userId },
+        select: { restaurantId: true },
+      }),
+    ]);
+    const ids = new Set([
+      ...owned.map((r) => r.id),
+      ...staffed.map((s) => s.restaurantId),
+    ]);
+    return [...ids];
   }
 
   async findByIdWithSecret(id: string) {
