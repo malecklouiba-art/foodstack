@@ -131,7 +131,7 @@ export default function ZonesPage() {
   const { user: authUser } = useAuthStore();
   const restaurantId = authUser?.restaurantIds?.[0] ?? '';
 
-  const [zones, setZones] = useState<Zone[]>(INITIAL_ZONES);
+  const [zones, setZones] = useState<Zone[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing'>('synced');
   const [lastSyncAt, setLastSyncAt] = useState<string>(() => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
@@ -140,7 +140,7 @@ export default function ZonesPage() {
     if (!restaurantId) return;
     (api.get(`/restaurants/${restaurantId}/zones`) as Promise<any>)
       .then((data: any[]) => { if (data?.length) setZones(data); })
-      .catch(() => { /* keep seed zones */ });
+      .catch(() => {});
   }, [restaurantId]);
 
   const syncToApps = useCallback(async () => {

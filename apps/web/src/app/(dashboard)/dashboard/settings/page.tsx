@@ -656,8 +656,29 @@ const INIT_TEAM: TeamMember[] = [
 ];
 
 function EquipeTab() {
-  const [members, setMembers] = useState<TeamMember[]>(INIT_TEAM);
+  const [members, setMembers] = useState<TeamMember[]>([]);
   const [showInvite, setShowInvite] = useState(false);
+
+  useEffect(() => {
+    (api.get('/users/staff') as Promise<any[]>)
+      .then((data) => {
+        if (!Array.isArray(data)) return;
+        setMembers(data.map((u: any) => ({
+          id: u.id,
+          name: u.name ?? (`${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email),
+          email: u.email,
+          role: (u.role?.toLowerCase() ?? 'staff') as MemberRole,
+          active: u.isActive ?? true,
+          lastLogin: u.lastLoginAt
+            ? new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(
+                -Math.round((Date.now() - new Date(u.lastLoginAt).getTime()) / 60000), 'minute'
+              )
+            : 'Jamais connecté',
+          avatar: (u.name ?? u.email).split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase(),
+        })));
+      })
+      .catch(() => {});
+  }, []);
   const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'staff' as MemberRole });
   const [editId, setEditId] = useState<string | null>(null);
 

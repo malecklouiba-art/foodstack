@@ -68,7 +68,7 @@ export default function LoyaltyPage() {
           setCustomers(data);
         }
       })
-      .catch(() => { /* keep seed */ })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 

@@ -105,7 +105,7 @@ export default function InventoryPage() {
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setItems(data);
       })
-      .catch(() => { /* keep seed */ })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [restaurantId]);
 

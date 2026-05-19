@@ -1437,7 +1437,7 @@ export default function RestaurantsPage() {
           setRestaurants(data.map(mergeApiRestaurant));
         }
       })
-      .catch(() => { /* keep seed data */ });
+      .catch(() => {});
   }, []);
 
   const filtered = useMemo(() => restaurants.filter(r => {
