@@ -30,7 +30,10 @@ interface ApiOrder {
   status: string;
   total: number;
   subtotal: number;
+  deliveryFee?: number;
+  tax?: number;
   notes?: string;
+  cancelReason?: string;
   createdAt: string;
   updatedAt: string;
   items: Array<{
@@ -68,8 +71,8 @@ function normaliseOrder(raw: ApiOrder): DisplayOrder {
     })),
     deliveryAddress: raw.deliveryAddress as any,
     subtotal: raw.subtotal,
-    deliveryFee: 0,
-    tax: 0,
+    deliveryFee: raw.deliveryFee ?? 0,
+    tax: raw.tax ?? 0,
     discount: 0,
     loyaltyPointsUsed: 0,
     loyaltyPointsEarned: Math.floor(raw.total),

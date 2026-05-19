@@ -41,8 +41,8 @@ interface MenuItem {
   description?: string;
   price: number;
   image?: string;
-  isAvailable?: boolean;
-  isPopular?: boolean;
+  isActive?: boolean;
+  isFeatured?: boolean;
   calories?: number;
   allergens?: string[];
   categoryId?: string;
@@ -114,7 +114,7 @@ function MenuItemCard({ item, restaurantId, restaurantName }: { item: MenuItem; 
             🍔
           </div>
         )}
-        {item.isPopular && (
+        {item.isFeatured && (
           <div className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-bold text-white">
             <Flame className="h-2.5 w-2.5" /> Pop
           </div>
@@ -188,8 +188,13 @@ export default function RestaurantDetailPage() {
     }
   }, [menu, activeCategory]);
 
+  const activeMenu = menu.map((cat) => ({
+    ...cat,
+    items: cat.items.filter((item) => item.isActive !== false),
+  })).filter((cat) => cat.items.length > 0);
+
   const filteredMenu = search.trim()
-    ? menu.map((cat) => ({
+    ? activeMenu.map((cat) => ({
         ...cat,
         items: cat.items.filter(
           (item) =>
@@ -197,7 +202,7 @@ export default function RestaurantDetailPage() {
             item.description?.toLowerCase().includes(search.toLowerCase()),
         ),
       })).filter((cat) => cat.items.length > 0)
-    : menu;
+    : activeMenu;
 
   const scrollToCategory = (catId: string) => {
     setActiveCategory(catId);
