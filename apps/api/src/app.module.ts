@@ -19,6 +19,8 @@ import { DriversModule } from './modules/drivers/drivers.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { TablesModule } from './modules/tables/tables.module';
+import { SuppliersModule } from './modules/suppliers/suppliers.module';
+import { AdminSettingsModule } from './modules/admin-settings/admin-settings.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { TablesModule } from './modules/tables/tables.module';
     DriversModule,
     SuperAdminModule,
     TablesModule,
+    SuppliersModule,
+    AdminSettingsModule,
   ],
 })
 export class AppModule {}

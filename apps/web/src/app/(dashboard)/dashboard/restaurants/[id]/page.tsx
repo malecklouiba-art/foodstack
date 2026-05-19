@@ -7,7 +7,7 @@ import {
   ShoppingBag, UtensilsCrossed, Users, Bike, Truck, Package,
   CreditCard, BarChart3, TableIcon, MapPin, Tag, Settings,
   ArrowLeft, Store, Loader2, ChevronDown, Check,
-  CalendarDays, Award,
+  CalendarDays, Award, Building2,
 } from 'lucide-react';
 import { RestaurantProvider } from '@/contexts/restaurant-context';
 import api from '@/lib/api';
@@ -27,7 +27,8 @@ const ZonesTab     = dynamic(() => import('../../zones/page'),     { ssr: false,
 const CouponsTab   = dynamic(() => import('../../coupons/page'),   { ssr: false, loading: () => <TabLoader /> });
 const SettingsTab  = dynamic(() => import('../../settings/page'),  { ssr: false, loading: () => <TabLoader /> });
 const PlanningTab  = dynamic(() => import('../../planning/page'),  { ssr: false, loading: () => <TabLoader /> });
-const LoyaltyTab   = dynamic(() => import('../../loyalty/page'),   { ssr: false, loading: () => <TabLoader /> });
+const LoyaltyTab     = dynamic(() => import('../../loyalty/page'),    { ssr: false, loading: () => <TabLoader /> });
+const SuppliersTab   = dynamic(() => import('../../suppliers/page'), { ssr: false, loading: () => <TabLoader /> });
 
 function TabLoader() {
   return (
@@ -41,7 +42,8 @@ function TabLoader() {
 type TabKey =
   | 'commandes' | 'menu' | 'staff' | 'livreurs' | 'livraisons'
   | 'inventaire' | 'clients' | 'fidelite' | 'paiements' | 'analytiques'
-  | 'tables' | 'zones' | 'coupons' | 'planning' | 'parametres';
+  | 'tables' | 'zones' | 'coupons' | 'planning' | 'parametres'
+  | 'fournisseurs';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'commandes',   label: 'Commandes',   icon: ShoppingBag    },
@@ -59,6 +61,7 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'coupons',     label: 'Codes Promo', icon: Tag            },
   { key: 'planning',    label: 'Planning',    icon: CalendarDays   },
   { key: 'parametres',  label: 'Paramètres',  icon: Settings       },
+  { key: 'fournisseurs', label: 'Fournisseurs', icon: Building2     },
 ];
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -112,8 +115,9 @@ export default function RestaurantHubPage({ params }: { params: { id: string } }
       case 'zones':       return <ZonesTab />;
       case 'coupons':     return <CouponsTab />;
       case 'planning':    return <PlanningTab />;
-      case 'parametres':  return <SettingsTab />;
-      default:            return null;
+      case 'parametres':   return <SettingsTab />;
+      case 'fournisseurs': return <SuppliersTab />;
+      default:             return null;
     }
   }
 

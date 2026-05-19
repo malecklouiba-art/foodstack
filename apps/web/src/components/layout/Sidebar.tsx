@@ -33,6 +33,7 @@ import {
   CalendarDays,
   Package,
   Award,
+  Building2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -64,6 +65,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/planning',    label: 'Planning',        icon: CalendarDays,    section: 'Gestion',        roles: ['owner', 'staff'] },
   { href: '/dashboard/coupons',     label: 'Codes Promo',     icon: Tag,             section: 'Gestion',        roles: ['owner'] },
   { href: '/dashboard/inventory',   label: 'Inventaire',      icon: Package,         section: 'Gestion',        roles: ['owner', 'staff'] },
+  { href: '/dashboard/suppliers',   label: 'Fournisseurs',    icon: Building2,       section: 'Gestion',        roles: ['owner'] },
   { href: '/dashboard/tables',      label: 'Tables',          icon: TableIcon,       section: 'Gestion',        roles: ['owner', 'staff'] },
   { href: '/dashboard/customers',   label: 'Clients',         icon: Users,           section: 'Administration', roles: ['owner'] },
   { href: '/dashboard/loyalty',     label: 'Fidélité',        icon: Award,           section: 'Administration', roles: ['owner'] },
