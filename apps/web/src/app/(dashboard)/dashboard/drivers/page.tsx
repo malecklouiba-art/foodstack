@@ -63,57 +63,6 @@ const STAT_TABS: { key: StatTab; label: string }[] = [
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
 
-const SEED: Driver[] = [
-  {
-    id: 'd1', name: 'Karim Benali',   avatar: 'KB', phone: '+33 6 12 34 56 78',
-    vehicle: 'Scooter · CB500', zone: 'Centre-ville',
-    status: 'delivering', rating: 4.9, deliveriesToday: 12, earningsToday: 87.50,
-    ordersPerWeek: 68, avgDeliveryMin: 19,
-    activeOrder: 'ORD-8821', joinedAt: '2024-03',
-    docs: { license: 'valid', insurance: 'valid', id: 'valid' },
-  },
-  {
-    id: 'd2', name: 'Sofia Medina',   avatar: 'SM', phone: '+33 6 98 76 54 32',
-    vehicle: 'Vélo électrique', zone: 'Bastille – Marais',
-    status: 'online', rating: 4.7, deliveriesToday: 8, earningsToday: 54.20,
-    ordersPerWeek: 52, avgDeliveryMin: 22,
-    joinedAt: '2024-07',
-    docs: { license: 'valid', insurance: 'pending', id: 'valid' },
-  },
-  {
-    id: 'd3', name: 'Lucas Fontaine', avatar: 'LF', phone: '+33 6 45 67 89 01',
-    vehicle: 'Moto · Yamaha MT-07', zone: 'La Défense',
-    status: 'delivering', rating: 4.5, deliveriesToday: 9, earningsToday: 68.00,
-    ordersPerWeek: 59, avgDeliveryMin: 16,
-    activeOrder: 'ORD-8819', joinedAt: '2024-05',
-    docs: { license: 'valid', insurance: 'valid', id: 'expired' },
-  },
-  {
-    id: 'd4', name: 'Amina Touati',   avatar: 'AT', phone: '+33 6 33 22 11 00',
-    vehicle: 'Scooter · Honda PCX', zone: 'Saint-Denis',
-    status: 'online', rating: 4.8, deliveriesToday: 6, earningsToday: 43.80,
-    ordersPerWeek: 45, avgDeliveryMin: 24,
-    joinedAt: '2024-09',
-    docs: { license: 'valid', insurance: 'valid', id: 'valid' },
-  },
-  {
-    id: 'd5', name: 'Thomas Renard',  avatar: 'TR', phone: '+33 6 77 88 99 00',
-    vehicle: 'Vélo cargo', zone: 'Montmartre',
-    status: 'offline', rating: 4.3, deliveriesToday: 0, earningsToday: 0,
-    ordersPerWeek: 31, avgDeliveryMin: 28,
-    joinedAt: '2023-11',
-    docs: { license: 'pending', insurance: 'valid', id: 'valid' },
-  },
-  {
-    id: 'd6', name: 'Léa Dupont',     avatar: 'LD', phone: '+33 6 55 44 33 22',
-    vehicle: 'Scooter · Vespa GTS', zone: 'Oberkampf',
-    status: 'offline', rating: 4.6, deliveriesToday: 3, earningsToday: 22.10,
-    ordersPerWeek: 39, avgDeliveryMin: 21,
-    joinedAt: '2024-02',
-    docs: { license: 'valid', insurance: 'expired', id: 'valid' },
-  },
-];
-
 // Fake per-tab stats (multiplied from today's data)
 const TAB_MULTIPLIERS: Record<StatTab, { del: number; rev: number; time: number }> = {
   today: { del: 1,   rev: 1,   time: 1   },

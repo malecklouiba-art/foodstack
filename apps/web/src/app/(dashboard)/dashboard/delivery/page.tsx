@@ -52,51 +52,6 @@ interface FailureReason {
 const now = new Date();
 const isoDaysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000).toISOString();
 
-const DELIVERIES: Delivery[] = [
-  {
-    id: 'DEL-441', order: 'ORD-8821', driver: 'Karim Benali', customer: 'Marie L.',
-    address: '12 rue de Rivoli, Paris', status: 'delivering',
-    pickupTime: '12:34', eta: '12:56', distance: '2.3 km',
-    createdAt: isoDaysAgo(0), notes: [],
-  },
-  {
-    id: 'DEL-440', order: 'ORD-8820', driver: 'Amina Diallo', customer: 'Pierre D.',
-    address: '45 bd Voltaire, Paris', status: 'delivering',
-    pickupTime: '12:28', eta: '12:50', distance: '1.8 km',
-    createdAt: isoDaysAgo(0), notes: [],
-  },
-  {
-    id: 'DEL-439', order: 'ORD-8819', driver: 'Karim Benali', customer: 'Sophie M.',
-    address: '8 rue du Temple, Paris', status: 'delivered',
-    pickupTime: '12:05', eta: '12:22', distance: '3.1 km',
-    createdAt: isoDaysAgo(0), notes: [],
-  },
-  {
-    id: 'DEL-438', order: 'ORD-8818', driver: 'Sofia Medina', customer: 'Julien K.',
-    address: '23 av Daumesnil, Paris', status: 'delivered',
-    pickupTime: '11:48', eta: '12:08', distance: '2.7 km',
-    createdAt: isoDaysAgo(2), notes: [],
-  },
-  {
-    id: 'DEL-437', order: 'ORD-8817', driver: 'Lucas Petit', customer: 'Emma R.',
-    address: '67 rue Oberkampf, Paris', status: 'failed',
-    pickupTime: '11:30', eta: '11:52', distance: '1.5 km',
-    createdAt: isoDaysAgo(1), notes: [],
-  },
-  {
-    id: 'DEL-430', order: 'ORD-8810', driver: 'Sofia Medina', customer: 'Antoine B.',
-    address: '5 rue Lepic, Paris', status: 'delivered',
-    pickupTime: '14:10', eta: '14:35', distance: '2.0 km',
-    createdAt: isoDaysAgo(10), notes: [],
-  },
-  {
-    id: 'DEL-420', order: 'ORD-8800', driver: 'Karim Benali', customer: 'Claire F.',
-    address: '88 rue Saint-Honoré, Paris', status: 'delivered',
-    pickupTime: '19:20', eta: '19:45', distance: '3.4 km',
-    createdAt: isoDaysAgo(45), notes: [],
-  },
-];
-
 const FAILURE_REASONS: FailureReason[] = [
   { deliveryId: 'DEL-437', reason: 'Client absent' },
 ];

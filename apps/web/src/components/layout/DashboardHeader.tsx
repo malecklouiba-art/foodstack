@@ -4,13 +4,10 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   Bell, Search, X, CheckCircle2, AlertTriangle,
-  ShoppingBag, Package, Users, Info, Check,
+  ShoppingBag, Users, Info, Check,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import api from '@/lib/api';
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _Unused = typeof ShoppingBag | typeof Package; // icons used via ICON_MAP lookup
 
 interface ApiNotif {
   id: string;
@@ -40,16 +37,6 @@ const ICON_MAP: Record<NotifType, { icon: React.ElementType; bg: string; color: 
   system:  { icon: Info,           bg: 'bg-purple-50', color: 'text-purple-600' },
   success: { icon: CheckCircle2,   bg: 'bg-green-50',  color: 'text-green-600'  },
 };
-
-const INITIAL_NOTIFS: Notification[] = [
-  { id: 'n1', type: 'order',   title: 'Nouvelle commande',        body: 'ORD-8830 — Marie L. — 42,50 €', ts: new Date(Date.now() - 2 * 60000),  read: false },
-  { id: 'n2', type: 'stock',   title: 'Stock critique',           body: 'Tomates cerises < 10% du seuil', ts: new Date(Date.now() - 8 * 60000),  read: false },
-  { id: 'n3', type: 'order',   title: 'Commande livrée',          body: 'ORD-8825 confirmée par le client', ts: new Date(Date.now() - 15 * 60000), read: false },
-  { id: 'n4', type: 'user',    title: 'Nouvel employé',           body: 'Camille T. a rejoint l\'équipe',   ts: new Date(Date.now() - 60 * 60000), read: true  },
-  { id: 'n5', type: 'system',  title: 'Mise à jour disponible',   body: 'FoodStack v2.1.0 prête à déployer', ts: new Date(Date.now() - 3 * 3600000), read: true },
-  { id: 'n6', type: 'success', title: 'Export terminé',           body: 'Rapport mensuel CSV généré',     ts: new Date(Date.now() - 5 * 3600000), read: true  },
-  { id: 'n7', type: 'stock',   title: 'Réapprovisionnement reçu', body: 'Fournisseur Fraichia — 24 articles', ts: new Date(Date.now() - 8 * 3600000), read: true },
-];
 
 const PAGE_LABELS: Record<string, string> = {
   '/dashboard':                  'Tableau de bord',
@@ -118,7 +105,7 @@ export function DashboardHeader() {
         })));
       }
     } catch {
-      // keep mock data
+      // silently ignore — bell stays empty on network error
     }
   }, []);
 

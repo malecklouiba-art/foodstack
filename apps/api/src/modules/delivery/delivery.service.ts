@@ -95,6 +95,36 @@ export class DeliveryService {
     });
   }
 
+  async getPendingOrdersForDriver(driverId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        driverId,
+        status: { in: ['ready', 'assigned', 'delivering'] as any[] },
+      },
+      include: {
+        items: { select: { id: true } },
+        customer: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return orders.map((o) => ({
+      id: o.id,
+      orderId: o.id,
+      orderNumber: o.orderNumber,
+      customer: {
+        firstName: o.customer?.firstName ?? '',
+        lastName: o.customer?.lastName ?? '',
+      },
+      deliveryAddress: o.deliveryAddress ?? '',
+      totalItems: o.items.length,
+      total: o.total,
+      estimatedDistance: null,
+      estimatedArrival: o.estimatedDeliveryTime?.toISOString() ?? null,
+      status: o.status,
+    }));
+  }
+
   async getDeliveryETA(orderId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },

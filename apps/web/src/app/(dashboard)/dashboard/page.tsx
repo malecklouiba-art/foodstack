@@ -61,13 +61,6 @@ const statusConfig = {
   cancelled:  { label: 'Annulée',       variant: 'danger'  as const },
 };
 
-const LIVE_ORDERS_INIT = [
-  { id: 'ORD-8821', customer: 'Marie L.',  items: 3, total: 42.50, status: 'preparing', time: '12 min' },
-  { id: 'ORD-8820', customer: 'Pierre D.', items: 2, total: 28.90, status: 'delivering',time: '8 min'  },
-  { id: 'ORD-8819', customer: 'Sophie M.', items: 5, total: 67.30, status: 'ready',     time: '3 min'  },
-  { id: 'ORD-8818', customer: 'Julien K.', items: 1, total: 16.90, status: 'confirmed', time: '18 min' },
-];
-
 // ── Super Admin data ──────────────────────────────────────────────────────────
 
 const PLATFORM_MRR_DATA = [
@@ -83,14 +76,6 @@ const PLATFORM_MRR_DATA = [
   { month: 'Mar',   mrr: 37200 },
   { month: 'Avr',   mrr: 41500 },
   { month: 'Mai',   mrr: 45800 },
-];
-
-const PLATFORM_RESTAURANTS = [
-  { id: 'r1', name: 'Le Gourmet Bastille',   plan: 'Pro',       mrr: 299, status: 'actif',     joined: '2024-01-12' },
-  { id: 'r2', name: 'Sushi Marais',          plan: 'Starter',   mrr: 99,  status: 'actif',     joined: '2024-02-03' },
-  { id: 'r3', name: 'Pizza Nation',          plan: 'Pro',       mrr: 299, status: 'pause',     joined: '2024-03-17' },
-  { id: 'r4', name: 'Burger République',     plan: 'Business',  mrr: 599, status: 'actif',     joined: '2024-04-05' },
-  { id: 'r5', name: 'Crêperie Montmartre',   plan: 'Starter',   mrr: 99,  status: 'négociation',joined: '2025-05-01' },
 ];
 
 const PLAN_COLORS: Record<string, string> = {
@@ -296,7 +281,7 @@ function RestaurantDashboard() {
   const [revenue,        incRevenue  ] = useCounter(BASE_STATS.revenue);
   const [deliveriesCount,incDeliveries] = useCounter(BASE_STATS.deliveries);
   const [feedEvents, setFeedEvents]    = useState<FeedEvent[]>([]);
-  const [liveOrders, setLiveOrders]    = useState<typeof LIVE_ORDERS_INIT>([]);
+  const [liveOrders, setLiveOrders]    = useState<{ id: string; customer: string; items: number; total: number; status: string; time: string }[]>([]);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -599,12 +584,6 @@ type PendingOrder = {
   status: 'ready' | 'assigned';
 };
 
-const DRIVER_PENDING_INIT: PendingOrder[] = [
-  { id: 'DEL-442', order: 'ORD-8823', customer: 'Camille T.', address: '45 av. Montaigne, 75008 Paris',   items: 2, total: 34.50, distance: '1.4 km', eta: '13:15', status: 'ready'    },
-  { id: 'DEL-443', order: 'ORD-8824', customer: 'Nadia K.',   address: '8 rue du Temple, 75004 Paris',     items: 4, total: 58.90, distance: '2.9 km', eta: '13:30', status: 'assigned' },
-  { id: 'DEL-444', order: 'ORD-8825', customer: 'Adrien F.',  address: '23 bd Haussmann, 75009 Paris',     items: 1, total: 19.90, distance: '3.5 km', eta: '13:45', status: 'assigned' },
-];
-
 function DriverDashboard() {
   const authUser = useAuthStore((s) => s.user);
   const [online, setOnline] = useState(true);
@@ -869,29 +848,6 @@ interface KitchenOrder {
   status: KitchenOrderStatus;
   prepMin: number;
 }
-
-const KITCHEN_ORDERS_INIT: KitchenOrder[] = [
-  {
-    id: 'ko1', number: 'ORD-8830', customer: 'Table 4', type: 'dine-in', table: '4',
-    receivedAt: '13:02', prepMin: 12, status: 'preparing',
-    items: [{ name: 'Burger Classique', qty: 2 }, { name: 'Frites', qty: 2 }, { name: 'Coca-Cola', qty: 2, note: 'Sans glace' }],
-  },
-  {
-    id: 'ko2', number: 'ORD-8831', customer: 'Marie L.', type: 'delivery',
-    receivedAt: '13:08', prepMin: 8, status: 'pending',
-    items: [{ name: 'Pizza Margherita', qty: 1 }, { name: 'Tiramisu', qty: 1 }],
-  },
-  {
-    id: 'ko3', number: 'ORD-8832', customer: 'Table 2', type: 'dine-in', table: '2',
-    receivedAt: '13:11', prepMin: 5, status: 'pending',
-    items: [{ name: 'Salade César', qty: 1, note: 'Sans anchois' }, { name: 'Eau gazeuse', qty: 1 }],
-  },
-  {
-    id: 'ko4', number: 'ORD-8829', customer: 'Pierre D.', type: 'takeaway',
-    receivedAt: '12:58', prepMin: 15, status: 'ready',
-    items: [{ name: 'Poulet Rôti', qty: 1 }, { name: 'Pommes de terre', qty: 1 }],
-  },
-];
 
 const STATUS_CFG_KITCHEN: Record<KitchenOrderStatus, { label: string; color: string; bg: string; next: KitchenOrderStatus | null; nextLabel: string }> = {
   pending:   { label: 'En attente',    color: 'text-amber-700',   bg: 'bg-amber-50 border-amber-200',  next: 'preparing', nextLabel: 'Commencer' },

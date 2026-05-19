@@ -42,15 +42,6 @@ const TIER_CONFIG: Record<LoyaltyTier, { label: string; min: number; emoji: stri
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
 
-const SEED_CUSTOMERS: LoyaltyCustomer[] = [
-  { id: 'u1', name: 'Marie Laurent',  email: 'marie@example.com',  loyaltyPoints: 2340, loyaltyTier: 'gold',     orderCount: 34, joinedAt: '2024-03-15' },
-  { id: 'u2', name: 'Pierre Dubois',  email: 'pierre@example.com', loyaltyPoints: 780,  loyaltyTier: 'silver',   orderCount: 18, joinedAt: '2024-06-10' },
-  { id: 'u3', name: 'Sophie Martin',  email: 'sophie@example.com', loyaltyPoints: 5200, loyaltyTier: 'platinum', orderCount: 67, joinedAt: '2023-11-01' },
-  { id: 'u4', name: 'Julien Klein',   email: 'julien@example.com', loyaltyPoints: 120,  loyaltyTier: 'bronze',   orderCount: 6,  joinedAt: '2025-01-20' },
-  { id: 'u5', name: 'Emma Dubois',    email: 'emma@example.com',   loyaltyPoints: 890,  loyaltyTier: 'silver',   orderCount: 22, joinedAt: '2024-08-05' },
-  { id: 'u6', name: 'Lucas Renard',   email: 'lucas@example.com',  loyaltyPoints: 3100, loyaltyTier: 'gold',     orderCount: 41, joinedAt: '2024-01-12' },
-];
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LoyaltyPage() {

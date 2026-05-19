@@ -28,6 +28,12 @@ export class DeliveryController {
     return this.deliveryService.getActiveDeliveries(restaurantId);
   }
 
+  @Get('driver/:driverId/pending')
+  @ApiOperation({ summary: 'Get pending deliveries assigned to a driver' })
+  getPendingOrdersForDriver(@Param('driverId') driverId: string) {
+    return this.deliveryService.getPendingOrdersForDriver(driverId);
+  }
+
   @Get('orders/:orderId/eta')
   @ApiOperation({ summary: 'Get estimated delivery time for an order' })
   getDeliveryETA(@Param('orderId') orderId: string) {

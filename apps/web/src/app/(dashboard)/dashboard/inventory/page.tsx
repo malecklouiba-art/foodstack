@@ -43,17 +43,6 @@ interface ItemForm {
 
 // ── Seed data ─────────────────────────────────────────────────────────────────
 
-const SEED: InventoryItem[] = [
-  { id: 'inv-1', name: 'Steak haché (200g)',  sku: 'MEAT-001', category: 'Viandes',   currentStock: 45,  unit: 'kg',   minStock: 10, maxStock: 100, costPerUnit: 8.50  },
-  { id: 'inv-2', name: 'Frites surgelées',     sku: 'FRZ-002',  category: 'Surgelés',  currentStock: 8,   unit: 'kg',   minStock: 15, maxStock: 50,  costPerUnit: 2.30  },
-  { id: 'inv-3', name: 'Pain burger brioché',  sku: 'BRD-003',  category: 'Boulangerie', currentStock: 120, unit: 'pcs',  minStock: 50, maxStock: 300, costPerUnit: 0.45  },
-  { id: 'inv-4', name: 'Cheddar tranché',      sku: 'DAI-004',  category: 'Produits laitiers', currentStock: 2, unit: 'kg',   minStock: 5,  maxStock: 20,  costPerUnit: 12.00 },
-  { id: 'inv-5', name: 'Laitue iceberg',       sku: 'VEG-005',  category: 'Légumes',   currentStock: 6,   unit: 'pcs',  minStock: 10, maxStock: 30,  costPerUnit: 1.20  },
-  { id: 'inv-6', name: 'Tomates',              sku: 'VEG-006',  category: 'Légumes',   currentStock: 25,  unit: 'kg',   minStock: 5,  maxStock: 40,  costPerUnit: 2.80  },
-  { id: 'inv-7', name: 'Sauce BBQ (5L)',       sku: 'SAU-007',  category: 'Sauces',    currentStock: 3,   unit: 'L',    minStock: 5,  maxStock: 15,  costPerUnit: 9.50  },
-  { id: 'inv-8', name: "Huile de friture",     sku: 'OIL-008',  category: 'Huiles',    currentStock: 40,  unit: 'L',    minStock: 10, maxStock: 80,  costPerUnit: 3.20  },
-];
-
 const EMPTY_FORM: ItemForm = {
   name: '', sku: '', category: '', currentStock: '', unit: 'kg',
   minStock: '', maxStock: '', costPerUnit: '',
