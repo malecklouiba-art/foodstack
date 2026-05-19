@@ -76,112 +76,6 @@ interface Restaurant {
 
 const REQUIRED_DOCS = ['Kbis', 'RIB', "Pièce d'identité", 'Contrat signé', 'Assurance'];
 
-const RESTAURANTS_SEED: Restaurant[] = [
-  {
-    id: 'r1',
-    name: 'FoodStack Bastille',
-    address: '12 place de la Bastille, Paris 75011',
-    adresseFacturation: '12 place de la Bastille, Paris 75011',
-    cuisine: 'Française · Fusion',
-    status: 'open',
-    crmStatus: 'actif',
-    paymentStatus: 'ok',
-    ordersToday: 84,
-    revenue: 12450,
-    openTime: '11:00',
-    closeTime: '23:00',
-    image: 'FB',
-    color: 'from-brand-400 to-brand-600',
-    raisonSociale: 'FOODSTACK BASTILLE SAS',
-    siret: '82345678900015',
-    dirigeant: { name: 'Alexis Martin', email: 'alexis@foodstack-bastille.fr', tel: '+33 6 11 22 33 44' },
-    comptable:  { name: 'Cabinet Lefèvre', email: 'contact@lefevre-compta.fr', tel: '+33 1 44 55 66 77' },
-    abonnement: 'Pro',
-    abonnementMontant: 299,
-    commission: 12,
-    history: [
-      { id: 'h1', date: '2024-01-15', action: 'Onboarding', note: 'Restaurant configuré et activé sur la plateforme.', author: 'Admin' },
-      { id: 'h2', date: '2024-03-10', action: 'Upgrade', note: 'Passage du plan Starter au plan Pro.', author: 'Support' },
-      { id: 'h3', date: '2025-02-20', action: 'Appel commercial', note: 'Discussion renouvellement annuel. Client satisfait.', author: 'Sales' },
-    ],
-    documents: [
-      { name: 'Kbis', status: 'fourni', fileName: 'kbis_bastille.pdf', fileSize: '245 Ko', uploadedAt: '15/01/2024' },
-      { name: 'RIB', status: 'fourni', fileName: 'rib_bastille.pdf', fileSize: '82 Ko', uploadedAt: '15/01/2024' },
-      { name: 'Contrat signé', status: 'fourni', fileName: 'contrat_bastille.pdf', fileSize: '512 Ko', uploadedAt: '15/01/2024' },
-      { name: "Pièce d'identité", status: 'manquant' },
-      { name: 'Assurance', status: 'manquant' },
-    ],
-  },
-  {
-    id: 'r2',
-    name: 'FoodStack Marais',
-    address: '34 rue des Archives, Paris 75004',
-    adresseFacturation: '34 rue des Archives, Paris 75004',
-    cuisine: 'Méditerranéenne',
-    status: 'open',
-    crmStatus: 'actif',
-    paymentStatus: 'retard',
-    ordersToday: 61,
-    revenue: 8920,
-    openTime: '12:00',
-    closeTime: '22:30',
-    image: 'FM',
-    color: 'from-blue-400 to-purple-500',
-    raisonSociale: 'MARAIS RESTAURATION SARL',
-    siret: '73456789000123',
-    dirigeant: { name: 'Camille Dupont', email: 'camille@marais-food.fr', tel: '+33 6 22 33 44 55' },
-    comptable:  { name: 'Expert-Compta Paris', email: 'paris@expert-compta.fr', tel: '+33 1 55 66 77 88' },
-    abonnement: 'Business',
-    abonnementMontant: 599,
-    commission: 10,
-    history: [
-      { id: 'h1', date: '2024-02-03', action: 'Création compte', note: 'Inscription via formulaire web.', author: 'System' },
-      { id: 'h2', date: '2024-04-12', action: 'Relance', note: 'Relance suite inactivité 2 semaines. Client répond positivement.', author: 'Sales' },
-    ],
-    documents: [
-      { name: 'Kbis', status: 'fourni', fileName: 'kbis_marais.pdf', fileSize: '198 Ko', uploadedAt: '03/02/2024' },
-      { name: 'RIB', status: 'fourni', fileName: 'rib_marais.pdf', fileSize: '78 Ko', uploadedAt: '03/02/2024' },
-      { name: 'Contrat signé', status: 'manquant' },
-      { name: "Pièce d'identité", status: 'manquant' },
-      { name: 'Assurance', status: 'manquant' },
-    ],
-  },
-  {
-    id: 'r3',
-    name: 'FoodStack Nation',
-    address: '78 av du Trône, Paris 75012',
-    adresseFacturation: 'BP 1234, 75012 Paris',
-    cuisine: 'Asiatique · Sushi',
-    status: 'paused',
-    crmStatus: 'pause',
-    paymentStatus: 'impaye',
-    ordersToday: 23,
-    revenue: 3210,
-    openTime: '11:30',
-    closeTime: '23:30',
-    image: 'FN',
-    color: 'from-green-400 to-teal-500',
-    raisonSociale: 'NATION SUSHI EURL',
-    siret: '64567890000045',
-    dirigeant: { name: 'Yuki Tanaka', email: 'yuki@nation-sushi.fr', tel: '+33 6 33 44 55 66' },
-    comptable:  { name: 'Fiduciaire Tanaka', email: 'fiduciaire@tanaka.fr', tel: '+33 1 66 77 88 99' },
-    abonnement: 'Starter',
-    abonnementMontant: 99,
-    commission: 15,
-    history: [
-      { id: 'h1', date: '2024-03-17', action: 'Création compte', note: 'Restaurant inscrit via recommandation.', author: 'System' },
-      { id: 'h2', date: '2025-01-05', action: 'Mise en pause', note: 'Demande du client — rénovation du local jusqu\'en mars.', author: 'Support' },
-    ],
-    documents: [
-      { name: 'Kbis', status: 'fourni', fileName: 'kbis_nation.pdf', fileSize: '223 Ko', uploadedAt: '17/03/2024' },
-      { name: 'RIB', status: 'manquant' },
-      { name: 'Contrat signé', status: 'fourni', fileName: 'contrat_nation.pdf', fileSize: '489 Ko', uploadedAt: '17/03/2024' },
-      { name: "Pièce d'identité", status: 'manquant' },
-      { name: 'Assurance', status: 'manquant' },
-    ],
-  },
-];
-
 const STATUS_CONFIG: Record<RestaurantStatus, { label: string; variant: 'success' | 'warning' }> = {
   open:   { label: 'Ouvert',   variant: 'success' },
   paused: { label: 'En pause', variant: 'warning' },
@@ -1388,10 +1282,9 @@ interface ApiRestaurant {
 }
 
 function mergeApiRestaurant(api: ApiRestaurant): Restaurant {
-  const seed = RESTAURANTS_SEED.find((r) => r.id === api.id);
   const address = `${api.street}, ${api.postalCode} ${api.city}`;
   const initials = api.name.split(' ').map((w) => w[0] ?? '').join('').toUpperCase().slice(0, 2);
-  const base: Restaurant = seed ?? {
+  return {
     id: api.id,
     name: api.name,
     address,
@@ -1415,14 +1308,6 @@ function mergeApiRestaurant(api: ApiRestaurant): Restaurant {
     commission: 0,
     history: [],
     documents: REQUIRED_DOCS.map((d) => ({ name: d, status: 'manquant' })),
-  };
-  return {
-    ...base,
-    id: api.id,
-    name: api.name,
-    address,
-    status: api.isOpen ? 'open' : ('paused' as RestaurantStatus),
-    crmStatus: api.isActive ? 'actif' : ('pause' as CRMStatus),
   };
 }
 
