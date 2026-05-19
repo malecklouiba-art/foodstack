@@ -136,9 +136,7 @@ export default function OrderDetailPage() {
         // Interceptor already redirected; silence here
         setError('Non autorisé.');
       } else {
-        // Network / server error → fallback to mock so the UI is still useful
-        console.warn('API unavailable, using mock order:', err);
-        setOrder({ ...MOCK_ORDER, id });
+        setError('Impossible de charger la commande');
       }
     } finally {
       setLoading(false);

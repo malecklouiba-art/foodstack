@@ -44,20 +44,17 @@ const NEXT_REWARD = { points: 1000, label: 'Burger offert' } as const;
 
 // ── mock data ──
 const MOCK_USER = {
-  name: 'Marie Laurent',
-  email: 'marie.laurent@email.fr',
-  phone: '06 12 34 56 78',
+  name: '',
+  email: '',
+  phone: '',
   avatar: '',
-  loyaltyPoints: 840,
-  loyaltyTier: 'silver' as LoyaltyTier,
-  orderCount: 23,
-  memberSince: 'Janvier 2025',
+  loyaltyPoints: 0,
+  loyaltyTier: 'bronze' as LoyaltyTier,
+  orderCount: 0,
+  memberSince: '',
 };
 
-const INIT_ADDRESSES: Address[] = [
-  { id: 'a1', label: 'Maison', street: '12 rue de la Paix', city: 'Paris', postalCode: '75001', isDefault: true },
-  { id: 'a2', label: 'Bureau', street: '45 avenue des Champs-Élysées', city: 'Paris', postalCode: '75008', isDefault: false },
-];
+const INIT_ADDRESSES: Address[] = [];
 
 const TIER_CONFIG: Record<LoyaltyTier, { label: string; color: string; bg: string; next?: string; nextPoints?: number }> = {
   bronze:   { label: 'Bronze',   color: 'text-amber-700',  bg: 'bg-amber-50',   next: 'Silver',   nextPoints: 500 },

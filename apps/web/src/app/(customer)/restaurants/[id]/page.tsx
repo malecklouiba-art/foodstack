@@ -234,8 +234,7 @@ export default function RestaurantDetailPage() {
       const cats = (m as any).categories ?? m;
       setMenu(Array.isArray(cats) ? cats : []);
     } catch {
-      setRestaurant(makeMockRestaurant(id));
-      setMenu(MOCK_MENU);
+      // Leave restaurant null — UI shows error/empty state
     } finally {
       setLoading(false);
     }

@@ -272,9 +272,7 @@ function MenuPageInner() {
       setMenuItems(active.map(i => toMenuItem(i, restaurantId)));
       setError(null);
     } catch {
-      // Network / API error — fall back to mock items
-      setMenuItems(MOCK_ITEMS);
-      setError(null); // mock fallback: don't surface an error
+      setMenuItems([]);
     }
   }, []);
 

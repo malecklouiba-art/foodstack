@@ -104,9 +104,9 @@ export default function NotificationsPage() {
     try {
       const data = await api.get<ApiNotif[]>('/notifications');
       const list = Array.isArray(data) ? data.map(normaliseNotif) : [];
-      setNotifs(list.length > 0 ? list : MOCK_NOTIFS);
+      setNotifs(list);
     } catch {
-      setNotifs(MOCK_NOTIFS);
+      setNotifs([]);
     } finally {
       setLoading(false);
     }
