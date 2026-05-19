@@ -6,31 +6,33 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  private readonly favoritesStore = new Map<string, Set<string>>();
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
 
   async getFavorites(userId: string) {
-    const ids = Array.from(this.favoritesStore.get(userId) ?? []);
-    if (ids.length === 0) return [];
-    const restaurants = await this.prisma.restaurant.findMany({
-      where: { id: { in: ids } },
+    const rows = await this.prisma.favoriteRestaurant.findMany({
+      where: { userId },
+      include: { restaurant: true },
+      orderBy: { createdAt: 'desc' },
     });
-    return restaurants.map((r) => ({ restaurantId: r.id, restaurant: r }));
+    return rows.map((r) => ({ restaurantId: r.restaurantId, restaurant: r.restaurant }));
   }
 
-  addFavorite(userId: string, restaurantId: string): { ok: boolean } {
-    const set = this.favoritesStore.get(userId) ?? new Set<string>();
-    set.add(restaurantId);
-    this.favoritesStore.set(userId, set);
+  async addFavorite(userId: string, restaurantId: string): Promise<{ ok: boolean }> {
+    await this.prisma.favoriteRestaurant.upsert({
+      where: { userId_restaurantId: { userId, restaurantId } },
+      create: { userId, restaurantId },
+      update: {},
+    });
     return { ok: true };
   }
 
-  removeFavorite(userId: string, restaurantId: string): { ok: boolean } {
-    this.favoritesStore.get(userId)?.delete(restaurantId);
+  async removeFavorite(userId: string, restaurantId: string): Promise<{ ok: boolean }> {
+    await this.prisma.favoriteRestaurant.deleteMany({
+      where: { userId, restaurantId },
+    });
     return { ok: true };
   }
 
