@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const driver: Driver = {
         id: data.user.id,
         email: data.user.email,
-        name: data.user.name ?? [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email,
+        name: data.user.name ?? ([data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email),
         role: data.user.role,
       };
 

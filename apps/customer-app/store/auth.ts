@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user: User = {
         id: data.user.id,
         email: data.user.email,
-        name: data.user.name ?? [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email,
+        name: data.user.name ?? ([data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email),
         role: data.user.role,
         loyaltyPoints: data.user.loyaltyPoints,
         loyaltyTier: data.user.loyaltyTier,
@@ -107,7 +107,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       const user: User = {
         id: data.user.id,
         email: data.user.email,
-        name: data.user.name ?? [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email,
+        name: data.user.name ?? ([data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || data.user.email),
         role: data.user.role,
         loyaltyPoints: data.user.loyaltyPoints,
         loyaltyTier: data.user.loyaltyTier,

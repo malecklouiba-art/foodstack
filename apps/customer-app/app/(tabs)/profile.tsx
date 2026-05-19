@@ -63,7 +63,7 @@ export default function ProfileScreen() {
 
       if (userProfile.status === 'fulfilled') {
         const p = userProfile.value;
-        const computedName = p.name ?? [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email;
+        const computedName = p.name ?? ([p.firstName, p.lastName].filter(Boolean).join(' ') || p.email);
         setUserName(computedName);
       } else if (storedUser?.name) {
         // Fallback to locally stored name
