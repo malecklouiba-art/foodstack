@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import {
   QrCode,
@@ -533,7 +534,9 @@ const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
 ];
 
 export default function QRCodesPage() {
-  const restaurantId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
+  const ctxId = useRestaurantId();
+  const authId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
+  const restaurantId = ctxId || authId;
   const [restaurantName, setRestaurantName] = useState('Mon Restaurant');
   const [activeTab, setActiveTab] = useState<Tab>('menu');
 

@@ -206,6 +206,12 @@ function NotificationsTab() {
   const [saved, setSaved] = useState(false);
   const f = (k: keyof typeof smtp) => ({ value: smtp[k], onChange: (v: string) => setSmtp(p => ({ ...p, [k]: v })) });
 
+  useEffect(() => {
+    (api.get('/admin/settings/smtp') as Promise<Partial<typeof smtp>>)
+      .then((data) => { if (data && typeof data === 'object') setSmtp((prev) => ({ ...prev, ...data })); })
+      .catch(() => {});
+  }, []);
+
   async function handleSave() {
     try { await (api.patch('/admin/settings/smtp', smtp) as Promise<unknown>); } catch { /* best-effort */ }
     setSaved(true); toast.success('SMTP sauvegardé'); setTimeout(() => setSaved(false), 2000);

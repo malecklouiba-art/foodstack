@@ -14,34 +14,40 @@ export class AdminSettingsService {
       address: '',
     }],
     ['stripe', { publicKey: '', secretKey: '', webhookSecret: '', testMode: true }],
-    ['notifications', {}],
-    ['security', {}],
-    ['appearance', {}],
+    ['smtp', { host: '', port: '587', user: '', pass: '', from: 'no-reply@foodstack.fr' }],
+    ['security', { jwtExpiry: '7d', require2FA: false, maxLoginAttempts: 5 }],
+    ['appearance', { primaryColor: '#1EFF6A', logoUrl: '', faviconUrl: '' }],
   ]);
 
-  getGeneral() {
-    return this.store.get('general') ?? {};
-  }
-
-  saveGeneral(data: Record<string, unknown>) {
-    this.store.set('general', { ...this.store.get('general'), ...data });
-    return this.store.get('general');
-  }
-
-  getStripe() {
-    const cfg = { ...(this.store.get('stripe') ?? {}) } as Record<string, unknown>;
-    cfg.secretKey = '';
+  getSection(key: string) {
+    const cfg = { ...(this.store.get(key) ?? {}) } as Record<string, unknown>;
+    if (key === 'stripe' && cfg.secretKey) cfg.secretKey = '';
+    if (key === 'smtp' && cfg.pass) cfg.pass = '';
     return cfg;
   }
 
-  saveStripe(data: Record<string, unknown>) {
-    const existing = this.store.get('stripe') ?? {};
-    const merged = {
-      ...existing,
-      ...data,
-      secretKey: (data.secretKey as string) || (existing.secretKey as string) || '',
-    };
-    this.store.set('stripe', merged);
-    return { ...merged, secretKey: '' };
+  saveSection(key: string, data: Record<string, unknown>) {
+    const existing = this.store.get(key) ?? {};
+    const merged: Record<string, unknown> = { ...existing, ...data };
+    // Don't overwrite secrets with empty strings sent from redacted frontend
+    if (key === 'stripe' && !data.secretKey) merged.secretKey = existing.secretKey ?? '';
+    if (key === 'smtp' && !data.pass) merged.pass = existing.pass ?? '';
+    this.store.set(key, merged);
+    const result = { ...merged };
+    if (key === 'stripe') result.secretKey = '';
+    if (key === 'smtp') result.pass = '';
+    return result;
   }
+
+  // Convenience aliases used by the controller
+  getGeneral()                             { return this.getSection('general'); }
+  saveGeneral(d: Record<string, unknown>)  { return this.saveSection('general', d); }
+  getStripe()                              { return this.getSection('stripe'); }
+  saveStripe(d: Record<string, unknown>)   { return this.saveSection('stripe', d); }
+  getSmtp()                                { return this.getSection('smtp'); }
+  saveSmtp(d: Record<string, unknown>)     { return this.saveSection('smtp', d); }
+  getSecurity()                            { return this.getSection('security'); }
+  saveSecurity(d: Record<string, unknown>) { return this.saveSection('security', d); }
+  getAppearance()                          { return this.getSection('appearance'); }
+  saveAppearance(d: Record<string, unknown>){ return this.saveSection('appearance', d); }
 }

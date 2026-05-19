@@ -10,6 +10,7 @@ import {
   Globe, Upload, Smile,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import api from '@/lib/api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1381,8 +1382,9 @@ const DEFAULT_LANG: LangConfig = {
 };
 
 export default function KioskDesignerPage() {
+  const ctxId = useRestaurantId();
   const { user } = useAuthStore();
-  const restaurantId = user?.restaurantIds?.[0] ?? '';
+  const restaurantId = ctxId || (user?.restaurantIds?.[0] ?? '');
 
   const [products, setProducts] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<MenuCategory[]>([]);

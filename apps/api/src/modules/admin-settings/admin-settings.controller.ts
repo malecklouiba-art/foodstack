@@ -13,27 +13,18 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class AdminSettingsController {
   constructor(private readonly service: AdminSettingsService) {}
 
-  @Get('general')
-  @ApiOperation({ summary: 'Get general platform settings' })
-  getGeneral() {
-    return this.service.getGeneral();
-  }
+  @Get('general')   getGeneral()                           { return this.service.getGeneral(); }
+  @Patch('general') saveGeneral(@Body() b: Record<string, unknown>) { return this.service.saveGeneral(b); }
 
-  @Patch('general')
-  @ApiOperation({ summary: 'Update general platform settings' })
-  saveGeneral(@Body() body: Record<string, unknown>) {
-    return this.service.saveGeneral(body);
-  }
+  @Get('stripe')    getStripe()                            { return this.service.getStripe(); }
+  @Patch('stripe')  saveStripe(@Body() b: Record<string, unknown>)  { return this.service.saveStripe(b); }
 
-  @Get('stripe')
-  @ApiOperation({ summary: 'Get Stripe configuration (secret key redacted)' })
-  getStripe() {
-    return this.service.getStripe();
-  }
+  @Get('smtp')      getSmtp()                              { return this.service.getSmtp(); }
+  @Patch('smtp')    saveSmtp(@Body() b: Record<string, unknown>)    { return this.service.saveSmtp(b); }
 
-  @Patch('stripe')
-  @ApiOperation({ summary: 'Update Stripe configuration' })
-  saveStripe(@Body() body: Record<string, unknown>) {
-    return this.service.saveStripe(body);
-  }
+  @Get('security')  getSecurity()                          { return this.service.getSecurity(); }
+  @Patch('security') saveSecurity(@Body() b: Record<string, unknown>) { return this.service.saveSecurity(b); }
+
+  @Get('appearance') getAppearance()                       { return this.service.getAppearance(); }
+  @Patch('appearance') saveAppearance(@Body() b: Record<string, unknown>) { return this.service.saveAppearance(b); }
 }

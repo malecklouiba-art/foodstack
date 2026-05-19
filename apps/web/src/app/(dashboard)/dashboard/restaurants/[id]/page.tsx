@@ -7,7 +7,7 @@ import {
   ShoppingBag, UtensilsCrossed, Users, Bike, Truck, Package,
   CreditCard, BarChart3, TableIcon, MapPin, Tag, Settings,
   ArrowLeft, Store, Loader2, ChevronDown, Check,
-  CalendarDays, Award, Building2,
+  CalendarDays, Award, Building2, Monitor, QrCode,
 } from 'lucide-react';
 import { RestaurantProvider } from '@/contexts/restaurant-context';
 import api from '@/lib/api';
@@ -29,6 +29,8 @@ const SettingsTab  = dynamic(() => import('../../settings/page'),  { ssr: false,
 const PlanningTab  = dynamic(() => import('../../planning/page'),  { ssr: false, loading: () => <TabLoader /> });
 const LoyaltyTab     = dynamic(() => import('../../loyalty/page'),    { ssr: false, loading: () => <TabLoader /> });
 const SuppliersTab   = dynamic(() => import('../../suppliers/page'), { ssr: false, loading: () => <TabLoader /> });
+const KioskTab       = dynamic(() => import('../../kiosk/page'),     { ssr: false, loading: () => <TabLoader /> });
+const QRCodesTab     = dynamic(() => import('../../qrcodes/page'),   { ssr: false, loading: () => <TabLoader /> });
 
 function TabLoader() {
   return (
@@ -43,25 +45,27 @@ type TabKey =
   | 'commandes' | 'menu' | 'staff' | 'livreurs' | 'livraisons'
   | 'inventaire' | 'clients' | 'fidelite' | 'paiements' | 'analytiques'
   | 'tables' | 'zones' | 'coupons' | 'planning' | 'parametres'
-  | 'fournisseurs';
+  | 'fournisseurs' | 'borne' | 'qrcodes';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
-  { key: 'commandes',   label: 'Commandes',   icon: ShoppingBag    },
-  { key: 'menu',        label: 'Menu',        icon: UtensilsCrossed },
-  { key: 'staff',       label: 'Personnel',   icon: Users          },
-  { key: 'livreurs',    label: 'Livreurs',    icon: Bike           },
-  { key: 'livraisons',  label: 'Livraisons',  icon: Truck          },
-  { key: 'inventaire',  label: 'Inventaire',  icon: Package        },
-  { key: 'clients',     label: 'Clients',     icon: Users          },
-  { key: 'fidelite',    label: 'Fidélité',    icon: Award          },
-  { key: 'paiements',   label: 'Paiements',   icon: CreditCard     },
-  { key: 'analytiques', label: 'Analytiques', icon: BarChart3      },
-  { key: 'tables',      label: 'Tables',      icon: TableIcon      },
-  { key: 'zones',       label: 'Zones',       icon: MapPin         },
-  { key: 'coupons',     label: 'Codes Promo', icon: Tag            },
-  { key: 'planning',    label: 'Planning',    icon: CalendarDays   },
-  { key: 'parametres',  label: 'Paramètres',  icon: Settings       },
-  { key: 'fournisseurs', label: 'Fournisseurs', icon: Building2     },
+  { key: 'commandes',    label: 'Commandes',    icon: ShoppingBag    },
+  { key: 'menu',         label: 'Menu',         icon: UtensilsCrossed },
+  { key: 'staff',        label: 'Personnel',    icon: Users          },
+  { key: 'livreurs',     label: 'Livreurs',     icon: Bike           },
+  { key: 'livraisons',   label: 'Livraisons',   icon: Truck          },
+  { key: 'inventaire',   label: 'Inventaire',   icon: Package        },
+  { key: 'fournisseurs', label: 'Fournisseurs', icon: Building2      },
+  { key: 'clients',      label: 'Clients',      icon: Users          },
+  { key: 'fidelite',     label: 'Fidélité',     icon: Award          },
+  { key: 'paiements',    label: 'Paiements',    icon: CreditCard     },
+  { key: 'analytiques',  label: 'Analytiques',  icon: BarChart3      },
+  { key: 'tables',       label: 'Tables',       icon: TableIcon      },
+  { key: 'zones',        label: 'Zones',        icon: MapPin         },
+  { key: 'coupons',      label: 'Codes Promo',  icon: Tag            },
+  { key: 'borne',        label: 'Borne',        icon: Monitor        },
+  { key: 'qrcodes',      label: 'QR Codes',     icon: QrCode         },
+  { key: 'planning',     label: 'Planning',     icon: CalendarDays   },
+  { key: 'parametres',   label: 'Paramètres',   icon: Settings       },
 ];
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -114,9 +118,11 @@ export default function RestaurantHubPage({ params }: { params: { id: string } }
       case 'tables':      return <TablesTab />;
       case 'zones':       return <ZonesTab />;
       case 'coupons':     return <CouponsTab />;
-      case 'planning':    return <PlanningTab />;
-      case 'parametres':   return <SettingsTab />;
       case 'fournisseurs': return <SuppliersTab />;
+      case 'borne':        return <KioskTab />;
+      case 'qrcodes':      return <QRCodesTab />;
+      case 'planning':     return <PlanningTab />;
+      case 'parametres':   return <SettingsTab />;
       default:             return null;
     }
   }
