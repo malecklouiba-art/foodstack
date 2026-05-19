@@ -15,6 +15,7 @@ import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { AIInsights } from '@/components/analytics/AIInsights';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import type {} from 'jspdf-autotable';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -759,8 +760,9 @@ export default function AnalyticsPage() {
   const [deliveryStats, setDeliveryStats] = useState<ApiDeliveryStats | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
-  const RESTAURANT_ID = authUser?.restaurantIds?.[0] ?? '';
+  const RESTAURANT_ID = ctxId || authUser?.restaurantIds?.[0] || '';
   const selectedPeriod = PERIOD_API_MAP[period] ?? 'week';
 
   // Use real auth role; fall back to cookie for unauthenticated demo mode

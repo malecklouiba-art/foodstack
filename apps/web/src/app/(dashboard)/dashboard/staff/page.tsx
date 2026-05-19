@@ -12,6 +12,7 @@ import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { clsx } from 'clsx';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -749,12 +750,14 @@ function apiToEmployee(s: ApiStaff, i: number): Employee {
 }
 
 export default function StaffPage() {
+  const ctxId = useRestaurantId();
   const [employees,           setEmployees]           = useState<Employee[]>([]);
   const [search,              setSearch]              = useState('');
   const [roleFilter,          setRoleFilter]          = useState<RoleFilter>('Tous');
 
   useEffect(() => {
-    (api.get('/users/staff') as Promise<ApiStaff[]>)
+    const endpoint = ctxId ? `/users/staff?restaurantId=${ctxId}` : '/users/staff';
+    (api.get(endpoint) as Promise<ApiStaff[]>)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setEmployees(data.map(apiToEmployee));

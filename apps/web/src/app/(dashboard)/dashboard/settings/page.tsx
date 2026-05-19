@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -1008,8 +1009,9 @@ function PeripheriquesTab() {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
+  const ctxId = useRestaurantId();
   const { user } = useAuthStore();
-  const restaurantId = user?.restaurantIds?.[0] ?? '';
+  const restaurantId = ctxId || user?.restaurantIds?.[0] || '';
 
   const [activeTab, setActiveTab] = useState<TabId>('general');
 

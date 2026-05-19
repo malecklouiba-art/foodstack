@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
@@ -1259,6 +1260,7 @@ function FormField({
 // ── Restaurant card ───────────────────────────────────────────────────────────
 
 function RestaurantCard({ restaurant, onOpenDetail }: { restaurant: Restaurant; onOpenDetail: () => void }) {
+  const router = useRouter();
   const statusCfg = STATUS_CONFIG[restaurant.status];
   const paymentCfg = PAYMENT_STATUS_CONFIG[restaurant.paymentStatus];
 
@@ -1323,14 +1325,23 @@ function RestaurantCard({ restaurant, onOpenDetail }: { restaurant: Restaurant; 
             </div>
           </div>
 
-          {/* Single Gérer button */}
-          <button
-            onClick={onOpenDetail}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-          >
-            <Store className="h-4 w-4" />
-            Gérer
-          </button>
+          {/* Actions */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push(`/dashboard/restaurants/${restaurant.id}`)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+            >
+              <Store className="h-4 w-4" />
+              Gérer
+            </button>
+            <button
+              onClick={onOpenDetail}
+              className="flex items-center justify-center rounded-xl border border-surface-200 px-3 py-2.5 text-surface-500 hover:bg-surface-50 transition-colors"
+              title="Infos CRM"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </Card>
     </motion.div>

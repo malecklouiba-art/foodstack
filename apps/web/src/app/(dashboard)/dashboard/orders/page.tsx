@@ -16,6 +16,7 @@ import type { KanbanOrder, OrderStatus } from '@/components/dashboard/orders/Ord
 import type {} from 'jspdf-autotable';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Sound alert (Web Audio API — no extra dep) ──────────────────────────────
 
@@ -370,8 +371,9 @@ function normaliseOrder(o: ApiOrder): KanbanOrder {
 }
 
 export default function OrdersPage() {
+  const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
-  const restaurantId = authUser?.restaurantIds?.[0] ?? '';
+  const restaurantId = ctxId || authUser?.restaurantIds?.[0] || '';
   const [orders, setOrders] = useState<KanbanOrder[]>([]);
   const [view, setView] = useState<ViewMode>('kanban');
   const [timeRange, setTimeRange] = useState<TimeRange>('today');

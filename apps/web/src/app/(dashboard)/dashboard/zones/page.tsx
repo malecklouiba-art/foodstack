@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import {
   Plus,
   MapPin,
@@ -128,8 +129,9 @@ const INITIAL_ZONES: Zone[] = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ZonesPage() {
+  const ctxId = useRestaurantId();
   const { user: authUser } = useAuthStore();
-  const restaurantId = authUser?.restaurantIds?.[0] ?? '';
+  const restaurantId = ctxId || authUser?.restaurantIds?.[0] || '';
 
   const [zones, setZones] = useState<Zone[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);

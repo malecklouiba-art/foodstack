@@ -27,6 +27,7 @@ import { StatCard } from '@/components/ui/StatCard';
 import { clsx } from 'clsx';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -259,6 +260,7 @@ function apiToCoupon(c: ApiCoupon): Coupon {
 }
 
 export default function CouponsPage() {
+  const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -267,7 +269,7 @@ export default function CouponsPage() {
   const [form, setForm] = useState<CouponFormState>(EMPTY_FORM);
   const [editForm, setEditForm] = useState<CouponFormState>(EMPTY_FORM);
 
-  const restaurantId = authUser?.restaurantIds?.[0];
+  const restaurantId = ctxId || authUser?.restaurantIds?.[0];
 
   useEffect(() => {
     if (!restaurantId) return;

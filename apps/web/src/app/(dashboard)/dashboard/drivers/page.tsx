@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bike, Star, Phone, MapPin, Clock, TrendingUp,
@@ -396,7 +397,9 @@ function apiDriverToDriver(d: ApiDriver): Driver {
 }
 
 export default function DriversPage() {
-  const restaurantId = useAuthStore((s) => s.user?.restaurantIds?.[0]);
+  const ctxId = useRestaurantId();
+  const authId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
+  const restaurantId = ctxId || authId;
   const [drivers, setDrivers]     = useState<Driver[]>(SEED);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState<DriverStatus | 'all'>('all');

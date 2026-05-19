@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -843,7 +844,9 @@ function EditorPanel({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function TablesPage() {
-  const restaurantId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
+  const ctxId = useRestaurantId();
+  const authId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
+  const restaurantId = ctxId || authId;
   const [tables, setTables] = useState<RestaurantTable[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [tab, setTab] = useState<PageTab>('floor');

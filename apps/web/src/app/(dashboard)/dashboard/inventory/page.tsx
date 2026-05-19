@@ -13,6 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/ui/StatCard';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,7 @@ function stockPct(item: InventoryItem): number {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function InventoryPage() {
+  const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
   const [items, setItems] = useState<InventoryItem[]>(SEED);
   const [search, setSearch] = useState('');
@@ -96,7 +98,7 @@ export default function InventoryPage() {
   const [form, setForm] = useState<ItemForm>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
 
-  const restaurantId = authUser?.restaurantIds?.[0];
+  const restaurantId = ctxId || authUser?.restaurantIds?.[0];
 
   const load = useCallback((silent = false) => {
     if (!restaurantId) return;

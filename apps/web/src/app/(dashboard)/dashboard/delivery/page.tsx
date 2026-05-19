@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -416,6 +417,7 @@ function apiToDelivery(d: ApiDelivery, idx: number): Delivery {
 }
 
 export default function DeliveryPage() {
+  const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
   const [deliveries, setDeliveries] = useState<Delivery[]>(DELIVERIES);
   const [search, setSearch] = useState('');
@@ -423,7 +425,7 @@ export default function DeliveryPage() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
-    const restaurantId = authUser?.restaurantIds?.[0];
+    const restaurantId = ctxId || authUser?.restaurantIds?.[0];
     if (!restaurantId) return;
     (api.get(`/delivery/active?restaurantId=${restaurantId}`) as Promise<ApiDelivery[]>)
       .then((data) => {

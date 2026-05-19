@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useGSAPReveal } from '@/hooks/useGSAPReveal';
 import { useSearchParams } from 'next/navigation';
 import api from '@/lib/api';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -279,6 +280,7 @@ function CustomerPanel({ customer, onClose }: { customer: Customer; onClose: () 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CustomersPage() {
+  const ctxId = useRestaurantId();
   const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
@@ -286,7 +288,8 @@ export default function CustomersPage() {
 
   useEffect(() => {
     setLoadingCustomers(true);
-    (api.get('/users/customers') as Promise<any[]>)
+    const endpoint = ctxId ? `/users/customers?restaurantId=${ctxId}` : '/users/customers';
+    (api.get(endpoint) as Promise<any[]>)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           const tierMap: Record<string, Customer['tier']> = {

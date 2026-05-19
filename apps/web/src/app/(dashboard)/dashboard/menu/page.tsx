@@ -16,6 +16,7 @@ import { ItemModal } from '@/components/dashboard/menu/ItemModal';
 import type { MenuCategory, MenuItem } from '@foodstack/shared';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Mock data ──────────────────────────────────────────────────────────────
 const INIT_CATEGORIES: MenuCategory[] = [
@@ -51,13 +52,14 @@ interface ApiCategory extends MenuCategory {
 
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function MenuPage() {
+  const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
   const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<string>('');
 
   useEffect(() => {
-    const restaurantId = authUser?.restaurantIds?.[0];
+    const restaurantId = ctxId || authUser?.restaurantIds?.[0];
     if (!restaurantId) return;
     (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<{ categories: ApiCategory[]; items: MenuItem[] } | ApiCategory[]>)
       .then((data) => {

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/store/auth';
 import api from '@/lib/api';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 import {
   Euro, CreditCard, Clock, ArrowDownToLine, TrendingUp,
   Building2, CheckCircle2, AlertCircle, RotateCcw,
@@ -357,6 +358,7 @@ function RefundModal({ tx, onClose, onConfirm }: RefundModalProps) {
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function PaymentsPage() {
+  const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
   const [period,        setPeriod]        = useState(0);
   const [selectedTx,    setSelectedTx]    = useState<Transaction | null>(null);
@@ -368,7 +370,7 @@ export default function PaymentsPage() {
   const [apiRevenue,    setApiRevenue]    = useState<{ day: string; revenue: number }[] | null>(null);
 
   const isAdmin       = authUser?.role === 'super_admin';
-  const restaurantId  = authUser?.restaurantIds?.[0] ?? '';
+  const restaurantId  = ctxId || authUser?.restaurantIds?.[0] || '';
 
   useEffect(() => {
     const endpoint = isAdmin
