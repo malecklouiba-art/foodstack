@@ -36,44 +36,6 @@ interface Customer {
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
-const INITIAL_CUSTOMERS: Customer[] = [
-  { id: 'c1', name: 'Marie Leclerc', email: 'marie.l@email.com', phone: '+33 6 11 22 33 44', orders: 24, spent: 847.50, lastOrder: 'il y a 2j', tier: 'Gold', joinedAt: 'Jan 2024', status: 'active' },
-  { id: 'c2', name: 'Pierre Dubois', email: 'pierre.d@email.com', phone: '+33 6 55 44 33 22', orders: 8, spent: 234.80, lastOrder: 'il y a 5j', tier: 'Silver', joinedAt: 'Mar 2024', status: 'active' },
-  { id: 'c3', name: 'Sophie Martin', email: 'sophie.m@email.com', phone: '+33 6 77 88 99 11', orders: 51, spent: 1823.40, lastOrder: 'il y a 1j', tier: 'Platinum', joinedAt: 'Oct 2023', status: 'active' },
-  { id: 'c4', name: 'Julien Kowalski', email: 'julien.k@email.com', phone: '+33 6 22 33 44 55', orders: 3, spent: 67.20, lastOrder: 'il y a 3sem', tier: 'Bronze', joinedAt: 'Nov 2024', status: 'active' },
-  { id: 'c5', name: 'Emma Rousseau', email: 'emma.r@email.com', phone: '+33 6 44 55 66 77', orders: 0, spent: 0, lastOrder: 'Jamais', tier: 'Bronze', joinedAt: 'Jan 2025', status: 'inactive' },
-  { id: 'c6', name: 'Antoine Bernard', email: 'antoine.b@email.com', phone: '+33 6 99 88 77 66', orders: 37, spent: 1240.00, lastOrder: 'il y a 4j', tier: 'Gold', joinedAt: 'Jun 2023', status: 'active' },
-];
-
-const MOCK_ORDERS: Record<string, { label: string; amount: number; date: string }[]> = {
-  c1: [
-    { label: 'Sushi Zen · 3 articles', amount: 48.50, date: 'il y a 2j' },
-    { label: 'Burger House · 2 articles', amount: 32.80, date: 'il y a 1sem' },
-    { label: 'Pizza Roma · 4 articles', amount: 41.20, date: 'il y a 2sem' },
-  ],
-  c2: [
-    { label: 'Tacos Palace · 2 articles', amount: 27.90, date: 'il y a 5j' },
-    { label: 'Sushi Zen · 1 article', amount: 18.50, date: 'il y a 3sem' },
-    { label: 'Burger House · 3 articles', amount: 34.40, date: 'il y a 1mois' },
-  ],
-  c3: [
-    { label: 'Sushi Zen · 5 articles', amount: 72.00, date: 'il y a 1j' },
-    { label: 'Pizza Roma · 6 articles', amount: 58.60, date: 'il y a 3j' },
-    { label: 'Burger House · 4 articles', amount: 45.80, date: 'il y a 5j' },
-  ],
-  c4: [
-    { label: 'Tacos Palace · 1 article', amount: 14.90, date: 'il y a 3sem' },
-    { label: 'Burger House · 2 articles', amount: 28.40, date: 'il y a 2mois' },
-    { label: 'Pizza Roma · 2 articles', amount: 23.90, date: 'il y a 3mois' },
-  ],
-  c5: [],
-  c6: [
-    { label: 'Burger House · 3 articles', amount: 39.50, date: 'il y a 4j' },
-    { label: 'Sushi Zen · 4 articles', amount: 62.00, date: 'il y a 2sem' },
-    { label: 'Tacos Palace · 2 articles', amount: 26.80, date: 'il y a 3sem' },
-  ],
-};
-
 const LOYALTY_POINTS: Record<Tier, number> = {
   Bronze: 120,
   Silver: 680,
