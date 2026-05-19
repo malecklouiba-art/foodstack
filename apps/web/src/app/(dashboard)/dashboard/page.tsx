@@ -110,11 +110,12 @@ const STATUS_COLORS: Record<string, string> = {
 interface PlatformRestaurant {
   id: string;
   name: string;
-  plan?: string;
-  mrr?: number;
-  status?: string;
-  createdAt?: string;
   isActive?: boolean;
+  createdAt?: string;
+  revenueThisMonth?: number;
+  ordersThisMonth?: number;
+  avgRating?: number | null;
+  subscription?: { plan?: string; status?: string } | null;
 }
 
 function SuperAdminDashboard() {
@@ -128,8 +129,8 @@ function SuperAdminDashboard() {
     (api.get('/super-admin/stats') as Promise<typeof platformStats>)
       .then((s) => setPlatformStats(s))
       .catch(() => {});
-    (api.get('/restaurants') as Promise<PlatformRestaurant[]>)
-      .then((data) => { if (Array.isArray(data)) setPlatformRestaurants(data.slice(0, 5)); })
+    (api.get('/super-admin/restaurants?limit=5') as Promise<{ data: PlatformRestaurant[] }>)
+      .then((res) => { if (Array.isArray(res?.data)) setPlatformRestaurants(res.data); })
       .catch(() => {});
   }, []);
 
@@ -252,16 +253,20 @@ function SuperAdminDashboard() {
                   <td colSpan={5} className="px-6 py-8 text-center text-sm text-surface-400">Aucun restaurant trouvé</td>
                 </tr>
               ) : platformRestaurants.map(r => {
-                const statusLabel = r.status ?? (r.isActive ? 'actif' : 'inactif');
+                const plan = r.subscription?.plan ?? '—';
+                const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+                const statusLabel = r.isActive ? 'actif' : 'inactif';
                 return (
                   <tr key={r.id} className="hover:bg-surface-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-surface-900">{r.name}</td>
                     <td className="px-6 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PLAN_COLORS[r.plan ?? ''] ?? 'bg-gray-100 text-gray-700'}`}>
-                        {r.plan ?? '—'}
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PLAN_COLORS[planLabel] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {planLabel}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-surface-900">{r.mrr != null ? `${r.mrr} €` : '—'}</td>
+                    <td className="px-6 py-4 font-semibold text-surface-900">
+                      {r.revenueThisMonth != null ? `${r.revenueThisMonth.toLocaleString('fr-FR')} €` : '—'}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[statusLabel] ?? 'bg-gray-100 text-gray-700'}`}>
                         {statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}
@@ -601,10 +606,40 @@ const DRIVER_PENDING_INIT: PendingOrder[] = [
 ];
 
 function DriverDashboard() {
+  const authUser = useAuthStore((s) => s.user);
   const [online, setOnline] = useState(true);
-  const [pending, setPending] = useState<PendingOrder[]>(DRIVER_PENDING_INIT);
+  const [pending, setPending] = useState<PendingOrder[]>([]);
   const [activeDelivery, setActiveDelivery] = useState(DRIVER_ACTIVE_DELIVERY);
-  const [delivering, setDelivering] = useState(true);
+  const [delivering, setDelivering] = useState(false);
+
+  useEffect(() => {
+    const driverId = authUser?.id;
+    if (!driverId) return;
+    (api.get(`/delivery/driver/${driverId}/pending`) as Promise<{
+      id: string; orderId?: string; orderNumber?: string;
+      customer?: { firstName?: string; lastName?: string };
+      deliveryAddress?: string; totalItems?: number; total?: number;
+      estimatedDistance?: string; estimatedArrival?: string;
+      status?: string;
+    }[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        setPending(data.map((d) => ({
+          id: d.id,
+          order: d.orderNumber ?? d.orderId ?? d.id.slice(0, 8).toUpperCase(),
+          customer: d.customer
+            ? `${d.customer.firstName ?? ''} ${d.customer.lastName ?? ''}`.trim() || 'Client'
+            : 'Client',
+          address: d.deliveryAddress ?? '—',
+          items: d.totalItems ?? 1,
+          total: d.total ?? 0,
+          distance: d.estimatedDistance ?? '—',
+          eta: d.estimatedArrival ?? '—',
+          status: (d.status ?? 'assigned') as PendingOrder['status'],
+        })));
+      })
+      .catch(() => {});
+  }, [authUser?.id]);
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const kpis = [

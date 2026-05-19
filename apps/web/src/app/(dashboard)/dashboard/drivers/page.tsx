@@ -400,7 +400,7 @@ export default function DriversPage() {
   const ctxId = useRestaurantId();
   const authId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
   const restaurantId = ctxId || authId;
-  const [drivers, setDrivers]     = useState<Driver[]>(SEED);
+  const [drivers, setDrivers]     = useState<Driver[]>([]);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatus] = useState<DriverStatus | 'all'>('all');
   const [modal, setModal]         = useState<'add' | Driver | null>(null);

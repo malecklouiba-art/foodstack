@@ -1428,7 +1428,7 @@ function mergeApiRestaurant(api: ApiRestaurant): Restaurant {
 
 export default function RestaurantsPage() {
   const authUser = useAuthStore((s) => s.user);
-  const [restaurants, setRestaurants] = useState<Restaurant[]>(RESTAURANTS_SEED);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [showModal, setShowModal]     = useState(false);
   const [detailId, setDetailId]       = useState<string | null>(null);
   const [search, setSearch]           = useState('');

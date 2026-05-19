@@ -199,9 +199,9 @@ const EMPLOYEE_COLORS = [
 ];
 
 export default function PlanningPage() {
-  const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [weekOffset, setWeekOffset] = useState(0);
-  const [shifts, setShifts] = useState<Shift[]>(() => generateShiftsForWeek(0));
+  const [shifts, setShifts] = useState<Shift[]>([]);
 
   useEffect(() => {
     (api.get('/users/staff') as Promise<{ id: string; name: string; role: string }[]>)

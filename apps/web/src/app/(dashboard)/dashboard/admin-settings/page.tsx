@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Settings, CreditCard, Bell, Shield, Globe, Palette,
   Eye, EyeOff, Save, Check, AlertTriangle, Zap,
@@ -77,6 +77,12 @@ function GeneralTab() {
   });
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    (api.get('/admin/settings/general') as Promise<Partial<typeof form>>)
+      .then((data) => { if (data && typeof data === 'object') setForm((prev) => ({ ...prev, ...data })); })
+      .catch(() => {});
+  }, []);
+
   async function handleSave() {
     try {
       await (api.patch('/admin/settings/general', form) as Promise<unknown>);
@@ -124,6 +130,12 @@ function PaiementsTab() {
     testMode: true,
   });
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    (api.get('/admin/settings/stripe') as Promise<Partial<typeof stripe>>)
+      .then((data) => { if (data && typeof data === 'object') setStripe((prev) => ({ ...prev, ...data })); })
+      .catch(() => {});
+  }, []);
 
   async function handleSave() {
     try {

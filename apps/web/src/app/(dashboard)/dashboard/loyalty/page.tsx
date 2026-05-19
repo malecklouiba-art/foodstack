@@ -52,7 +52,7 @@ const SEED_CUSTOMERS: LoyaltyCustomer[] = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function LoyaltyPage() {
-  const [customers, setCustomers] = useState<LoyaltyCustomer[]>(SEED_CUSTOMERS);
+  const [customers, setCustomers] = useState<LoyaltyCustomer[]>([]);
   const [search, setSearch] = useState('');
   const [tierFilter, setTierFilter] = useState<LoyaltyTier | 'all'>('all');
   const [loading, setLoading] = useState(false);
