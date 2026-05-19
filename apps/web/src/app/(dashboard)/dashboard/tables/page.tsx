@@ -85,31 +85,6 @@ const ZONE_COLORS = [
   '#fefce8', // amber
 ];
 
-const INIT_ZONES: Zone[] = [
-  { id: 'z1', name: 'Salle principale', x: 40,  y: 60,  w: 520, h: 380, color: '#eff6ff' },
-  { id: 'z2', name: 'Terrasse',         x: 580, y: 60,  w: 320, h: 230, color: '#fefce8' },
-  { id: 'z3', name: 'Bar',              x: 580, y: 310, w: 150, h: 130, color: '#faf5ff' },
-  { id: 'z4', name: 'VIP',              x: 750, y: 310, w: 150, h: 130, color: '#fdf2f8' },
-];
-
-const INIT_TABLES: RestaurantTable[] = [
-  { id: 't1',  number: 1,  capacity: 2, status: 'occupied', zoneId: 'z1', shape: 'circle', x:  80, y: 120, currentOrderId: 'ORD-8821', occupiedSince: '12:30' },
-  { id: 't2',  number: 2,  capacity: 4, status: 'free',     zoneId: 'z1', shape: 'rect',   x: 200, y: 120 },
-  { id: 't3',  number: 3,  capacity: 4, status: 'reserved', zoneId: 'z1', shape: 'rect',   x: 320, y: 120, reservedAt: '14:00', reservedBy: 'Martin P.' },
-  { id: 't4',  number: 4,  capacity: 6, status: 'occupied', zoneId: 'z1', shape: 'rect',   x: 440, y: 120, currentOrderId: 'ORD-8819', occupiedSince: '12:00' },
-  { id: 't5',  number: 5,  capacity: 2, status: 'cleaning', zoneId: 'z1', shape: 'circle', x:  80, y: 240 },
-  { id: 't6',  number: 6,  capacity: 4, status: 'free',     zoneId: 'z1', shape: 'rect',   x: 200, y: 240 },
-  { id: 't7',  number: 7,  capacity: 8, status: 'free',     zoneId: 'z1', shape: 'rect',   x: 360, y: 320 },
-  { id: 't8',  number: 8,  capacity: 4, status: 'occupied', zoneId: 'z1', shape: 'rect',   x: 440, y: 240, currentOrderId: 'ORD-8820', occupiedSince: '13:15' },
-  { id: 't9',  number: 9,  capacity: 2, status: 'free',     zoneId: 'z2', shape: 'circle', x: 600, y: 120 },
-  { id: 't10', number: 10, capacity: 4, status: 'free',     zoneId: 'z2', shape: 'rect',   x: 720, y: 120 },
-  { id: 't11', number: 11, capacity: 6, status: 'occupied', zoneId: 'z2', shape: 'rect',   x: 800, y: 200, currentOrderId: 'ORD-8817', occupiedSince: '12:45' },
-  { id: 't12', number: 12, capacity: 2, status: 'reserved', zoneId: 'z2', shape: 'circle', x: 600, y: 200, reservedAt: '15:00', reservedBy: 'Dubois L.' },
-  { id: 't13', number: 13, capacity: 6, status: 'free',     zoneId: 'z3', shape: 'rect',   x: 600, y: 320 },
-  { id: 't14', number: 14, capacity: 4, status: 'free',     zoneId: 'z4', shape: 'rect',   x: 760, y: 320 },
-  { id: 't15', number: 15, capacity: 8, status: 'reserved', zoneId: 'z4', shape: 'rect',   x: 760, y: 360, reservedAt: '20:00', reservedBy: 'Leclerc A.' },
-];
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function tableSize(t: RestaurantTable): { w: number; h: number } {

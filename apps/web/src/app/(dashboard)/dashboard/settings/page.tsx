@@ -688,14 +688,6 @@ const ROLE_CONFIG: Record<MemberRole, { label: string; variant: 'brand' | 'succe
   driver:  { label: 'Livreur',      variant: 'warning',  perms: ['Interface livreur', 'GPS tracking'] },
 };
 
-const INIT_TEAM: TeamMember[] = [
-  { id: 't1', name: 'Jean Dupont',    email: 'jean@foodstack.fr',   role: 'owner',   active: true,  lastLogin: 'Aujourd\'hui 09:14', avatar: 'JD' },
-  { id: 't2', name: 'Claire Morin',   email: 'claire@foodstack.fr', role: 'manager', active: true,  lastLogin: 'Aujourd\'hui 08:52', avatar: 'CM' },
-  { id: 't3', name: 'Lucas Bernard',  email: 'lucas@foodstack.fr',  role: 'staff',   active: true,  lastLogin: 'Hier 22:30',         avatar: 'LB' },
-  { id: 't4', name: 'Yasmine Kader',  email: 'yasmine@foodstack.fr',role: 'staff',   active: false, lastLogin: 'il y a 5 jours',     avatar: 'YK' },
-  { id: 't5', name: 'Karim Benali',   email: 'karim@foodstack.fr',  role: 'driver',  active: true,  lastLogin: 'Aujourd\'hui 11:05', avatar: 'KB' },
-];
-
 function EquipeTab() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [showInvite, setShowInvite] = useState(false);

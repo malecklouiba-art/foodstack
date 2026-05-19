@@ -58,21 +58,6 @@ interface CouponFormState {
   expiresAt: string;
 }
 
-// ─── Demo data ────────────────────────────────────────────────────────────────
-
-const INIT_COUPONS: Coupon[] = [
-  { id: '1',  code: 'BIENVENUE10', description: 'Nouveau client',      discountType: 'percent', discountValue: 10, minOrderValue: 0,  maxUses: 100,  usedCount: 23,  usedToday: 4,  expiresAt: '2026-12-31', active: true,  pinned: true  },
-  { id: '2',  code: 'ETE5',        description: 'Promo été',           discountType: 'fixed',   discountValue: 5,  minOrderValue: 25, maxUses: 50,   usedCount: 50,  usedToday: 0,  expiresAt: '2026-08-31', active: false, pinned: false },
-  { id: '3',  code: 'FIDELE20',    description: 'Client fidèle',       discountType: 'percent', discountValue: 20, minOrderValue: 50, maxUses: null, usedCount: 8,   usedToday: 1,  expiresAt: null,         active: true,  pinned: false },
-  { id: '4',  code: 'FLASH15',     description: 'Offre flash',         discountType: 'percent', discountValue: 15, minOrderValue: 30, maxUses: 200,  usedCount: 197, usedToday: 12, expiresAt: '2026-06-30', active: true,  pinned: false },
-  { id: '5',  code: 'NOEL25',      description: 'Noël 2026',           discountType: 'percent', discountValue: 25, minOrderValue: 60, maxUses: 500,  usedCount: 0,   usedToday: 0,  expiresAt: '2026-12-26', active: true,  pinned: false },
-  { id: '6',  code: 'WEEKEND10',   description: 'Promo week-end',      discountType: 'percent', discountValue: 10, minOrderValue: 20, maxUses: 300,  usedCount: 45,  usedToday: 7,  expiresAt: '2026-07-31', active: true,  pinned: true  },
-  { id: '7',  code: 'VIP30',       description: 'Client VIP',          discountType: 'percent', discountValue: 30, minOrderValue: 80, maxUses: 20,   usedCount: 3,   usedToday: 0,  expiresAt: null,         active: true,  pinned: false },
-  { id: '8',  code: 'GRATUIT8',    description: 'Livraison offerte',   discountType: 'fixed',   discountValue: 8,  minOrderValue: 15, maxUses: 150,  usedCount: 112, usedToday: 0,  expiresAt: '2026-09-30', active: false, pinned: false },
-  { id: '9',  code: 'RENTRE15',    description: 'Rentrée scolaire',    discountType: 'percent', discountValue: 15, minOrderValue: 35, maxUses: 400,  usedCount: 0,   usedToday: 0,  expiresAt: '2026-10-01', active: true,  pinned: false },
-  { id: '10', code: 'LOYAL5',      description: 'Récompense fidélité', discountType: 'fixed',   discountValue: 5,  minOrderValue: 0,  maxUses: null, usedCount: 67,  usedToday: 3,  expiresAt: null,         active: true,  pinned: false },
-];
-
 const EMPTY_FORM: CouponFormState = {
   code: '',
   description: '',
