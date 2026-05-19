@@ -65,67 +65,6 @@ interface AddZoneForm {
   deliveryMax: string;
 }
 
-// ─── Demo data ────────────────────────────────────────────────────────────────
-
-const INITIAL_ZONES: Zone[] = [
-  {
-    id: 'z1',
-    name: 'Zone Centre',
-    radiusKm: 2,
-    feeEuros: 0,
-    deliveryTimeMin: 15,
-    deliveryTimeMax: 25,
-    active: true,
-    ordersPerWeek: 145,
-    minOrderEuros: 10,
-    revenueWeek: 3480,
-    avgOrderValue: 24,
-    cancellationRate: 1.4,
-  },
-  {
-    id: 'z2',
-    name: 'Zone Proche',
-    radiusKm: 4,
-    feeEuros: 1.99,
-    deliveryTimeMin: 25,
-    deliveryTimeMax: 35,
-    active: true,
-    ordersPerWeek: 89,
-    minOrderEuros: 15,
-    revenueWeek: 2136,
-    avgOrderValue: 24,
-    cancellationRate: 2.8,
-  },
-  {
-    id: 'z3',
-    name: 'Zone Étendue',
-    radiusKm: 6,
-    feeEuros: 2.99,
-    deliveryTimeMin: 35,
-    deliveryTimeMax: 45,
-    active: true,
-    ordersPerWeek: 52,
-    minOrderEuros: 20,
-    revenueWeek: 1248,
-    avgOrderValue: 24,
-    cancellationRate: 4.2,
-  },
-  {
-    id: 'z4',
-    name: 'Zone Périphérie',
-    radiusKm: 8,
-    feeEuros: 3.99,
-    deliveryTimeMin: 45,
-    deliveryTimeMax: 60,
-    active: true,
-    ordersPerWeek: 23,
-    minOrderEuros: 25,
-    revenueWeek: 552,
-    avgOrderValue: 24,
-    cancellationRate: 6.5,
-  },
-];
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ZonesPage() {
@@ -537,14 +476,15 @@ export default function ZonesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-100 dark:divide-surface-700">
-              {sortedZones.map((zone) => {
+              {sortedZones.map((zone, zoneIdx) => {
                 const orderShare = totalOrders > 0 ? (zone.ordersPerWeek / totalOrders) * 100 : 0;
+                const dotOpacity = sortedZones.length > 1 ? 1 - (zoneIdx / sortedZones.length) * 0.7 : 1;
                 return (
                   <tr key={zone.id} className="hover:bg-surface-50 dark:hover:bg-surface-900/50 transition-colors">
                     {/* Zone name */}
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2">
-                        <div className="h-2.5 w-2.5 rounded-full bg-brand-500" style={{ opacity: 0.3 + (0.7 * (INITIAL_ZONES.findIndex(z => z.id === zone.id) === -1 ? 0 : (4 - INITIAL_ZONES.findIndex(z => z.id === zone.id)) / 4)) }} />
+                        <div className="h-2.5 w-2.5 rounded-full bg-brand-500" style={{ opacity: dotOpacity }} />
                         <span className="text-sm font-medium text-surface-900 dark:text-surface-100">{zone.name}</span>
                       </div>
                     </td>
