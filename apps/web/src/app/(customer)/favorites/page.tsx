@@ -142,9 +142,7 @@ export default function FavoritesPage() {
       } else if (status === 404) {
         setFavorites([]);
       } else {
-        // Network / server error → fall back to mock so UI is still useful
-        console.warn('Favorites API unavailable, using mock data:', err);
-        setFavorites(MOCK_FAVORITES);
+        setError('Impossible de charger vos favoris');
       }
     } finally {
       setLoading(false);

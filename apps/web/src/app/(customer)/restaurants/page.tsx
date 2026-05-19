@@ -93,9 +93,9 @@ export default function RestaurantsPage() {
       params.set('limit', '100');
       const qs = params.toString();
       const data = await api.get<Restaurant[]>(`/restaurants${qs ? `?${qs}` : ''}`);
-      setRestaurants(Array.isArray(data) && data.length > 0 ? data : MOCK_RESTAURANTS);
+      setRestaurants(Array.isArray(data) ? data : []);
     } catch {
-      setRestaurants(MOCK_RESTAURANTS);
+      setRestaurants([]);
     } finally {
       setLoading(false);
     }

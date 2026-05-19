@@ -168,17 +168,17 @@ export default function OrdersPage() {
   const [selected, setSelected] = useState<Order | null>(null);
   const [rated, setRated] = useState<Record<string, number>>({});
   const [scheduled, setScheduled] = useState<ScheduledOrder[]>([]);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   const loadOrders = useCallback(async () => {
     try {
       const data = await api.get<ApiOrder[]>('/orders/me');
-      if (Array.isArray(data) && data.length > 0) {
+      if (Array.isArray(data)) {
         setOrders(data.map(normaliseOrder));
       }
     } catch {
-      // keep mock
+      // keep empty state
     } finally {
       setLoadingOrders(false);
     }

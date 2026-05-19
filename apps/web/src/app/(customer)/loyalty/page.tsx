@@ -128,8 +128,8 @@ export default function LoyaltyPage() {
   const router = useRouter();
   const { user } = useAuthStore();
 
-  const [loyalty, setLoyalty] = useState<LoyaltyData>({ loyaltyPoints: 840, loyaltyTier: 'silver' });
-  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [loyalty, setLoyalty] = useState<LoyaltyData>({ loyaltyPoints: 0, loyaltyTier: 'bronze' });
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [redeeming, setRedeeming] = useState<string | null>(null);
 
@@ -140,9 +140,9 @@ export default function LoyaltyPage() {
         api.get('/loyalty/me/history') as Promise<Transaction[]>,
       ]);
       setLoyalty(pts as LoyaltyData);
-      if (Array.isArray(hist) && (hist as Transaction[]).length > 0) setTransactions(hist as Transaction[]);
+      if (Array.isArray(hist)) setTransactions(hist as Transaction[]);
     } catch {
-      // keep mock
+      // keep default empty state
     } finally {
       setLoading(false);
     }
