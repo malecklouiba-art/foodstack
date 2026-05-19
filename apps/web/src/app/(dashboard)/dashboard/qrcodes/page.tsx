@@ -474,7 +474,18 @@ function TableQRCard({ tableNumber, restaurantId }: { tableNumber: number; resta
 
 function TablesTab({ restaurantId }: { restaurantId: string }) {
   const [toast, setToast] = useState(false);
-  const tableNums = Array.from({ length: TABLE_COUNT }, (_, i) => i + 1);
+  const [tableCount, setTableCount] = useState(TABLE_COUNT);
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/tables?restaurantId=${restaurantId}`) as Promise<{ number: number }[]>)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) setTableCount(data.length);
+      })
+      .catch(() => {});
+  }, [restaurantId]);
+
+  const tableNums = Array.from({ length: tableCount }, (_, i) => i + 1);
 
   function handleDownloadAll() {
     setToast(true);
@@ -492,7 +503,7 @@ function TablesTab({ restaurantId }: { restaurantId: string }) {
         <div className="flex items-center gap-2">
           <TableProperties className="h-5 w-5 text-orange-500" />
           <p className="font-medium text-surface-900 dark:text-surface-50">
-            {TABLE_COUNT} tables configurées
+            {tableCount} tables configurées
           </p>
         </div>
         <div className="relative">
