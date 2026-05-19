@@ -1,6 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsUUID,
   IsArray,
   IsNumber,
   IsString,
@@ -11,8 +10,8 @@ import {
 import { Type } from 'class-transformer';
 
 export class OrderItemDto {
-  @ApiProperty({ example: 'cuid-menu-item-id' })
-  @IsUUID()
+  @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
+  @IsString()
   menuItemId: string;
 
   @ApiProperty({ example: 2 })
@@ -27,12 +26,12 @@ export class OrderItemDto {
 }
 
 export class CreateOrderDto {
-  @ApiProperty({ example: 'cuid-restaurant-id' })
-  @IsUUID()
+  @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
+  @IsString()
   restaurantId: string;
 
-  @ApiProperty({ example: 'cuid-customer-id' })
-  @IsUUID()
+  @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
+  @IsString()
   customerId: string;
 
   @ApiProperty({ type: [OrderItemDto] })

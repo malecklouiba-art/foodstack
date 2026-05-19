@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsUUID } from 'class-validator';
+import { IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateCategoryDto {
   @ApiProperty({ example: 'cuid-restaurant-id' })
-  @IsUUID()
+  @IsString()
   restaurantId: string;
 
   @ApiProperty({ example: 'Burgers' })

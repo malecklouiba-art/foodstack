@@ -1,9 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsBoolean, IsUUID, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, Min } from 'class-validator';
 
 export class CreateMenuItemDto {
   @ApiProperty({ example: 'cuid-category-id' })
-  @IsUUID()
+  @IsString()
   categoryId: string;
 
   @ApiProperty({ example: 'Classic Cheeseburger' })
