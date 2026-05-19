@@ -1279,6 +1279,7 @@ interface ApiRestaurant {
   isOpen: boolean;
   siret?: string;
   rating?: number;
+  cuisine?: string | null;
 }
 
 function mergeApiRestaurant(api: ApiRestaurant): Restaurant {
@@ -1289,7 +1290,7 @@ function mergeApiRestaurant(api: ApiRestaurant): Restaurant {
     name: api.name,
     address,
     adresseFacturation: address,
-    cuisine: 'N/A',
+    cuisine: api.cuisine ?? 'N/A',
     status: api.isOpen ? 'open' : ('paused' as RestaurantStatus),
     crmStatus: api.isActive ? 'actif' : ('pause' as CRMStatus),
     paymentStatus: 'ok',

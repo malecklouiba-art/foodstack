@@ -113,8 +113,13 @@ export class RestaurantsService {
   async update(id: string, dto: UpdateRestaurantDto) {
     const existing = await this.findByIdRaw(id);
     const { settings: newSettings, address, logoUrl, cuisine, ...rest } = dto as any;
-    const mergedSettings = newSettings
-      ? { ...((existing.settings ?? {}) as Record<string, unknown>), ...newSettings }
+    const baseSettings = (existing.settings ?? {}) as Record<string, unknown>;
+    const settingsPatch: Record<string, unknown> = {
+      ...(newSettings ?? {}),
+      ...(cuisine !== undefined ? { cuisine } : {}),
+    };
+    const mergedSettings = Object.keys(settingsPatch).length > 0
+      ? { ...baseSettings, ...settingsPatch }
       : undefined;
     return this.prisma.restaurant.update({
       where: { id },
