@@ -26,6 +26,7 @@ interface FavoriteRestaurant {
   cuisine: string;
   rating: number;
   deliveryTime: string;
+  deliveryFee: number;
   minOrder: number;
   open: boolean;
   gradient: string;
@@ -50,7 +51,7 @@ interface ApiFavorite {
     id?: string;
     name?: string;
     categories?: string[];
-    settings?: { minOrderAmount?: number; estimatedPrepTime?: number };
+    settings?: { minOrderAmount?: number; estimatedPrepTime?: number; prepTime?: number; cuisine?: string; deliveryFee?: number };
     isOpen?: boolean;
     rating?: number;
   };
@@ -58,6 +59,7 @@ interface ApiFavorite {
   cuisine?: string;
   rating?: number;
   deliveryTime?: string;
+  deliveryFee?: number;
   minOrder?: number;
   open?: boolean;
 }
@@ -66,14 +68,15 @@ function normalizeFavorite(raw: ApiFavorite, idx: number): FavoriteRestaurant {
   const r = raw.restaurant ?? {};
   const id = r.id ?? raw.restaurantId ?? raw.id ?? String(idx);
   const name = r.name ?? raw.name ?? 'Restaurant';
-  const cuisine = r.categories?.[0] ?? raw.cuisine ?? '';
+  const cuisine = r.settings?.cuisine ?? r.categories?.[0] ?? raw.cuisine ?? '';
   const rating = r.rating ?? raw.rating ?? 0;
-  const prepTime = r.settings?.estimatedPrepTime ?? 25;
+  const prepTime = r.settings?.prepTime ?? r.settings?.estimatedPrepTime ?? 25;
+  const deliveryFee = r.settings?.deliveryFee ?? raw.deliveryFee ?? 0;
   const deliveryTime = raw.deliveryTime ?? `${prepTime}-${prepTime + 10}min`;
   const minOrder = r.settings?.minOrderAmount ?? raw.minOrder ?? 0;
   const open = r.isOpen ?? raw.open ?? false;
   const gradient = GRADIENT_POOL[idx % GRADIENT_POOL.length];
-  return { id, name, cuisine, rating, deliveryTime, minOrder, open, gradient };
+  return { id, name, cuisine, rating, deliveryTime, deliveryFee, minOrder, open, gradient };
 }
 
 // ── Component ─────────────────────────────────────────────────────────────

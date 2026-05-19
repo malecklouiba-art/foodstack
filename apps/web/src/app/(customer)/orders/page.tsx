@@ -42,9 +42,12 @@ interface ApiOrder {
     subtotal: number;
   }>;
   deliveryAddress?: unknown;
+  restaurant?: { id: string; name: string; logo?: string };
 }
 
-function normaliseOrder(raw: ApiOrder): Order {
+type DisplayOrder = Order & { restaurantName?: string };
+
+function normaliseOrder(raw: ApiOrder): DisplayOrder {
   return {
     id: raw.id,
     orderNumber: raw.orderNumber,
@@ -73,6 +76,7 @@ function normaliseOrder(raw: ApiOrder): Order {
     total: raw.total,
     createdAt: new Date(raw.createdAt),
     updatedAt: new Date(raw.updatedAt),
+    restaurantName: raw.restaurant?.name,
   };
 }
 
@@ -125,10 +129,10 @@ export default function OrdersPage() {
   const [tab, setTab] = useState<TabView>('historique');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterStatus>('all');
-  const [selected, setSelected] = useState<Order | null>(null);
+  const [selected, setSelected] = useState<DisplayOrder | null>(null);
   const [rated, setRated] = useState<Record<string, number>>({});
   const [scheduled, setScheduled] = useState<ScheduledOrder[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<DisplayOrder[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   const loadOrders = useCallback(async () => {
@@ -168,7 +172,7 @@ export default function OrdersPage() {
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`FoodStack — Restaurant`, 20, 35);
+    doc.text(`FoodStack — ${(order as DisplayOrder).restaurantName ?? 'Restaurant'}`, 20, 35);
     doc.text(`Commande : ${order.orderNumber}`, 20, 42);
     doc.text(`Date : ${dateStr}`, 20, 49);
     doc.text(`Mode : ${order.type === 'delivery' ? 'Livraison' : order.type === 'pickup' ? 'À emporter' : 'Sur place'}`, 20, 56);
@@ -426,6 +430,10 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="px-5 py-4">
+                      {/* Restaurant name */}
+                      {(order as DisplayOrder).restaurantName && (
+                        <p className="text-xs font-semibold text-brand-600 mb-1">{(order as DisplayOrder).restaurantName}</p>
+                      )}
                       {/* Items */}
                       <p className="text-sm text-gray-700 line-clamp-1">
                         {order.items.map((i) => `${i.name} ×${i.quantity}`).join(' · ')}
