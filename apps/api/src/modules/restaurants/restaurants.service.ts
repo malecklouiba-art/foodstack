@@ -25,7 +25,7 @@ export class RestaurantsService {
     return this.prisma.restaurant.findMany({
       where: {
         ...(options?.isOpen !== undefined ? { isOpen: options.isOpen } : {}),
-        ...(options?.cuisine ? { cuisineType: { contains: options.cuisine, mode: 'insensitive' as const } } : {}),
+        ...(options?.cuisine ? { name: { contains: options.cuisine, mode: 'insensitive' as const } } : {}),
       },
       orderBy: { rating: 'desc' },
       skip: (page - 1) * limit,
@@ -77,8 +77,7 @@ export class RestaurantsService {
         email,
         latitude: dto.latitude ?? 0,
         longitude: dto.longitude ?? 0,
-        logoUrl: dto.logoUrl,
-        cuisineType: dto.cuisine,
+        logo: dto.logoUrl,
         settings: raw.settings ?? {},
         ownerId: raw.ownerId ?? '',
       } as any,
@@ -87,16 +86,16 @@ export class RestaurantsService {
 
   async update(id: string, dto: UpdateRestaurantDto) {
     const existing = await this.findById(id);
-    const { settings: newSettings, address, ...rest } = dto as any;
+    const { settings: newSettings, address, logoUrl, cuisine, ...rest } = dto as any;
     const mergedSettings = newSettings
       ? { ...((existing.settings ?? {}) as Record<string, unknown>), ...newSettings }
       : undefined;
-    const streetPatch = address ? { street: address } : {};
     return this.prisma.restaurant.update({
       where: { id },
       data: {
         ...rest,
-        ...streetPatch,
+        ...(address ? { street: address } : {}),
+        ...(logoUrl ? { logo: logoUrl } : {}),
         ...(mergedSettings ? { settings: mergedSettings as any } : {}),
       } as any,
     });
