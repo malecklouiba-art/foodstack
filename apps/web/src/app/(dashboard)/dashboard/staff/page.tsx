@@ -127,19 +127,6 @@ const ROLE_CONFIG: Record<Role, RoleConfig> = {
   },
 };
 
-// ── Demo data ──────────────────────────────────────────────────────────────────
-
-const INITIAL_EMPLOYEES: Employee[] = [
-  { id: 'e1', firstName: 'Marie',   lastName: 'Dupont',  role: 'Patron',    status: 'actif',   email: 'marie.dupont@foodstack.fr',   joinedLabel: 'il y a 3 mois',  posPin: '1234' },
-  { id: 'e2', firstName: 'Pierre',  lastName: 'Martin',  role: 'Manager',   status: 'actif',   email: 'pierre.martin@foodstack.fr',  joinedLabel: 'il y a 6 mois',  managerPermissions: { ...DEFAULT_MANAGER_PERMISSIONS } },
-  { id: 'e3', firstName: 'Sophie',  lastName: 'Bernard', role: 'Commis',    status: 'actif',   email: 'sophie.bernard@foodstack.fr', joinedLabel: 'il y a 1 mois',  posPin: '5678' },
-  { id: 'e4', firstName: 'Julien',  lastName: 'Moreau',  role: 'Livreur',   status: 'inactif', email: 'julien.moreau@foodstack.fr',  joinedLabel: 'il y a 8 mois' },
-  { id: 'e5', firstName: 'Claire',  lastName: 'Lambert', role: 'Manager',   status: 'actif',   email: 'claire.lambert@foodstack.fr', joinedLabel: 'il y a 2 ans',   managerPermissions: { canEditMenu: true, canManageStaff: false, canViewAnalytics: true, canAccessPOS: true } },
-  { id: 'e6', firstName: 'Thomas',  lastName: 'Petit',   role: 'Commis',    status: 'actif',   email: 'thomas.petit@foodstack.fr',   joinedLabel: 'il y a 1 an' },
-  { id: 'e7', firstName: 'Emma',    lastName: 'Richard', role: 'Stagiaire', status: 'actif',   email: 'emma.richard@foodstack.fr',   joinedLabel: 'il y a 4 mois' },
-  { id: 'e8', firstName: 'Lucas',   lastName: 'Durand',  role: 'Livreur',   status: 'inactif', email: 'lucas.durand@foodstack.fr',   joinedLabel: 'il y a 2 mois' },
-];
-
 const ALL_ROLES: Role[] = ['Patron', 'Manager', 'Commis', 'Stagiaire', 'Livreur'];
 const ROLE_FILTERS = ['Tous', ...ALL_ROLES] as const;
 type RoleFilter = typeof ROLE_FILTERS[number];
@@ -543,9 +530,10 @@ interface ConvocationModalProps {
   open: boolean;
   onClose: () => void;
   preSelected?: string[];
+  employees?: Employee[];
 }
 
-function ConvocationModal({ open, onClose, preSelected = [] }: ConvocationModalProps) {
+function ConvocationModal({ open, onClose, preSelected = [], employees = [] }: ConvocationModalProps) {
   const [subject,  setSubject]  = useState('');
   const [selected, setSelected] = useState<string[]>(preSelected);
   const [date,     setDate]     = useState('');
@@ -585,7 +573,7 @@ function ConvocationModal({ open, onClose, preSelected = [] }: ConvocationModalP
         <div>
           <label className="mb-1.5 block text-sm font-medium text-surface-700 dark:text-surface-300">Participants</label>
           <div className="max-h-40 overflow-y-auto rounded-xl border border-surface-200 dark:border-surface-700 divide-y divide-surface-100 dark:divide-surface-700">
-            {INITIAL_EMPLOYEES.map((emp) => (
+            {employees.map((emp) => (
               <label key={emp.id} className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-surface-50 dark:hover:bg-surface-800">
                 <input type="checkbox" checked={selected.includes(emp.id)} onChange={() => toggleEmployee(emp.id)}
                   className="h-4 w-4 rounded accent-brand-500" />
@@ -934,6 +922,7 @@ export default function StaffPage() {
         open={showConvocationModal}
         onClose={() => { setShowConvocationModal(false); setConvokeEmployee(null); }}
         preSelected={convokeEmployee ? [convokeEmployee.id] : []}
+        employees={employees}
       />
 
       {pinEmployee && (
