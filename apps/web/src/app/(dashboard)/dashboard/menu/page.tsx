@@ -91,20 +91,34 @@ export default function MenuPage() {
 
   const itemCount = (catId: string) => items.filter((i) => i.categoryId === catId).length;
 
+  const restaurantId = authUser?.restaurantIds?.[0] ?? '';
+
   // ── category actions ──
-  function saveCat(data: Partial<MenuCategory>) {
+  async function saveCat(data: Partial<MenuCategory>) {
     if (editingCat) {
       setCategories((cs) => cs.map((c) => c.id === editingCat.id ? { ...c, ...data } : c));
+      setEditingCat(null);
+      (api.patch(`/menu/categories/${editingCat.id}`, data) as Promise<any>).catch(() => {});
     } else {
+      const tempId = uid();
       const next: MenuCategory = {
-        id: uid(), restaurantId: 'r1', name: data.name!, description: data.description,
+        id: tempId, restaurantId, name: data.name!, description: data.description,
         position: categories.length, isActive: data.isActive ?? true,
         availableFrom: data.availableFrom, availableTo: data.availableTo,
       };
       setCategories((cs) => [...cs, next]);
-      setSelectedCatId(next.id);
+      setSelectedCatId(tempId);
+      setEditingCat(null);
+      try {
+        const created = await (api.post('/menu/categories', {
+          restaurantId, name: data.name!, description: data.description,
+          position: next.position, isActive: next.isActive,
+          availableFrom: data.availableFrom, availableTo: data.availableTo,
+        }) as Promise<any>);
+        setCategories((cs) => cs.map((c) => c.id === tempId ? { ...c, id: created.id } : c));
+        setSelectedCatId(created.id);
+      } catch { /* keep temp */ }
     }
-    setEditingCat(null);
   }
 
   function deleteCat(id: string) {
@@ -112,15 +126,19 @@ export default function MenuPage() {
     setItems((is) => is.filter((i) => i.categoryId !== id));
     if (selectedCatId === id) setSelectedCatId(categories.find((c) => c.id !== id)?.id ?? '');
     setDeleteConfirm(null);
+    (api.delete(`/menu/categories/${id}`) as Promise<any>).catch(() => {});
   }
 
   // ── item actions ──
-  function saveItem(data: Partial<MenuItem>) {
+  async function saveItem(data: Partial<MenuItem>) {
     if (editingItem) {
       setItems((is) => is.map((i) => i.id === editingItem.id ? { ...i, ...data, updatedAt: new Date() } : i));
+      setEditingItem(null);
+      (api.patch(`/menu/items/${editingItem.id}`, data) as Promise<any>).catch(() => {});
     } else {
+      const tempId = uid();
       const next: MenuItem = {
-        id: uid(), restaurantId: 'r1', categoryId: data.categoryId ?? selectedCatId,
+        id: tempId, restaurantId, categoryId: data.categoryId ?? selectedCatId,
         name: data.name!, description: data.description ?? '', price: data.price ?? 0,
         compareAtPrice: data.compareAtPrice, image: data.image, calories: data.calories,
         prepTime: data.prepTime ?? 10, dietaryTags: data.dietaryTags ?? [],
@@ -129,13 +147,24 @@ export default function MenuPage() {
         createdAt: new Date(), updatedAt: new Date(),
       };
       setItems((is) => [...is, next]);
+      setEditingItem(null);
+      try {
+        const created = await (api.post('/menu/items', {
+          restaurantId, categoryId: next.categoryId, name: next.name,
+          description: next.description, price: next.price, compareAtPrice: data.compareAtPrice,
+          image: data.image, calories: data.calories, prepTime: next.prepTime,
+          dietaryTags: next.dietaryTags, allergens: next.allergens,
+          isActive: next.isActive, isFeatured: next.isFeatured, position: next.position,
+        }) as Promise<any>);
+        setItems((is) => is.map((i) => i.id === tempId ? { ...i, id: created.id } : i));
+      } catch { /* keep temp */ }
     }
-    setEditingItem(null);
   }
 
   function deleteItem(id: string) {
     setItems((is) => is.filter((i) => i.id !== id));
     setDeleteConfirm(null);
+    (api.delete(`/menu/items/${id}`) as Promise<any>).catch(() => {});
   }
 
   function toggleItemActive(id: string) {

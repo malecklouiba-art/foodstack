@@ -453,18 +453,26 @@ export default function DriversPage() {
   function editDriver(id: string, f: DriverForm) {
     setDrivers(prev => prev.map(d => d.id === id ? { ...d, ...f } : d));
     setModal(null);
+    (api.patch(`/drivers/${id}`, f) as Promise<any>).catch(() => {});
   }
 
   function cycleStatus(id: string) {
     const cycle: DriverStatus[] = ['offline', 'online', 'delivering'];
-    setDrivers(prev => prev.map(d => d.id === id
-      ? { ...d, status: cycle[(cycle.indexOf(d.status) + 1) % cycle.length] }
-      : d));
+    setDrivers(prev => prev.map(d => {
+      if (d.id !== id) return d;
+      const newStatus = cycle[(cycle.indexOf(d.status) + 1) % cycle.length];
+      const isOnline = newStatus !== 'offline';
+      (api.patch(`/drivers/${id}/online`, { isOnline }) as Promise<any>).catch(() => {});
+      return { ...d, status: newStatus };
+    }));
     setMenuOpen(null);
   }
 
   function doDelete() {
-    if (deleteId) setDrivers(prev => prev.filter(d => d.id !== deleteId));
+    if (deleteId) {
+      setDrivers(prev => prev.filter(d => d.id !== deleteId));
+      (api.delete(`/drivers/${deleteId}`) as Promise<any>).catch(() => {});
+    }
     setDeleteId(null);
   }
 

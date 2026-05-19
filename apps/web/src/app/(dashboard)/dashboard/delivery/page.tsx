@@ -28,6 +28,7 @@ interface NoteEntry {
 
 interface Delivery {
   id: string;
+  orderId?: string;
   order: string;
   driver: string;
   customer: string;
@@ -400,6 +401,7 @@ function apiToDelivery(d: ApiDelivery, idx: number): Delivery {
     ? d.status : 'preparing') as DeliveryStatus;
   return {
     id: `DEL-${String(idx + 1).padStart(3, '0')}`,
+    orderId: d.orderId,
     order: d.orderNumber,
     driver: driverName,
     customer: customerName,
@@ -433,13 +435,19 @@ export default function DeliveryPage() {
   }, [authUser?.restaurantIds]);
 
   const handleRetry = (id: string) => {
-    setDeliveries((prev) =>
-      prev.map((d) => d.id === id ? { ...d, status: 'delivering' } : d)
-    );
+    setDeliveries((prev) => prev.map((d) => {
+      if (d.id !== id) return d;
+      if (d.orderId) (api.patch(`/delivery/orders/${d.orderId}/status`, { status: 'delivering' }) as Promise<any>).catch(() => {});
+      return { ...d, status: 'delivering' as DeliveryStatus };
+    }));
   };
 
   const handleStatusChange = (id: string, status: DeliveryStatus) => {
-    setDeliveries((prev) => prev.map((d) => d.id === id ? { ...d, status } : d));
+    setDeliveries((prev) => prev.map((d) => {
+      if (d.id !== id) return d;
+      if (d.orderId) (api.patch(`/delivery/orders/${d.orderId}/status`, { status }) as Promise<any>).catch(() => {});
+      return { ...d, status };
+    }));
   };
 
   const handleAddNote = (id: string, text: string) => {
