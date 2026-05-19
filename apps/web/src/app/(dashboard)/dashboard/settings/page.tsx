@@ -360,11 +360,47 @@ function NotificationsTab() {
   );
 }
 
-function LivraisonTab() {
-  const [radius, setRadius]   = useState('5');
-  const [fee, setFee]         = useState('2.50');
+function LivraisonTab({ restaurantId }: TabProps) {
+  const [radius, setRadius]     = useState('5');
+  const [fee, setFee]           = useState('2.50');
   const [minOrder, setMinOrder] = useState('15');
   const [prepTime, setPrepTime] = useState('20');
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/restaurants/${restaurantId}`) as Promise<{ settings?: { deliveryRadius?: number; deliveryFee?: number; minOrderAmount?: number; prepTime?: number } }>)
+      .then((r) => {
+        const s = r.settings ?? {};
+        if (s.deliveryRadius != null) setRadius(String(s.deliveryRadius));
+        if (s.deliveryFee    != null) setFee(String(s.deliveryFee));
+        if (s.minOrderAmount != null) setMinOrder(String(s.minOrderAmount));
+        if (s.prepTime       != null) setPrepTime(String(s.prepTime));
+      })
+      .catch(() => {});
+  }, [restaurantId]);
+
+  async function handleSave() {
+    if (!restaurantId) return;
+    setSaving(true);
+    try {
+      await (api.patch(`/restaurants/${restaurantId}`, {
+        settings: {
+          deliveryRadius:   parseFloat(radius),
+          deliveryFee:      parseFloat(fee),
+          minOrderAmount:   parseFloat(minOrder),
+          prepTime:         parseInt(prepTime, 10),
+        },
+      }) as Promise<unknown>);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+      // best-effort
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -430,9 +466,13 @@ function LivraisonTab() {
       </div>
 
       <div className="flex justify-end">
-        <button className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 rounded-xl bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600 disabled:opacity-60"
+        >
           <Save className="h-4 w-4" />
-          Enregistrer
+          {saved ? 'Enregistré ✓' : saving ? 'Sauvegarde…' : 'Enregistrer'}
         </button>
       </div>
     </div>
@@ -1020,7 +1060,7 @@ export default function SettingsPage() {
       case 'general':       return <GeneralTab restaurantId={restaurantId} />;
       case 'horaires':      return <HorairesTab restaurantId={restaurantId} />;
       case 'notifications': return <NotificationsTab />;
-      case 'livraison':     return <LivraisonTab />;
+      case 'livraison':     return <LivraisonTab restaurantId={restaurantId} />;
       case 'paiements':     return <PaiementsTab />;
       case 'equipe':        return <EquipeTab />;
       case 'peripheriques': return <PeripheriquesTab />;
