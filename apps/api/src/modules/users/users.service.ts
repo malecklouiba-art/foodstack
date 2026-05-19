@@ -78,10 +78,15 @@ export class UsersService {
     }));
   }
 
-  async findCustomers() {
+  async findCustomers(restaurantId?: string) {
     const [users, spendByCustomer] = await Promise.all([
       this.prisma.user.findMany({
-        where: { role: 'customer' },
+        where: {
+          role: 'customer',
+          ...(restaurantId
+            ? { orders: { some: { restaurantId } } }
+            : {}),
+        },
         select: {
           id: true,
           email: true,
@@ -104,7 +109,10 @@ export class UsersService {
       }),
       this.prisma.order.groupBy({
         by: ['customerId'],
-        where: { status: { in: ['delivered'] as any[] } },
+        where: {
+          status: { in: ['delivered'] as any[] },
+          ...(restaurantId ? { restaurantId } : {}),
+        },
         _sum: { total: true },
       }),
     ]);

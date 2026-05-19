@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   Request,
   UseGuards,
   HttpCode,
@@ -101,8 +102,8 @@ export class UsersController {
 
   @Get('customers')
   @ApiOperation({ summary: 'Get all customers with order stats' })
-  findCustomers() {
-    return this.usersService.findCustomers();
+  findCustomers(@Query('restaurantId') restaurantId?: string) {
+    return this.usersService.findCustomers(restaurantId);
   }
 
   @Get('staff')
