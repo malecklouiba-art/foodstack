@@ -82,8 +82,7 @@ export default function AddressesScreen() {
       const data = await api.get<any[]>('/api/v1/users/me/addresses');
       setAddresses(data.map(mapAddr));
     } catch {
-      // API unavailable — fall back to mock data
-      setAddresses(MOCK_ADDRESSES);
+      setError('Impossible de charger vos adresses');
     } finally {
       setLoading(false);
     }

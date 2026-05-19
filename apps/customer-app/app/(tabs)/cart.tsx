@@ -42,10 +42,8 @@ export default function CartScreen() {
 
   // ── Checkout modal ──────────────────────────────────────────────────────────
   const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>(MOCK_SAVED);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>(
-    MOCK_SAVED.find((a) => a.isDefault)?.id ?? MOCK_SAVED[0]?.id ?? '',
-  );
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [customAddress, setCustomAddress] = useState('');
   const [useCustom, setUseCustom] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -64,7 +62,7 @@ export default function CartScreen() {
         setSelectedAddressId(mapped.find((a) => a.isDefault)?.id ?? mapped[0].id);
       }
     } catch {
-      // Keep mocks
+      // No saved addresses available — user can type a custom address
     }
     setCheckoutModalVisible(true);
   };
