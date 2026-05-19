@@ -86,7 +86,7 @@ function stockPct(item: InventoryItem): number {
 export default function InventoryPage() {
   const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
-  const [items, setItems] = useState<InventoryItem[]>(SEED);
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState<string>('all');
   const [loading, setLoading] = useState(false);

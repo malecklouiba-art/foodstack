@@ -419,7 +419,7 @@ function apiToDelivery(d: ApiDelivery, idx: number): Delivery {
 export default function DeliveryPage() {
   const ctxId = useRestaurantId();
   const authUser = useAuthStore((s) => s.user);
-  const [deliveries, setDeliveries] = useState<Delivery[]>(DELIVERIES);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [search, setSearch] = useState('');
   const [range, setRange] = useState<TimeRange>('today');
   const [openId, setOpenId] = useState<string | null>(null);

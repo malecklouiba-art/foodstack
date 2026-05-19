@@ -107,23 +107,37 @@ const STATUS_COLORS: Record<string, string> = {
 
 // ── Super Admin Dashboard ─────────────────────────────────────────────────────
 
+interface PlatformRestaurant {
+  id: string;
+  name: string;
+  plan?: string;
+  mrr?: number;
+  status?: string;
+  createdAt?: string;
+  isActive?: boolean;
+}
+
 function SuperAdminDashboard() {
   const [platformStats, setPlatformStats] = useState<{
     totalRestaurants?: number; activeRestaurants?: number;
     totalOrders?: number; totalRevenue?: number; totalUsers?: number;
   }>({});
+  const [platformRestaurants, setPlatformRestaurants] = useState<PlatformRestaurant[]>([]);
 
   useEffect(() => {
     (api.get('/super-admin/stats') as Promise<typeof platformStats>)
       .then((s) => setPlatformStats(s))
       .catch(() => {});
+    (api.get('/restaurants') as Promise<PlatformRestaurant[]>)
+      .then((data) => { if (Array.isArray(data)) setPlatformRestaurants(data.slice(0, 5)); })
+      .catch(() => {});
   }, []);
 
   const totalMRR = platformStats.totalRevenue
     ? Math.round(platformStats.totalRevenue / 12)
-    : PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').reduce((s, r) => s + r.mrr, 0);
-  const activeRestaurants = platformStats.activeRestaurants ?? PLATFORM_RESTAURANTS.filter(r => r.status === 'actif').length;
-  const totalClients = platformStats.totalUsers ?? 14872;
+    : 0;
+  const activeRestaurants = platformStats.activeRestaurants ?? platformRestaurants.filter(r => r.isActive).length;
+  const totalClients = platformStats.totalUsers ?? 0;
   const avgCommission = 12.4;
 
   const kpis = [
@@ -133,7 +147,7 @@ function SuperAdminDashboard() {
     },
     {
       label: 'Restaurants actifs', value: String(activeRestaurants),
-      sub: `${platformStats.totalRestaurants ?? PLATFORM_RESTAURANTS.length} total`, icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-600',
+      sub: `${platformStats.totalRestaurants ?? platformRestaurants.length} total`, icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-600',
     },
     {
       label: 'Clients totaux', value: totalClients.toLocaleString('fr-FR'),
@@ -233,25 +247,32 @@ function SuperAdminDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-50">
-              {PLATFORM_RESTAURANTS.map(r => (
-                <tr key={r.id} className="hover:bg-surface-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-surface-900">{r.name}</td>
-                  <td className="px-6 py-4">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PLAN_COLORS[r.plan] ?? 'bg-gray-100 text-gray-700'}`}>
-                      {r.plan}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-surface-900">{r.mrr} €</td>
-                  <td className="px-6 py-4">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[r.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                      {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-surface-500">
-                    {new Date(r.joined).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}
-                  </td>
+              {platformRestaurants.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-surface-400">Aucun restaurant trouvé</td>
                 </tr>
-              ))}
+              ) : platformRestaurants.map(r => {
+                const statusLabel = r.status ?? (r.isActive ? 'actif' : 'inactif');
+                return (
+                  <tr key={r.id} className="hover:bg-surface-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-surface-900">{r.name}</td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PLAN_COLORS[r.plan ?? ''] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {r.plan ?? '—'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-surface-900">{r.mrr != null ? `${r.mrr} €` : '—'}</td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[statusLabel] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-surface-500">
+                      {r.createdAt ? new Date(r.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -270,7 +291,7 @@ function RestaurantDashboard() {
   const [revenue,        incRevenue  ] = useCounter(BASE_STATS.revenue);
   const [deliveriesCount,incDeliveries] = useCounter(BASE_STATS.deliveries);
   const [feedEvents, setFeedEvents]    = useState<FeedEvent[]>([]);
-  const [liveOrders, setLiveOrders]    = useState(LIVE_ORDERS_INIT);
+  const [liveOrders, setLiveOrders]    = useState<typeof LIVE_ORDERS_INIT>([]);
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -938,8 +959,44 @@ function KitchenOrderCard({ order, onAdvance, onDone }: {
 }
 
 function StaffDashboard() {
-  const [orders, setOrders] = useState<KitchenOrder[]>(KITCHEN_ORDERS_INIT);
+  const authUser = useAuthStore((s) => s.user);
+  const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  useEffect(() => {
+    const restaurantId = authUser?.restaurantIds?.[0];
+    if (!restaurantId) return;
+    (api.get(`/orders/restaurant/${restaurantId}`) as Promise<{
+      id: string; orderNumber?: string; status: string; type?: string;
+      tableNumber?: string; createdAt?: string;
+      customer?: { firstName?: string; lastName?: string };
+      items?: { name?: string; quantity?: number; notes?: string }[];
+    }[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        const kitchen = data
+          .filter((o) => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status))
+          .map((o): KitchenOrder => ({
+            id: o.id,
+            number: o.orderNumber ?? o.id.slice(0, 8).toUpperCase(),
+            customer: o.customer
+              ? `${o.customer.firstName ?? ''} ${o.customer.lastName ?? ''}`.trim() || 'Client'
+              : 'Client',
+            type: o.type === 'delivery' ? 'delivery' : o.type === 'takeaway' ? 'takeaway' : 'dine-in',
+            table: o.tableNumber,
+            receivedAt: o.createdAt
+              ? new Date(o.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+              : '--:--',
+            prepMin: 12,
+            status: (o.status === 'confirmed' ? 'pending' : o.status) as KitchenOrderStatus,
+            items: Array.isArray(o.items)
+              ? o.items.map((i) => ({ name: i.name ?? '—', qty: i.quantity ?? 1, note: i.notes }))
+              : [],
+          }));
+        setOrders(kitchen);
+      })
+      .catch(() => {});
+  }, [authUser?.restaurantIds]);
 
   const pending   = orders.filter((o) => o.status === 'pending').length;
   const preparing = orders.filter((o) => o.status === 'preparing').length;
