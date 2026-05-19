@@ -15,8 +15,13 @@ export class CreateCategoryDto {
   @IsString()
   description?: string;
 
+  @ApiPropertyOptional({ example: 'https://example.com/cat.png' })
+  @IsOptional()
+  @IsString()
+  image?: string;
+
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
-  sortOrder?: number;
+  position?: number;
 }
