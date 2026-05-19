@@ -28,11 +28,6 @@ interface Address {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const MOCK_ADDRESSES: Address[] = [
-  { id: 'a1', label: 'Maison', address: '12 rue de la Paix, 75001 Paris', isDefault: true },
-  { id: 'a2', label: 'Bureau', address: '45 avenue des Champs, 75008 Paris', isDefault: false },
-];
-
 const LABEL_OPTIONS: AddressLabel[] = ['Maison', 'Bureau', 'Autre'];
 
 // ─── Skeleton card ────────────────────────────────────────────────────────────

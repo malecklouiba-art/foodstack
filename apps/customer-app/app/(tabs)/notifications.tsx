@@ -22,62 +22,6 @@ export interface AppNotification {
   createdAt: string;
 }
 
-const MOCK_NOTIFICATIONS: AppNotification[] = [
-  {
-    id: '1',
-    type: 'delivered',
-    title: 'Commande livrée !',
-    body: 'Votre commande #1234 a bien été livrée. Bon appétit !',
-    orderId: '1234',
-    read: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(), // 10 min ago
-  },
-  {
-    id: '2',
-    type: 'driver_assigned',
-    title: 'Livreur en route',
-    body: 'Un livreur a été assigné à votre commande #1234.',
-    orderId: '1234',
-    read: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(), // 25 min ago
-  },
-  {
-    id: '3',
-    type: 'order_ready',
-    title: 'Commande prête',
-    body: 'Votre commande #1234 est prête et en attente de livreur.',
-    orderId: '1234',
-    read: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(), // 40 min ago
-  },
-  {
-    id: '4',
-    type: 'order_confirmed',
-    title: 'Commande confirmée',
-    body: 'Le restaurant a accepté votre commande #1234. Préparation en cours…',
-    orderId: '1234',
-    read: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1h ago
-  },
-  {
-    id: '5',
-    type: 'promo',
-    title: '-20% ce week-end !',
-    body: 'Profitez de 20% de réduction sur toute commande supérieure à 15€ ce week-end.',
-    read: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 50).toISOString(), // ~2 days ago
-  },
-  {
-    id: '6',
-    type: 'order_confirmed',
-    title: 'Commande confirmée',
-    body: 'Le restaurant a accepté votre commande #1100.',
-    orderId: '1100',
-    read: true,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString(), // 10 days ago
-  },
-];
-
 function typeIcon(type: AppNotification['type']): string {
   switch (type) {
     case 'order_confirmed': return '✅';

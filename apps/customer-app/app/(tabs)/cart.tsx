@@ -27,11 +27,6 @@ interface SavedAddress {
   isDefault?: boolean;
 }
 
-const MOCK_SAVED: SavedAddress[] = [
-  { id: 'a1', label: 'Maison',  address: '12 rue de la Paix, 75001 Paris',            isDefault: true  },
-  { id: 'a2', label: 'Bureau',  address: '45 avenue des Champs-Élysées, 75008 Paris', isDefault: false },
-];
-
 export default function CartScreen() {
   const { items, increment, decrement, remove, clear, total, deliveryFee: storedDeliveryFee, checkout, restaurantId } = useCartStore();
   const { pay, loading: payLoading } = useStripePayment();

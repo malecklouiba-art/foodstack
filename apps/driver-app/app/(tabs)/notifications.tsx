@@ -32,57 +32,6 @@ const TYPE_ICON: Record<DriverNotification['type'], string> = {
   payment:      '💳',
 };
 
-const MOCK_NOTIFICATIONS: DriverNotification[] = [
-  {
-    id: '1',
-    type: 'new_delivery',
-    title: 'Nouvelle commande disponible',
-    body: 'Une livraison de 6,50 € est disponible près de vous — Burger King République.',
-    read: false,
-    createdAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '2',
-    type: 'bonus',
-    title: 'Bonus de performance débloqué !',
-    body: 'Félicitations ! Vous avez effectué 10 livraisons aujourd\'hui. Bonus de 5,00 € crédité.',
-    read: false,
-    createdAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '3',
-    type: 'rating',
-    title: 'Nouvelle évaluation reçue',
-    body: 'Un client vous a attribué 5 étoiles ⭐ « Livraison rapide et souriante ! »',
-    read: true,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '4',
-    type: 'payment',
-    title: 'Paiement traité',
-    body: 'Votre virement hebdomadaire de 142,30 € a été envoyé sur votre compte.',
-    read: true,
-    createdAt: new Date(Date.now() - 26 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '5',
-    type: 'system',
-    title: 'Mise à jour de l\'application',
-    body: 'FoodStack Driver v2.4 est disponible. Nouvelles fonctionnalités de navigation améliorée.',
-    read: true,
-    createdAt: new Date(Date.now() - 50 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: '6',
-    type: 'bonus',
-    title: 'Heure de pointe — bonus x1.5',
-    body: 'Livrez entre 12h et 14h et gagnez 1.5× plus sur chaque commande acceptée.',
-    read: true,
-    createdAt: new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function groupByDay(notifications: DriverNotification[]): [string, DriverNotification[]][] {
