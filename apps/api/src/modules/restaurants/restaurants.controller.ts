@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Query,
+  Request,
   UseGuards,
   Put,
 } from '@nestjs/common';
@@ -67,8 +68,8 @@ export class RestaurantsController {
   @Post()
   @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Create a new restaurant' })
-  create(@Body() dto: CreateRestaurantDto) {
-    return this.restaurantsService.create(dto);
+  create(@Request() req: any, @Body() dto: CreateRestaurantDto) {
+    return this.restaurantsService.create({ ...dto, ownerId: req.user.id } as any);
   }
 
   @Patch(':id')

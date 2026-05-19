@@ -1,7 +1,16 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, Min, Max } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, IsObject, Min, Max } from 'class-validator';
 
 export class UpdateRestaurantDto {
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isOpen?: boolean;
   @ApiPropertyOptional({ example: 'Burger Palace' })
   @IsOptional()
   @IsString()
@@ -45,4 +54,9 @@ export class UpdateRestaurantDto {
   @IsOptional()
   @IsString()
   cuisine?: string;
+
+  @ApiPropertyOptional({ description: 'Arbitrary settings JSON (merged with existing)' })
+  @IsOptional()
+  @IsObject()
+  settings?: Record<string, unknown>;
 }

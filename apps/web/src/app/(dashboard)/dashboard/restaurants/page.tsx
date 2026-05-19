@@ -356,6 +356,19 @@ function RestaurantDetailPage({
   function save(updated: Restaurant) {
     setR(updated);
     onUpdate(updated);
+    (api.patch(`/restaurants/${updated.id}`, {
+      name: updated.name,
+      phone: updated.dirigeant.tel || undefined,
+      settings: {
+        crmStatus: updated.crmStatus,
+        abonnement: updated.abonnement,
+        abonnementMontant: updated.abonnementMontant,
+        commission: updated.commission,
+        paymentStatus: updated.paymentStatus,
+        raisonSociale: updated.raisonSociale,
+        siret: updated.siret,
+      },
+    }) as Promise<any>).catch(() => {});
   }
 
   function addNote() {
@@ -979,6 +992,20 @@ function AddRestaurantModal({ onClose, onAdd }: { onClose: () => void; onAdd: (r
     };
     onAdd(newR);
     onClose();
+    (api.post('/restaurants', {
+      name: form.name,
+      address: form.address || form.adresseFacturation || '',
+      phone: form.dirigeantTel || '',
+      cuisine: form.cuisine || undefined,
+      settings: {
+        crmStatus: form.crmStatus,
+        abonnement: form.abonnement,
+        abonnementMontant: parseFloat(form.abonnementMontant) || 99,
+        commission: parseFloat(form.commission) || 12,
+        raisonSociale: form.raisonSociale || form.name,
+        siret: form.siret,
+      },
+    }) as Promise<any>).catch(() => {});
   };
 
   const SECTIONS = [

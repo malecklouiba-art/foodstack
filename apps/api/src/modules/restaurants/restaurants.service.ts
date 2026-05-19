@@ -59,13 +59,42 @@ export class RestaurantsService {
       });
   }
 
-  async create(dto: CreateRestaurantDto) {
-    return this.prisma.restaurant.create({ data: dto as any });
+  async create(dto: CreateRestaurantDto & { address?: string; phone?: string; email?: string; settings?: Record<string, unknown> }) {
+    const raw = dto as any;
+    const street = raw.street ?? raw.address ?? '';
+    const city   = raw.city   ?? '';
+    const postalCode = raw.postalCode ?? '';
+    const phone  = raw.phone ?? '';
+    const email  = raw.email ?? '';
+    return this.prisma.restaurant.create({
+      data: {
+        name: dto.name,
+        description: dto.description,
+        street,
+        city,
+        postalCode,
+        phone,
+        email,
+        latitude: dto.latitude ?? 0,
+        longitude: dto.longitude ?? 0,
+        logoUrl: dto.logoUrl,
+        cuisineType: dto.cuisine,
+        settings: raw.settings ?? {},
+        ownerId: raw.ownerId ?? '',
+      } as any,
+    });
   }
 
   async update(id: string, dto: UpdateRestaurantDto) {
-    await this.findById(id);
-    return this.prisma.restaurant.update({ where: { id }, data: dto });
+    const existing = await this.findById(id);
+    const { settings: newSettings, ...rest } = dto;
+    const mergedSettings = newSettings
+      ? { ...((existing.settings ?? {}) as Record<string, unknown>), ...newSettings }
+      : undefined;
+    return this.prisma.restaurant.update({
+      where: { id },
+      data: mergedSettings ? { ...rest, settings: mergedSettings as any } : (rest as any),
+    });
   }
 
   async remove(id: string) {

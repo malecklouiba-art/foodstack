@@ -779,11 +779,17 @@ export default function StaffPage() {
   const inactiveCount = totalCount - activeCount;
 
   function toggleStatus(id: string) {
-    setEmployees((prev) => prev.map((e) => e.id === id ? { ...e, status: e.status === 'actif' ? 'inactif' : 'actif' } : e));
+    setEmployees((prev) => prev.map((e) => {
+      if (e.id !== id) return e;
+      const newActive = e.status !== 'actif';
+      (api.patch(`/users/${id}`, { isActive: newActive }) as Promise<any>).catch(() => {});
+      return { ...e, status: newActive ? 'actif' : 'inactif' };
+    }));
   }
 
   function removeEmployee(id: string) {
     setEmployees((prev) => prev.filter((e) => e.id !== id));
+    (api.delete(`/users/${id}`) as Promise<any>).catch(() => {});
   }
 
   function savePin(employeeId: string, pin: string) {
