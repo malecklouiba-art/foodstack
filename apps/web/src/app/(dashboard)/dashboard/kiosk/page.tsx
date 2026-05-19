@@ -1384,8 +1384,8 @@ export default function KioskDesignerPage() {
   const { user } = useAuthStore();
   const restaurantId = user?.restaurantIds?.[0] ?? '';
 
-  const [products, setProducts] = useState<MenuItem[]>(FALLBACK_PRODUCTS);
-  const [categories, setCategories] = useState<MenuCategory[]>(FALLBACK_CATEGORIES);
+  const [products, setProducts] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
 
   useEffect(() => {
@@ -1398,7 +1398,8 @@ export default function KioskDesignerPage() {
         if (Array.isArray(data.categories) && data.categories.length > 0) setCategories(data.categories);
         if (Array.isArray(data.items) && data.items.length > 0) setProducts(data.items);
       } catch {
-        // Network error: keep fallback data
+        setProducts([]);
+        setCategories([]);
       } finally {
         setDataLoading(false);
       }

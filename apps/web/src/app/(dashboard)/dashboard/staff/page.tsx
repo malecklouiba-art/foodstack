@@ -749,7 +749,7 @@ function apiToEmployee(s: ApiStaff, i: number): Employee {
 }
 
 export default function StaffPage() {
-  const [employees,           setEmployees]           = useState<Employee[]>(INITIAL_EMPLOYEES);
+  const [employees,           setEmployees]           = useState<Employee[]>([]);
   const [search,              setSearch]              = useState('');
   const [roleFilter,          setRoleFilter]          = useState<RoleFilter>('Tous');
 
@@ -760,7 +760,7 @@ export default function StaffPage() {
           setEmployees(data.map(apiToEmployee));
         }
       })
-      .catch(() => { /* keep mock */ });
+      .catch(() => {});
   }, []);
   const [showInviteModal,     setShowInviteModal]     = useState(false);
   const [showMatrixPanel,     setShowMatrixPanel]     = useState(false);

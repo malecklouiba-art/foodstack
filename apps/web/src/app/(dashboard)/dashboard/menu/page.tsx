@@ -52,9 +52,9 @@ interface ApiCategory extends MenuCategory {
 // ── Page ────────────────────────────────────────────────────────────────────
 export default function MenuPage() {
   const authUser = useAuthStore((s) => s.user);
-  const [categories, setCategories] = useState<MenuCategory[]>(INIT_CATEGORIES);
-  const [items, setItems] = useState<MenuItem[]>(INIT_ITEMS);
-  const [selectedCatId, setSelectedCatId] = useState<string>(INIT_CATEGORIES[0].id);
+  const [categories, setCategories] = useState<MenuCategory[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [selectedCatId, setSelectedCatId] = useState<string>('');
 
   useEffect(() => {
     const restaurantId = authUser?.restaurantIds?.[0];
@@ -67,10 +67,10 @@ export default function MenuPage() {
           const allItems = rawCats.flatMap((c) => c.items ?? []);
           setCategories(cats);
           setItems(allItems);
-          setSelectedCatId(cats[0]?.id ?? INIT_CATEGORIES[0].id);
+          setSelectedCatId(cats[0]?.id ?? '');
         }
       })
-      .catch(() => { /* keep mock */ });
+      .catch(() => {});
   }, [authUser?.restaurantIds]);
   const [search, setSearch] = useState('');
 

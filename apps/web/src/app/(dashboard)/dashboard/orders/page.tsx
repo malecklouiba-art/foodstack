@@ -372,7 +372,7 @@ function normaliseOrder(o: ApiOrder): KanbanOrder {
 export default function OrdersPage() {
   const authUser = useAuthStore((s) => s.user);
   const restaurantId = authUser?.restaurantIds?.[0] ?? '';
-  const [orders, setOrders] = useState<KanbanOrder[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<KanbanOrder[]>([]);
   const [view, setView] = useState<ViewMode>('kanban');
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
   const [sound, setSound] = useState(true);
@@ -396,7 +396,7 @@ export default function OrdersPage() {
           setOrders(data.map(normaliseOrder));
         }
       })
-      .catch(() => { /* keep mock data on error */ });
+      .catch(() => {});
   }, [restaurantId]);
 
   useEffect(() => {

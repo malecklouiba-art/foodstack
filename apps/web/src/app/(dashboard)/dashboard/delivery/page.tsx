@@ -431,7 +431,7 @@ export default function DeliveryPage() {
           setDeliveries(data.map(apiToDelivery));
         }
       })
-      .catch(() => { /* keep mock data */ });
+      .catch(() => {});
   }, [authUser?.restaurantIds]);
 
   const handleRetry = (id: string) => {

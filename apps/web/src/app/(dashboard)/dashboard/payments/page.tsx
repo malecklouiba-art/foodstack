@@ -390,7 +390,7 @@ export default function PaymentsPage() {
         }));
         setApiTxs(txs);
       })
-      .catch(() => { /* keep mock */ });
+      .catch(() => {});
   }, [isAdmin, restaurantId]);
 
   useEffect(() => {
@@ -410,7 +410,7 @@ export default function PaymentsPage() {
         }
         setApiRevenue(Object.entries(buckets).map(([day, revenue]) => ({ day, revenue })));
       })
-      .catch(() => { /* keep mock */ });
+      .catch(() => {});
   }, [isAdmin, restaurantId]);
 
   const baseTxs = apiTxs ?? (isAdmin ? ADMIN_TRANSACTIONS : TRANSACTIONS);

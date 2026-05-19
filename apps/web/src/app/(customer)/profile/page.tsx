@@ -109,7 +109,7 @@ export default function ProfilePage() {
         setAddresses(a);
       }
     } catch {
-      // keep mock data
+      // profile stays at empty defaults
     }
   }, []);
 

@@ -844,8 +844,8 @@ function EditorPanel({
 
 export default function TablesPage() {
   const restaurantId = useAuthStore((s) => s.user?.restaurantIds?.[0] ?? '');
-  const [tables, setTables] = useState<RestaurantTable[]>(INIT_TABLES);
-  const [zones, setZones] = useState<Zone[]>(INIT_ZONES);
+  const [tables, setTables] = useState<RestaurantTable[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
   const [tab, setTab] = useState<PageTab>('floor');
 
   useEffect(() => {
@@ -885,7 +885,7 @@ export default function TablesPage() {
           })));
         }
       })
-      .catch(() => { /* keep mock data */ });
+      .catch(() => {});
   }, [restaurantId]);
   const [sectionFilter, setSectionFilter] = useState<string>('Tous');
   const [statusFilter, setStatusFilter] = useState<TableStatus | 'all'>('all');

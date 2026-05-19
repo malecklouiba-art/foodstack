@@ -260,7 +260,7 @@ function apiToCoupon(c: ApiCoupon): Coupon {
 
 export default function CouponsPage() {
   const authUser = useAuthStore((s) => s.user);
-  const [coupons, setCoupons] = useState<Coupon[]>(INIT_COUPONS);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editCoupon, setEditCoupon] = useState<Coupon | null>(null);
   const [deleteCoupon, setDeleteCoupon] = useState<Coupon | null>(null);
@@ -275,7 +275,7 @@ export default function CouponsPage() {
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setCoupons(data.map(apiToCoupon));
       })
-      .catch(() => { /* keep mock */ });
+      .catch(() => {});
   }, [restaurantId]);
 
   // ── Derived data ──────────────────────────────────────────────────────────

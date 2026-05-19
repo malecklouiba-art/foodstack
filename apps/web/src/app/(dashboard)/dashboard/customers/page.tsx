@@ -138,7 +138,24 @@ function FeatureChips() {
 // ── Customer detail panel ─────────────────────────────────────────────────────
 
 function CustomerPanel({ customer, onClose }: { customer: Customer; onClose: () => void }) {
-  const orders = MOCK_ORDERS[customer.id] ?? [];
+  const [orders, setOrders] = useState<{ label: string; amount: number; date: string }[]>([]);
+  useEffect(() => {
+    (api.get(`/orders/customer/${customer.id}`) as Promise<any[]>)
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setOrders(data.slice(0, 3).map((o: any) => ({
+            label: `${o.items?.length ?? 0} article${(o.items?.length ?? 0) !== 1 ? 's' : ''}`,
+            amount: o.total ?? 0,
+            date: o.createdAt
+              ? new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(
+                  -Math.round((Date.now() - new Date(o.createdAt).getTime()) / 86400000), 'day'
+                )
+              : '',
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [customer.id]);
   const points = LOYALTY_POINTS[customer.tier];
   const cfg = TIER_CONFIG[customer.tier];
 
@@ -263,7 +280,7 @@ function CustomerPanel({ customer, onClose }: { customer: Customer; onClose: () 
 
 export default function CustomersPage() {
   const pageRef = useGSAPReveal<HTMLDivElement>('.gsap-card');
-  const [customers, setCustomers] = useState<Customer[]>(INITIAL_CUSTOMERS);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(false);
   const [selected, setSelected] = useState<Customer | null>(null);
 
@@ -293,7 +310,7 @@ export default function CustomersPage() {
           })));
         }
       })
-      .catch(() => { /* keep mock */ })
+      .catch(() => {})
       .finally(() => setLoadingCustomers(false));
   }, []);
   const [search, setSearch] = useState('');

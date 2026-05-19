@@ -414,7 +414,7 @@ export default function DriversPage() {
           setDrivers(data.map(apiDriverToDriver));
         }
       })
-      .catch(() => { /* keep mock data */ });
+      .catch(() => {});
   }, [restaurantId]);
 
   const filtered = useMemo(() => drivers.filter(d => {
