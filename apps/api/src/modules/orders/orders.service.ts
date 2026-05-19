@@ -173,7 +173,11 @@ export class OrdersService {
             }
           : {}),
       },
-      include: { items: true },
+      include: {
+        items: true,
+        customer: { select: { id: true, firstName: true, lastName: true, phone: true, email: true } },
+        delivery: { include: { driver: { select: { firstName: true, lastName: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -181,7 +185,10 @@ export class OrdersService {
   async findByCustomer(customerId: string) {
     return this.prisma.order.findMany({
       where: { customerId },
-      include: { items: true },
+      include: {
+        items: true,
+        restaurant: { select: { id: true, name: true, logo: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -189,7 +196,12 @@ export class OrdersService {
   async findByDriver(driverId: string) {
     return this.prisma.order.findMany({
       where: { driverId },
-      include: { items: true },
+      include: {
+        items: true,
+        customer: { select: { firstName: true, lastName: true } },
+        restaurant: { select: { id: true, name: true } },
+        delivery: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

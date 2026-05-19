@@ -107,19 +107,6 @@ function isWithinRange(date: Date, range: TimeRange): boolean {
   return true;
 }
 
-// ── Initial mock data ───────────────────────────────────────────────────────
-
-const now = new Date();
-const minsAgo = (m: number) => new Date(now.getTime() - m * 60000);
-
-const INITIAL_ORDERS: KanbanOrder[] = [
-  { id: 'ORD-8821', customer: 'Marie Laurent', phone: '06 12 34 56 78', items: [{ name: 'Classic Burger', quantity: 2, price: 14.90 }, { name: 'Frites', quantity: 2, price: 4.50 }], total: 42.50, status: 'preparing', type: 'delivery', address: '12 rue de la Paix, Paris', createdAt: minsAgo(8) },
-  { id: 'ORD-8820', customer: 'Pierre Dubois',  phone: '06 98 76 54 32', items: [{ name: 'Truffle Burger', quantity: 1, price: 22.50 }, { name: 'Limonade', quantity: 2, price: 4.90 }], total: 32.30, status: 'delivering', type: 'delivery', address: '45 av. Montaigne, Paris', driver: 'Karim A.', createdAt: minsAgo(18) },
-  { id: 'ORD-8819', customer: 'Sophie Martin',  phone: '07 23 45 67 89', items: [{ name: 'Salade César', quantity: 2, price: 12.50 }, { name: 'Margherita', quantity: 1, price: 13.90 }], total: 38.90, status: 'ready', type: 'pickup', createdAt: minsAgo(5) },
-  { id: 'ORD-8818', customer: 'Julien Klein',   phone: '06 45 67 89 01', items: [{ name: 'Diavola', quantity: 1, price: 16.50 }], total: 19.45, status: 'confirmed', type: 'dine_in', createdAt: minsAgo(2) },
-  { id: 'ORD-8815', customer: 'Alice Bonnet',   phone: '07 89 01 23 45', items: [{ name: 'Chicken Burger', quantity: 3, price: 12.90 }], total: 42.17, status: 'delivered', type: 'delivery', driver: 'Tom B.', createdAt: minsAgo(45) },
-];
-
 // ── Column config ───────────────────────────────────────────────────────────
 
 const COLUMNS: { status: OrderStatus }[] = [
@@ -349,11 +336,12 @@ interface ApiOrder {
   type?: string;
   createdAt: string;
   customer?: { firstName?: string; lastName?: string; phone?: string; email?: string };
-  driver?: { user?: { firstName?: string; lastName?: string } };
+  delivery?: { driver?: { firstName?: string; lastName?: string } } | null;
   items: Array<{ name: string; quantity: number; price: number }>;
 }
 
 function normaliseOrder(o: ApiOrder): KanbanOrder {
+  const driverUser = o.delivery?.driver;
   return {
     id: o.orderNumber ?? o.id,
     customer: o.customer
@@ -365,7 +353,7 @@ function normaliseOrder(o: ApiOrder): KanbanOrder {
     status: o.status,
     type: (o.type as KanbanOrder['type']) ?? 'delivery',
     address: o.deliveryAddress,
-    driver: o.driver?.user ? [o.driver.user.firstName, o.driver.user.lastName].filter(Boolean).join(' ') : undefined,
+    driver: driverUser ? [driverUser.firstName, driverUser.lastName].filter(Boolean).join(' ') : undefined,
     createdAt: new Date(o.createdAt),
   };
 }
