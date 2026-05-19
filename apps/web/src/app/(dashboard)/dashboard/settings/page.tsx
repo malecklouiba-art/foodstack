@@ -26,7 +26,11 @@ interface RestaurantData {
   email?: string;
   phone?: string;
   address?: string;
+  street?: string;
+  city?: string;
+  postalCode?: string;
   openingHours?: Record<string, { open: boolean; start: string; end: string }>;
+  businessHours?: Record<string, { open: boolean; start: string; end: string }>;
 }
 
 interface TabProps {
@@ -100,7 +104,7 @@ function GeneralTab({ restaurantId }: TabProps) {
           desc:    data.description ?? '',
           email:   data.email   ?? '',
           phone:   data.phone   ?? '',
-          address: data.address ?? '',
+          address: data.address ?? [data.street, data.city, data.postalCode].filter(Boolean).join(', '),
         });
       })
       .catch(() => toast.error('Impossible de charger les informations du restaurant'))
@@ -223,8 +227,9 @@ function HorairesTab({ restaurantId }: TabProps) {
     if (!restaurantId) { setLoading(false); return; }
     (api.get(`/restaurants/${restaurantId}`) as Promise<RestaurantData>)
       .then((data) => {
-        if (data.openingHours && Object.keys(data.openingHours).length > 0) {
-          setSchedule(data.openingHours as Record<string, DaySchedule>);
+        const hours = data.businessHours ?? data.openingHours;
+        if (hours && Object.keys(hours).length > 0) {
+          setSchedule(hours as Record<string, DaySchedule>);
         }
       })
       .catch(() => toast.error('Impossible de charger les horaires'))
@@ -245,7 +250,7 @@ function HorairesTab({ restaurantId }: TabProps) {
     if (!restaurantId) return;
     setSaving(true);
     try {
-      await api.patch(`/restaurants/${restaurantId}`, { openingHours: schedule });
+      await api.patch(`/restaurants/${restaurantId}`, { businessHours: schedule });
       toast.success('Horaires enregistrés !');
     } catch {
       toast.error('Erreur lors de la sauvegarde');

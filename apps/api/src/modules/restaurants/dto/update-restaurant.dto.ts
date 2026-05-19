@@ -59,4 +59,9 @@ export class UpdateRestaurantDto {
   @IsOptional()
   @IsObject()
   settings?: Record<string, unknown>;
+
+  @ApiPropertyOptional({ description: 'Business hours per day' })
+  @IsOptional()
+  @IsObject()
+  businessHours?: Record<string, unknown>;
 }
