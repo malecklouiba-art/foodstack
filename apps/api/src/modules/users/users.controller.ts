@@ -108,8 +108,8 @@ export class UsersController {
 
   @Get('staff')
   @ApiOperation({ summary: 'Get all staff members' })
-  findStaff() {
-    return this.usersService.findStaff();
+  findStaff(@Query('restaurantId') restaurantId?: string) {
+    return this.usersService.findStaff(restaurantId);
   }
 
   @Get()

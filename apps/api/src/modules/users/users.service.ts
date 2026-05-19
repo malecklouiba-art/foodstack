@@ -49,9 +49,16 @@ export class UsersService {
     });
   }
 
-  async findStaff() {
+  async findStaff(restaurantId?: string) {
+    const where: Record<string, any> = { role: { in: ['staff', 'restaurant_owner'] } };
+    if (restaurantId) {
+      where['OR'] = [
+        { ownedRestaurants: { some: { id: restaurantId } } },
+        { restaurantStaff: { some: { restaurantId } } },
+      ];
+    }
     const users = await this.prisma.user.findMany({
-      where: { role: { in: ['staff', 'restaurant_owner'] as any[] } },
+      where: where as any,
       select: {
         id: true,
         email: true,
