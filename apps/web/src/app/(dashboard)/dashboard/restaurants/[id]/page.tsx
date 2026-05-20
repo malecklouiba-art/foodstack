@@ -4,10 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
-  ShoppingBag, UtensilsCrossed, Users, Bike, Truck, Package,
+  ShoppingBag, UtensilsCrossed, Users, Bike, Truck,
   CreditCard, BarChart3, TableIcon, MapPin, Tag, Settings,
   ArrowLeft, Store, Loader2, ChevronDown, Check,
-  CalendarDays, Award, Building2, Monitor, QrCode, ShoppingCart,
+  CalendarDays, Award, Monitor, QrCode, ShoppingCart,
 } from 'lucide-react';
 import { RestaurantProvider } from '@/contexts/restaurant-context';
 import api from '@/lib/api';
@@ -18,7 +18,6 @@ const MenuTab      = dynamic(() => import('../../menu/page'),      { ssr: false,
 const StaffTab     = dynamic(() => import('../../staff/page'),     { ssr: false, loading: () => <TabLoader /> });
 const DriversTab   = dynamic(() => import('../../drivers/page'),   { ssr: false, loading: () => <TabLoader /> });
 const DeliveryTab  = dynamic(() => import('../../delivery/page'),  { ssr: false, loading: () => <TabLoader /> });
-const InventoryTab = dynamic(() => import('../../inventory/page'), { ssr: false, loading: () => <TabLoader /> });
 const CustomersTab = dynamic(() => import('../../customers/page'), { ssr: false, loading: () => <TabLoader /> });
 const PaymentsTab  = dynamic(() => import('../../payments/page'),  { ssr: false, loading: () => <TabLoader /> });
 const AnalyticsTab = dynamic(() => import('../../analytics/page'), { ssr: false, loading: () => <TabLoader /> });
@@ -28,7 +27,6 @@ const CouponsTab   = dynamic(() => import('../../coupons/page'),   { ssr: false,
 const SettingsTab  = dynamic(() => import('../../settings/page'),  { ssr: false, loading: () => <TabLoader /> });
 const PlanningTab  = dynamic(() => import('../../planning/page'),  { ssr: false, loading: () => <TabLoader /> });
 const LoyaltyTab     = dynamic(() => import('../../loyalty/page'),    { ssr: false, loading: () => <TabLoader /> });
-const SuppliersTab   = dynamic(() => import('../../suppliers/page'), { ssr: false, loading: () => <TabLoader /> });
 const KioskTab       = dynamic(() => import('../../kiosk/page'),     { ssr: false, loading: () => <TabLoader /> });
 const QRCodesTab     = dynamic(() => import('../../qrcodes/page'),   { ssr: false, loading: () => <TabLoader /> });
 const PosTab         = dynamic(() => import('../../../pos/page'),     { ssr: false, loading: () => <TabLoader /> });
@@ -44,9 +42,9 @@ function TabLoader() {
 // ── Tab definitions ───────────────────────────────────────────────────────────
 type TabKey =
   | 'commandes' | 'menu' | 'staff' | 'livreurs' | 'livraisons'
-  | 'inventaire' | 'clients' | 'fidelite' | 'paiements' | 'analytiques'
+  | 'clients' | 'fidelite' | 'paiements' | 'analytiques'
   | 'tables' | 'zones' | 'coupons' | 'planning' | 'parametres'
-  | 'fournisseurs' | 'borne' | 'pos' | 'qrcodes';
+  | 'borne' | 'pos' | 'qrcodes';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'commandes',    label: 'Commandes',    icon: ShoppingBag    },
@@ -54,8 +52,6 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'staff',        label: 'Personnel',    icon: Users          },
   { key: 'livreurs',     label: 'Livreurs',     icon: Bike           },
   { key: 'livraisons',   label: 'Livraisons',   icon: Truck          },
-  { key: 'inventaire',   label: 'Inventaire',   icon: Package        },
-  { key: 'fournisseurs', label: 'Fournisseurs', icon: Building2      },
   { key: 'clients',      label: 'Clients',      icon: Users          },
   { key: 'fidelite',     label: 'Fidélité',     icon: Award          },
   { key: 'paiements',    label: 'Paiements',    icon: CreditCard     },
@@ -112,7 +108,6 @@ export default function RestaurantHubPage({ params }: { params: { id: string } }
       case 'staff':       return <StaffTab />;
       case 'livreurs':    return <DriversTab />;
       case 'livraisons':  return <DeliveryTab />;
-      case 'inventaire':  return <InventoryTab />;
       case 'clients':     return <CustomersTab />;
       case 'fidelite':    return <LoyaltyTab />;
       case 'paiements':   return <PaymentsTab />;
@@ -120,7 +115,6 @@ export default function RestaurantHubPage({ params }: { params: { id: string } }
       case 'tables':      return <TablesTab />;
       case 'zones':       return <ZonesTab />;
       case 'coupons':     return <CouponsTab />;
-      case 'fournisseurs': return <SuppliersTab />;
       case 'borne':        return <KioskTab />;
       case 'pos':          return <PosTab />;
       case 'qrcodes':      return <QRCodesTab />;

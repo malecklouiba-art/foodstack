@@ -357,8 +357,8 @@ export default function DriversPage() {
   };
 
   // KPI champions
-  const topPerformer = drivers.reduce((a, b) => b.ordersPerWeek > a.ordersPerWeek ? b : a, drivers[0]);
-  const fastestDriver = drivers.reduce((a, b) => b.avgDeliveryMin < a.avgDeliveryMin ? b : a, drivers[0]);
+  const topPerformer = drivers.length > 0 ? drivers.reduce((a, b) => b.ordersPerWeek > a.ordersPerWeek ? b : a) : null;
+  const fastestDriver = drivers.length > 0 ? drivers.reduce((a, b) => b.avgDeliveryMin < a.avgDeliveryMin ? b : a) : null;
 
   function addDriver(f: DriverForm) {
     const initials = f.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -414,51 +414,54 @@ export default function DriversPage() {
       </div>
 
       {/* Champion KPI cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Top performer */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500 to-green-600 p-5 text-white shadow-lg">
-          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10" />
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-lg font-black backdrop-blur-sm">
-              {topPerformer.avatar}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <Trophy className="h-4 w-4 text-yellow-300" />
-                <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">Livreur le plus performant</span>
+      {(topPerformer || fastestDriver) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {topPerformer && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-500 to-green-600 p-5 text-white shadow-lg">
+              <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-lg font-black backdrop-blur-sm">
+                  {topPerformer.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Trophy className="h-4 w-4 text-yellow-300" />
+                    <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">Livreur le plus performant</span>
+                  </div>
+                  <p className="text-lg font-bold truncate">{topPerformer.name}</p>
+                  <p className="text-sm text-white/80">{topPerformer.zone}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-2xl font-black">{topPerformer.ordersPerWeek}</p>
+                  <p className="text-xs text-white/70">cmd/semaine</p>
+                </div>
               </div>
-              <p className="text-lg font-bold truncate">{topPerformer.name}</p>
-              <p className="text-sm text-white/80">{topPerformer.zone}</p>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-2xl font-black">{topPerformer.ordersPerWeek}</p>
-              <p className="text-xs text-white/70">cmd/semaine</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Fastest driver */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-white shadow-lg">
-          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10" />
-          <div className="relative flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-lg font-black backdrop-blur-sm">
-              {fastestDriver.avatar}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <Zap className="h-4 w-4 text-yellow-300" />
-                <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">Livreur le plus rapide</span>
+          )}
+          {fastestDriver && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-white shadow-lg">
+              <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10" />
+              <div className="relative flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 text-lg font-black backdrop-blur-sm">
+                  {fastestDriver.avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <Zap className="h-4 w-4 text-yellow-300" />
+                    <span className="text-xs font-semibold text-white/80 uppercase tracking-wide">Livreur le plus rapide</span>
+                  </div>
+                  <p className="text-lg font-bold truncate">{fastestDriver.name}</p>
+                  <p className="text-sm text-white/80">{fastestDriver.zone}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-2xl font-black">{fastestDriver.avgDeliveryMin}</p>
+                  <p className="text-xs text-white/70">min moy.</p>
+                </div>
               </div>
-              <p className="text-lg font-bold truncate">{fastestDriver.name}</p>
-              <p className="text-sm text-white/80">{fastestDriver.zone}</p>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-2xl font-black">{fastestDriver.avgDeliveryMin}</p>
-              <p className="text-xs text-white/70">min moy.</p>
-            </div>
-          </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

@@ -45,8 +45,6 @@ const PAGE_LABELS: Record<string, string> = {
   '/dashboard/delivery':         'Livraisons',
   '/dashboard/drivers':          'Livreurs',
   '/dashboard/zones':            'Zones livraison',
-  '/dashboard/inventory':        'Inventaire',
-  '/dashboard/suppliers':        'Fournisseurs',
   '/dashboard/staff':            'Employés',
   '/dashboard/coupons':          'Codes Promo',
   '/dashboard/tables':           'Tables',
