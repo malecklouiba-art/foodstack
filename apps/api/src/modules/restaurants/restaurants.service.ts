@@ -6,12 +6,14 @@ import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 function enrichRestaurant(r: Record<string, any>) {
   const s = (r.settings ?? {}) as Record<string, any>;
   const prepTime = s['prepTime'] ?? 20;
+  const cuisine = s['cuisine'] ?? null;
   return {
     ...r,
     deliveryFee:  s['deliveryFee']     ?? 0,
     deliveryTime: `${prepTime}-${prepTime + 10}min`,
     minOrder:     s['minOrderAmount']  ?? 0,
-    cuisine:      s['cuisine']         ?? null,
+    cuisine,
+    categories:   cuisine ? [cuisine] : (s['tags'] ?? []),
     tags:         s['tags']            ?? [],
     isFeatured:   s['isFeatured']      ?? false,
     address:      [r.street, r.city, r.postalCode].filter(Boolean).join(', '),

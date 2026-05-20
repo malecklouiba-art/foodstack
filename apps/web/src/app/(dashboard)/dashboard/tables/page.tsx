@@ -455,7 +455,11 @@ interface FloorCanvasProps {
   onMove: (id: string, x: number, y: number) => void;
   onClickTable: (table: RestaurantTable, screenX: number, screenY: number) => void;
   onSelectTable?: (id: string | null) => void;
+  onMoveZone?: (id: string, x: number, y: number) => void;
+  onResizeZone?: (id: string, x: number, y: number, w: number, h: number) => void;
 }
+
+type ResizeHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w';
 
 function FloorCanvas({
   tables,
@@ -465,6 +469,8 @@ function FloorCanvas({
   onMove,
   onClickTable,
   onSelectTable,
+  onMoveZone,
+  onResizeZone,
 }: FloorCanvasProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
@@ -475,6 +481,75 @@ function FloorCanvas({
     startX: number;
     startY: number;
   } | null>(null);
+
+  // Zone drag/resize state
+  const zoneDragRef = useRef<{
+    id: string;
+    kind: 'move' | ResizeHandle;
+    startMouseX: number;
+    startMouseY: number;
+    startZoneX: number;
+    startZoneY: number;
+    startZoneW: number;
+    startZoneH: number;
+  } | null>(null);
+
+  const handleZonePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>, zone: Zone, kind: 'move' | ResizeHandle) => {
+      if (!editorMode) return;
+      e.stopPropagation();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      zoneDragRef.current = {
+        id: zone.id,
+        kind,
+        startMouseX: e.clientX,
+        startMouseY: e.clientY,
+        startZoneX: zone.x,
+        startZoneY: zone.y,
+        startZoneW: zone.w,
+        startZoneH: zone.h,
+      };
+    },
+    [editorMode],
+  );
+
+  const handleZonePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const d = zoneDragRef.current;
+      if (!d) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dx = e.clientX - d.startMouseX;
+      const dy = e.clientY - d.startMouseY;
+
+      if (d.kind === 'move') {
+        const nx = Math.max(0, snap(d.startZoneX + dx));
+        const ny = Math.max(0, snap(d.startZoneY + dy));
+        onMoveZone?.(d.id, nx, ny);
+      } else {
+        let { startZoneX: x, startZoneY: y, startZoneW: w, startZoneH: h } = d;
+        const MIN = GRID * 2;
+        if (d.kind.includes('e')) w = Math.max(MIN, snap(w + dx));
+        if (d.kind.includes('s')) h = Math.max(MIN, snap(h + dy));
+        if (d.kind.includes('w')) {
+          const newW = Math.max(MIN, snap(w - dx));
+          x = snap(x + (w - newW));
+          w = newW;
+        }
+        if (d.kind.includes('n')) {
+          const newH = Math.max(MIN, snap(h - dy));
+          y = snap(y + (h - newH));
+          h = newH;
+        }
+        onResizeZone?.(d.id, x, y, w, h);
+      }
+    },
+    [onMoveZone, onResizeZone],
+  );
+
+  const handleZonePointerUp = useCallback(() => {
+    zoneDragRef.current = null;
+  }, []);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>, table: RestaurantTable) => {
@@ -547,24 +622,58 @@ function FloorCanvas({
         onClick={() => editorMode && onSelectTable?.(null)}
       >
         {/* Zone backgrounds */}
-        {zones.map(zone => (
-          <div
-            key={zone.id}
-            className="absolute rounded-2xl border-2 border-dashed"
-            style={{
-              left: zone.x,
-              top: zone.y,
-              width: zone.w,
-              height: zone.h,
-              backgroundColor: zone.color,
-              borderColor: zone.color === '#eff6ff' ? '#93c5fd' : adjustColorBorder(zone.color),
-            }}
-          >
-            <span className="absolute left-3 top-2 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 shadow-sm">
-              {zone.name}
-            </span>
-          </div>
-        ))}
+        {zones.map(zone => {
+          const borderColor = zone.color === '#eff6ff' ? '#93c5fd' : adjustColorBorder(zone.color);
+          return (
+            <div
+              key={zone.id}
+              className="absolute rounded-2xl border-2 border-dashed"
+              style={{
+                left: zone.x,
+                top: zone.y,
+                width: zone.w,
+                height: zone.h,
+                backgroundColor: zone.color,
+                borderColor,
+                cursor: editorMode ? 'move' : 'default',
+              }}
+              onPointerDown={editorMode ? (e) => handleZonePointerDown(e, zone, 'move') : undefined}
+              onPointerMove={editorMode ? handleZonePointerMove : undefined}
+              onPointerUp={editorMode ? handleZonePointerUp : undefined}
+            >
+              <span className="absolute left-3 top-2 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-600 shadow-sm select-none">
+                {zone.name}
+              </span>
+
+              {/* Resize handles — only in editor mode */}
+              {editorMode && (
+                <>
+                  {(
+                    [
+                      { h: 'nw', style: { top: -5, left: -5, cursor: 'nw-resize' } },
+                      { h: 'n',  style: { top: -5, left: '50%', transform: 'translateX(-50%)', cursor: 'n-resize' } },
+                      { h: 'ne', style: { top: -5, right: -5, cursor: 'ne-resize' } },
+                      { h: 'e',  style: { top: '50%', right: -5, transform: 'translateY(-50%)', cursor: 'e-resize' } },
+                      { h: 'se', style: { bottom: -5, right: -5, cursor: 'se-resize' } },
+                      { h: 's',  style: { bottom: -5, left: '50%', transform: 'translateX(-50%)', cursor: 's-resize' } },
+                      { h: 'sw', style: { bottom: -5, left: -5, cursor: 'sw-resize' } },
+                      { h: 'w',  style: { top: '50%', left: -5, transform: 'translateY(-50%)', cursor: 'w-resize' } },
+                    ] as { h: ResizeHandle; style: React.CSSProperties }[]
+                  ).map(({ h, style }) => (
+                    <div
+                      key={h}
+                      className="absolute h-3 w-3 rounded-sm bg-white shadow ring-1 ring-indigo-400"
+                      style={{ ...style, zIndex: 20 }}
+                      onPointerDown={(e) => { e.stopPropagation(); handleZonePointerDown(e, zone, h); }}
+                      onPointerMove={handleZonePointerMove}
+                      onPointerUp={handleZonePointerUp}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+          );
+        })}
 
         {/* Tables */}
         {tables.map(table => {
@@ -957,6 +1066,14 @@ export default function TablesPage() {
     setTables(prev => prev.map(t => t.id === id ? { ...t, x, y } : t));
   }
 
+  function moveZone(id: string, x: number, y: number) {
+    setZones(prev => prev.map(z => z.id === id ? { ...z, x, y } : z));
+  }
+
+  function resizeZone(id: string, x: number, y: number, w: number, h: number) {
+    setZones(prev => prev.map(z => z.id === id ? { ...z, x, y, w, h } : z));
+  }
+
   function deleteTable(id: string) {
     setTables(prev => prev.filter(t => t.id !== id));
     if (selectedTableId === id) setSelectedTableId(null);
@@ -1262,6 +1379,8 @@ export default function TablesPage() {
                 onMove={moveTable}
                 onClickTable={() => {/* editor mode handles selection instead */}}
                 onSelectTable={setSelectedTableId}
+                onMoveZone={moveZone}
+                onResizeZone={resizeZone}
               />
             </div>
 
