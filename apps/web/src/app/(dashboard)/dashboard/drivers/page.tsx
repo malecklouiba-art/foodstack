@@ -414,7 +414,7 @@ export default function DriversPage() {
       if (d.id !== id) return d;
       const newStatus = cycle[(cycle.indexOf(d.status) + 1) % cycle.length];
       const isOnline = newStatus !== 'offline';
-      (api.patch(`/drivers/${id}/online`, { isOnline }) as Promise<any>).catch(() => {});
+      (api.patch(`/drivers/${id}/online`, { online: isOnline }) as Promise<any>).catch(() => {});
       return { ...d, status: newStatus };
     }));
     setMenuOpen(null);

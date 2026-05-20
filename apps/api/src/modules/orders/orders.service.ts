@@ -221,7 +221,10 @@ export class OrdersService {
     const updated = await this.prisma.order.update({
       where: { id },
       data: { status: dto.status as any },
-      include: { items: true },
+      include: {
+        items: true,
+        restaurant: { select: { name: true, street: true, city: true, latitude: true, longitude: true } },
+      },
     });
 
     const payload = {
@@ -237,7 +240,19 @@ export class OrdersService {
     this.realtime.emitOrderStatusUpdated(payload);
 
     if (updated.status === 'ready') {
-      this.realtime.emitOrderReady(payload);
+      const restaurant = (updated as any).restaurant;
+      const deliveryAddr = updated.deliveryAddress;
+      const richPayload = {
+        ...payload,
+        restaurantName: restaurant?.name,
+        restaurantAddress: [restaurant?.street, restaurant?.city].filter(Boolean).join(', '),
+        restaurantLat: restaurant?.latitude ?? undefined,
+        restaurantLng: restaurant?.longitude ?? undefined,
+        customerAddress: typeof deliveryAddr === 'string'
+          ? deliveryAddr
+          : (deliveryAddr as any)?.street ?? (deliveryAddr as any)?.address ?? undefined,
+      };
+      this.realtime.emitOrderReady(richPayload as any);
     }
 
     // Send status update email + Expo push to customer — fire-and-forget
