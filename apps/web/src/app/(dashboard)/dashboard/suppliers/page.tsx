@@ -41,70 +41,6 @@ interface SupplierForm {
   notes: string;
 }
 
-// ── Seed data ─────────────────────────────────────────────────────────────────
-
-const SEED: Supplier[] = [
-  {
-    id: 'sup-1',
-    name: 'Métro Cash & Carry',
-    contact: 'Jean-Pierre Martin',
-    email: 'jp.martin@metro.fr',
-    phone: '+33 1 42 00 10 20',
-    website: 'https://www.metro.fr',
-    address: '12 rue du Commerce, Paris 75015',
-    notes: 'Livraison chaque lundi matin.',
-    _count: { items: 18 },
-    createdAt: '2024-01-10T09:00:00Z',
-  },
-  {
-    id: 'sup-2',
-    name: 'Boulangerie Dupont',
-    contact: 'Marie Dupont',
-    email: 'contact@boulangerie-dupont.fr',
-    phone: '+33 1 43 22 11 00',
-    website: '',
-    address: '4 allée des Fours, Vincennes 94300',
-    notes: 'Pains et viennoiseries artisanales.',
-    _count: { items: 5 },
-    createdAt: '2024-02-15T08:30:00Z',
-  },
-  {
-    id: 'sup-3',
-    name: 'FraisPro Légumes',
-    contact: 'Ali Benali',
-    email: 'commandes@fraispro.com',
-    phone: '+33 6 78 90 12 34',
-    website: 'https://fraispro.com',
-    address: 'MIN de Rungis, Hall C5',
-    notes: '',
-    _count: { items: 12 },
-    createdAt: '2024-03-01T07:00:00Z',
-  },
-  {
-    id: 'sup-4',
-    name: 'Viandes & Co',
-    contact: '',
-    email: 'pro@viandes-co.fr',
-    phone: '+33 1 55 66 77 88',
-    website: 'https://viandes-co.fr',
-    address: '8 rue des Bouchers, Clichy 92110',
-    notes: 'Commande minimum 50 kg.',
-    _count: { items: 9 },
-    createdAt: '2024-04-20T10:00:00Z',
-  },
-  {
-    id: 'sup-5',
-    name: 'SodaDistrib',
-    contact: 'Lucie Renard',
-    email: '',
-    phone: '+33 9 87 65 43 21',
-    website: '',
-    address: '',
-    notes: 'Boissons gazeuses, jus, eaux.',
-    _count: { items: 7 },
-    createdAt: '2024-05-05T11:00:00Z',
-  },
-];
 
 const EMPTY_FORM: SupplierForm = {
   name: '',
@@ -139,7 +75,7 @@ export default function SuppliersPage() {
       .then((data) => {
         setSuppliers(Array.isArray(data) ? data : []);
       })
-      .catch(() => { setSuppliers(SEED); })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [restaurantId]);
 
@@ -170,10 +106,8 @@ export default function SuppliersPage() {
       const created = await (api.post('/suppliers', body) as Promise<Supplier>);
       setSuppliers((prev) => [created, ...prev]);
     } catch {
-      setSuppliers((prev) => [
-        { ...body, id: `sup-${Date.now()}`, _count: { items: 0 } },
-        ...prev,
-      ]);
+      // API error — load will refresh the list
+      load(true);
     } finally {
       setSaving(false);
       setCreateOpen(false);

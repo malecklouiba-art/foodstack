@@ -56,15 +56,6 @@ const ROLE_COLOR: Record<Role, string> = {
   Livreur:   'bg-gray-100 text-gray-700',
 };
 
-const EMPLOYEES: Employee[] = [
-  { id: 'e1', name: 'Marie Dupont',    role: 'Manager',   color: 'bg-brand-500' },
-  { id: 'e2', name: 'Pierre Martin',   role: 'Cuisinier', color: 'bg-yellow-500' },
-  { id: 'e3', name: 'Sophie Bernard',  role: 'Serveuse',  color: 'bg-blue-500' },
-  { id: 'e4', name: 'Thomas Petit',    role: 'Cuisinier', color: 'bg-orange-500' },
-  { id: 'e5', name: 'Emma Richard',    role: 'Serveuse',  color: 'bg-pink-500' },
-  { id: 'e6', name: 'Claire Lambert',  role: 'Manager',   color: 'bg-indigo-500' },
-  { id: 'e7', name: 'Julien Moreau',   role: 'Livreur',   color: 'bg-gray-500' },
-];
 
 // ── Shift form ─────────────────────────────────────────────────────────────────
 
@@ -149,7 +140,7 @@ function seededRand(seed: number): () => number {
 
 const SHIFT_TYPES: ShiftType[] = ['morning', 'afternoon', 'evening', 'full'];
 
-function generateShiftsForWeek(weekOffset: number, employees: Employee[] = EMPLOYEES): Shift[] {
+function generateShiftsForWeek(weekOffset: number, employees: Employee[]): Shift[] {
   // Use the monday date as a numeric seed
   const dates = getWeekDates(weekOffset);
   const monday = dates[0];

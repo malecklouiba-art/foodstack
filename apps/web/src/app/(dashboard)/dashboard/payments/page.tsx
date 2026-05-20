@@ -368,6 +368,7 @@ export default function PaymentsPage() {
   const [refundedIds,   setRefundedIds]   = useState<Set<string>>(new Set());
   const [apiTxs,        setApiTxs]        = useState<Transaction[] | null>(null);
   const [apiRevenue,    setApiRevenue]    = useState<{ day: string; revenue: number }[] | null>(null);
+  const [apiSales,      setApiSales]      = useState<{ revenue: number; orderCount: number; avgOrderValue: number } | null>(null);
 
   const isAdmin       = authUser?.role === 'super_admin';
   const restaurantId  = ctxId || authUser?.restaurantIds?.[0] || '';
@@ -397,6 +398,13 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     if (isAdmin || !restaurantId) return;
+    (api.get(`/analytics/${restaurantId}/sales`) as Promise<{ revenue: number; orderCount: number; avgOrderValue: number }>)
+      .then((data) => { if (data?.revenue !== undefined) setApiSales(data); })
+      .catch(() => {});
+  }, [isAdmin, restaurantId]);
+
+  useEffect(() => {
+    if (isAdmin || !restaurantId) return;
     (api.get(`/analytics/${restaurantId}/revenue?period=week`) as Promise<{ data: { total: number; createdAt: string }[] }>)
       .then(({ data }) => {
         if (!Array.isArray(data) || data.length === 0) return;
@@ -415,8 +423,18 @@ export default function PaymentsPage() {
       .catch(() => {});
   }, [isAdmin, restaurantId]);
 
-  const baseTxs = apiTxs ?? (isAdmin ? ADMIN_TRANSACTIONS : TRANSACTIONS);
-  const activeKPIs    = isAdmin ? ADMIN_KPI_CARDS    : KPI_CARDS;
+  const baseTxs = apiTxs ?? (isAdmin ? ADMIN_TRANSACTIONS : []);
+
+  const commission = apiSales ? apiSales.revenue * 0.1 : null;
+  const dynamicKPIs = apiSales
+    ? [
+        { title: "Chiffre d'affaires", value: formatEUR(apiSales.revenue), change: null, positive: true, icon: Euro, iconBg: 'bg-green-50 dark:bg-green-900/20', iconColor: 'text-green-600 dark:text-green-400' },
+        { title: 'Commissions plateforme', value: commission !== null ? formatEUR(commission) : '—', change: null, positive: null, icon: TrendingUp, iconBg: 'bg-brand-50', iconColor: 'text-brand-600' },
+        { title: 'Net à percevoir', value: commission !== null ? formatEUR(apiSales.revenue - commission) : '—', change: null, positive: null, icon: CheckCircle2, iconBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600 dark:text-blue-400' },
+        { title: 'Panier moyen', value: formatEUR(apiSales.avgOrderValue), change: null, positive: null, icon: Clock, iconBg: 'bg-yellow-50 dark:bg-yellow-900/20', iconColor: 'text-yellow-600 dark:text-yellow-400' },
+      ]
+    : KPI_CARDS;
+  const activeKPIs = isAdmin ? ADMIN_KPI_CARDS : dynamicKPIs;
   const pageTitle     = isAdmin ? 'Paiements Restaurateurs' : 'Paiements';
   const pageSubtitle  = isAdmin
     ? 'Abonnements et commissions de vos clients restaurants'

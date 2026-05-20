@@ -90,6 +90,12 @@ interface ApiDeliveryStats {
   avgDistance: number;
 }
 
+interface ApiCustomerInsights {
+  newCustomers: number;
+  returningCustomers: number;
+  retentionRate: number;
+}
+
 // ── Static data (kept for admin/platform view) ─────────────────────────────────
 
 const PIE_DATA = [
@@ -348,7 +354,7 @@ function AdminAnalytics({ onExportCSV, onExportPDF, onExportXLSX }: { onExportCS
 
 // ── Owner view ────────────────────────────────────────────────────────────────
 
-function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportXLSX, salesData, revenueData, topItems, deliveryStats, loading }: {
+function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportXLSX, salesData, revenueData, topItems, deliveryStats, customerInsights, loading }: {
   period: number;
   setPeriod: (i: number) => void;
   onExportCSV: () => void;
@@ -358,6 +364,7 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
   revenueData: ApiRevenuePoint[];
   topItems: ApiTopItem[];
   deliveryStats: ApiDeliveryStats | null;
+  customerInsights: ApiCustomerInsights | null;
   loading: boolean;
 }) {
   // Derive KPI cards from live API data
@@ -717,9 +724,8 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
           </CardHeader>
           <div className="space-y-5">
             {[
-              { label: 'Clients récurrents',      value: '67%', bar: 67, color: 'bg-green-500',  desc: 'Ont commandé 2× ou plus' },
-              { label: 'Abandon de panier',        value: '23%', bar: 23, color: 'bg-red-400',    desc: 'Panier non finalisé' },
-              { label: 'NPS Score',                value: '72',  bar: 72, color: 'bg-brand-500',   desc: 'Net Promoter Score' },
+              { label: 'Clients récurrents', value: customerInsights ? `${customerInsights.retentionRate.toFixed(0)}%` : '—', bar: customerInsights?.retentionRate ?? 0, color: 'bg-green-500', desc: 'Ont commandé 2× ou plus' },
+              { label: 'Nouveaux clients',   value: customerInsights ? String(customerInsights.newCustomers) : '—', bar: customerInsights && (customerInsights.newCustomers + customerInsights.returningCustomers) > 0 ? (customerInsights.newCustomers / (customerInsights.newCustomers + customerInsights.returningCustomers)) * 100 : 0, color: 'bg-blue-400', desc: 'Première commande' },
             ].map((metric) => (
               <div key={metric.label}>
                 <div className="mb-1 flex items-center justify-between text-sm">
@@ -735,12 +741,15 @@ function OwnerAnalytics({ period, setPeriod, onExportCSV, onExportPDF, onExportX
               </div>
             ))}
           </div>
-          <div className="mt-6 rounded-xl bg-brand-50 px-4 py-3">
-            <p className="text-xs font-medium text-brand-700">Conseil IA</p>
-            <p className="mt-1 text-sm text-brand-800">
-              Vos clients récurrents génèrent <strong>78%</strong> du CA. Pensez à activer des offres de fidélité.
-            </p>
-          </div>
+          {customerInsights && (
+            <div className="mt-6 rounded-xl bg-brand-50 px-4 py-3">
+              <p className="text-xs font-medium text-brand-700">Fidélisation</p>
+              <p className="mt-1 text-sm text-brand-800">
+                {customerInsights.returningCustomers} clients fidèles sur{' '}
+                {customerInsights.newCustomers + customerInsights.returningCustomers} total ({customerInsights.retentionRate.toFixed(0)}% de rétention).
+              </p>
+            </div>
+          )}
         </Card>
       </div>
     </div>
@@ -758,6 +767,7 @@ export default function AnalyticsPage() {
   const [revenueData, setRevenueData] = useState<ApiRevenuePoint[]>([]);
   const [topItems, setTopItems] = useState<ApiTopItem[]>([]);
   const [deliveryStats, setDeliveryStats] = useState<ApiDeliveryStats | null>(null);
+  const [customerInsights, setCustomerInsights] = useState<ApiCustomerInsights | null>(null);
   const [loading, setLoading] = useState(true);
 
   const ctxId = useRestaurantId();
@@ -783,11 +793,12 @@ export default function AnalyticsPage() {
       setLoading(true);
 
       try {
-        const [sales, revenue, items, delivery] = await Promise.allSettled([
+        const [sales, revenue, items, delivery, customers] = await Promise.allSettled([
           api.get(`/analytics/${RESTAURANT_ID}/sales`) as Promise<any>,
           api.get(`/analytics/${RESTAURANT_ID}/revenue?period=${selectedPeriod}`) as Promise<any>,
           api.get(`/analytics/${RESTAURANT_ID}/top-items?limit=5`) as Promise<any>,
           api.get(`/analytics/${RESTAURANT_ID}/delivery-performance`) as Promise<any>,
+          api.get(`/analytics/${RESTAURANT_ID}/customers`) as Promise<any>,
         ]);
 
         if (sales.status === 'fulfilled' && sales.value && !sales.value.error) {
@@ -811,6 +822,9 @@ export default function AnalyticsPage() {
         }
         if (delivery.status === 'fulfilled' && delivery.value && !delivery.value.error) {
           setDeliveryStats(delivery.value as ApiDeliveryStats);
+        }
+        if (customers.status === 'fulfilled' && customers.value && !customers.value.error) {
+          setCustomerInsights(customers.value as ApiCustomerInsights);
         }
       } finally {
         setLoading(false);
@@ -1040,6 +1054,7 @@ export default function AnalyticsPage() {
           revenueData={revenueData}
           topItems={topItems}
           deliveryStats={deliveryStats}
+          customerInsights={customerInsights}
           loading={loading}
         />
       )}

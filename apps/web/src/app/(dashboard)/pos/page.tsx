@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -435,11 +436,12 @@ export default function POSPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [operator, setOperator] = useState<string>('');
   const authUser = useAuthStore((s) => s.user);
+  const ctxRestaurantId = useRestaurantId();
   const [menuItems, setMenuItems] = useState<POSItem[]>(MENU_ITEMS);
   const [categories, setCategories] = useState<string[]>(CATEGORIES);
 
   useEffect(() => {
-    const restaurantId = authUser?.restaurantIds?.[0];
+    const restaurantId = ctxRestaurantId || authUser?.restaurantIds?.[0];
     if (!restaurantId) return;
     type RawCat = { id: string; name: string; items: { id: string; name: string; price: number }[] };
     (api.get(`/menu?restaurantId=${restaurantId}`) as Promise<{ categories: RawCat[] } | RawCat[]>)
@@ -461,7 +463,7 @@ export default function POSPage() {
         }
       })
       .catch(() => {});
-  }, [authUser?.restaurantIds]);
+  }, [ctxRestaurantId, authUser?.restaurantIds]);
   const [pinInput, setPinInput] = useState('');
 
   const [activeCategory, setActiveCategory] = useState('Tout');

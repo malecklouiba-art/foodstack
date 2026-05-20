@@ -61,45 +61,15 @@ const STAT_TABS: { key: StatTab; label: string }[] = [
   { key: 'year',  label: 'Année'       },
 ];
 
-// ── Seed data ─────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-// Fake per-tab stats (multiplied from today's data)
-const TAB_MULTIPLIERS: Record<StatTab, { del: number; rev: number; time: number }> = {
-  today: { del: 1,   rev: 1,   time: 1   },
-  week:  { del: 6,   rev: 5.8, time: 1.05},
-  month: { del: 24,  rev: 22,  time: 1.1 },
-  year:  { del: 280, rev: 260, time: 1.02},
-};
-
-function getTabStats(driver: Driver, tab: StatTab) {
-  const m = TAB_MULTIPLIERS[tab];
+function getTabStats(driver: Driver, _tab: StatTab) {
   return {
-    deliveries: Math.round(driver.deliveriesToday * m.del) || (tab === 'today' ? 0 : Math.round(m.del * 2)),
-    revenue:    parseFloat((driver.earningsToday * m.rev).toFixed(2)) || 0,
-    avgTime:    Math.round(driver.avgDeliveryMin * m.time),
+    deliveries: driver.deliveriesToday,
+    revenue:    driver.earningsToday,
+    avgTime:    driver.avgDeliveryMin,
   };
 }
-
-// Fake active deliveries per driver
-const ACTIVE_DELIVERIES: Record<string, { id: string; customer: string; address: string; eta: string }[]> = {
-  d1: [
-    { id: 'ORD-8821', customer: 'Marie L.',   address: '12 rue de Rivoli',     eta: '4 min'  },
-    { id: 'ORD-8815', customer: 'Pierre D.',   address: '8 bd Haussmann',       eta: '12 min' },
-  ],
-  d2: [
-    { id: 'ORD-8822', customer: 'Sophie M.',   address: '34 rue des Archives',  eta: '7 min'  },
-  ],
-  d3: [
-    { id: 'ORD-8819', customer: 'Julien K.',   address: '78 av du Trône',       eta: '6 min'  },
-    { id: 'ORD-8810', customer: 'Clara B.',    address: '15 rue Oberkampf',     eta: '14 min' },
-    { id: 'ORD-8808', customer: 'Noah W.',     address: '22 rue de la Roquette',eta: '18 min' },
-  ],
-  d4: [],
-  d5: [],
-  d6: [
-    { id: 'ORD-8800', customer: 'Emma D.',     address: '5 rue Ménilmontant',   eta: '9 min'  },
-  ],
-};
 
 // ── Add/Edit modal ────────────────────────────────────────────────────────────
 
@@ -179,7 +149,7 @@ function DriverModal({
 function DriverDetailModal({ driver, onClose }: { driver: Driver; onClose: () => void }) {
   const [tab, setTab] = useState<StatTab>('today');
   const ts = getTabStats(driver, tab);
-  const deliveries = ACTIVE_DELIVERIES[driver.id] ?? [];
+  const deliveries: { id: string; customer: string; address: string; eta: string }[] = [];
   const scfg = STATUS_CFG[driver.status];
 
   return (
