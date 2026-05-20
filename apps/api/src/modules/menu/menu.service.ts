@@ -39,7 +39,7 @@ export class MenuService {
   }
 
   async createItem(dto: CreateMenuItemDto) {
-    return this.prisma.menuItem.create({ data: dto as any });
+    return this.prisma.menuItem.create({ data: { description: '', ...dto as any } });
   }
 
   async updateItem(id: string, dto: UpdateMenuItemDto) {
