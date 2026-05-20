@@ -49,7 +49,7 @@ export class AuthService {
     const [firstName, ...rest] = dto.name.trim().split(' ');
     const lastName = rest.join(' ') || '';
     const user = await this.usersService.create(
-      { email: dto.email, firstName, lastName, password: dto.password, phone: dto.phone },
+      { email: dto.email, firstName, lastName, password: dto.password, phone: dto.phone, role: dto.role },
       passwordHash,
     );
 

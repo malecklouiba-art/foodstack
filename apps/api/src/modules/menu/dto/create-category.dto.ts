@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 
 export class CreateCategoryDto {
   @ApiProperty({ example: 'cuid-restaurant-id' })
@@ -24,4 +24,19 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsNumber()
   position?: number;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ example: '08:00' })
+  @IsOptional()
+  @IsString()
+  availableFrom?: string;
+
+  @ApiPropertyOptional({ example: '22:00' })
+  @IsOptional()
+  @IsString()
+  availableTo?: string;
 }

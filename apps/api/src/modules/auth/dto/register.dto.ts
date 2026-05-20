@@ -15,10 +15,10 @@ export class RegisterDto {
   @MinLength(8)
   password: string;
 
-  @ApiProperty({ enum: ['customer', 'restaurant_owner'], required: false })
+  @ApiProperty({ enum: ['customer', 'restaurant_owner', 'driver'], required: false })
   @IsOptional()
-  @IsEnum(['customer', 'restaurant_owner'])
-  role?: 'customer' | 'restaurant_owner';
+  @IsEnum(['customer', 'restaurant_owner', 'driver'])
+  role?: 'customer' | 'restaurant_owner' | 'driver';
 
   @ApiProperty({ required: false })
   @IsOptional()

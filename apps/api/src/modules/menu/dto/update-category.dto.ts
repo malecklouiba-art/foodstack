@@ -26,4 +26,14 @@ export class UpdateCategoryDto {
   @IsOptional()
   @IsNumber()
   position?: number;
+
+  @ApiPropertyOptional({ example: '08:00' })
+  @IsOptional()
+  @IsString()
+  availableFrom?: string;
+
+  @ApiPropertyOptional({ example: '22:00' })
+  @IsOptional()
+  @IsString()
+  availableTo?: string;
 }

@@ -283,7 +283,7 @@ export class UsersService {
     return this.prisma.user.update({ where: { id }, data });
   }
 
-  async create(dto: CreateUserDto, passwordHash: string) {
+  async create(dto: CreateUserDto & { role?: string }, passwordHash: string) {
     return this.prisma.user.create({
       data: {
         email: dto.email,
@@ -291,6 +291,7 @@ export class UsersService {
         lastName: dto.lastName,
         passwordHash,
         phone: dto.phone,
+        ...(dto.role ? { role: dto.role as any } : {}),
       },
     });
   }
