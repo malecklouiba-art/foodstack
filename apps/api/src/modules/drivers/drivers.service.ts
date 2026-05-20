@@ -44,10 +44,10 @@ export class DriversService {
     return this.prisma.driver.create({
       data: {
         userId: dto.userId,
-        restaurantId: dto.restaurantId,
+        ...(dto.restaurantId ? { restaurantId: dto.restaurantId } : {}),
         vehicleType: dto.vehicleType,
         vehiclePlate: dto.vehiclePlate,
-      },
+      } as any,
     });
   }
 

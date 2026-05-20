@@ -526,11 +526,11 @@ model Coupon {
 }
 
 model Driver {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  user         User      @relation(fields: [userId], references: [id])
-  restaurantId String
-  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  id           String      @id @default(cuid())
+  userId       String      @unique
+  user         User        @relation(fields: [userId], references: [id])
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
   vehicleType  String    @default("bike") // "bike" | "scooter" | "car"
   vehiclePlate String?
   latitude     Float?
