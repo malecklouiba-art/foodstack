@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X, Plus, Minus, ChevronLeft, Check, Clock, CreditCard, Banknote, Smartphone, LayoutGrid } from 'lucide-react';
 
@@ -225,9 +226,54 @@ const DEFAULT_THEME: KioskTheme = {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// ── Category icon mapping ─────────────────────────────────────────────────────
+
+function categoryIcon(name: string): string {
+  const n = name.toLowerCase();
+  if (n.includes('menu') || n.includes('formule')) return '🍱';
+  if (n.includes('entree') || n.includes('entrée') || n.includes('starter')) return '🥗';
+  if (n.includes('plat') || n.includes('main') || n.includes('burger')) return '🍽️';
+  if (n.includes('dessert') || n.includes('sweet')) return '🍮';
+  if (n.includes('boisson') || n.includes('drink') || n.includes('beverage')) return '🥤';
+  if (n.includes('pizza')) return '🍕';
+  if (n.includes('sushi') || n.includes('asie') || n.includes('japonais')) return '🍱';
+  if (n.includes('sandwich') || n.includes('wrap')) return '🥙';
+  if (n.includes('salade') || n.includes('vegeta')) return '🥗';
+  if (n.includes('viande') || n.includes('grill')) return '🥩';
+  if (n.includes('poisson') || n.includes('fruit de mer')) return '🐟';
+  if (n.includes('petit-déj') || n.includes('brunch')) return '☕';
+  return '🍴';
+}
+
+// ── API types ─────────────────────────────────────────────────────────────────
+
+interface ApiMenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string | null;
+  allergens?: string[];
+  isFeatured?: boolean;
+  isActive?: boolean;
+}
+
+interface ApiCategory {
+  id: string;
+  name: string;
+  items?: ApiMenuItem[];
+}
+
 export default function KioskPage() {
+  const params = useParams<{ id: string }>();
+  const restaurantId = params?.id;
+
   const [theme, setTheme] = useState<KioskTheme>(DEFAULT_THEME);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  // Live product/category data (fall back to seed if API unavailable)
+  const [products, setProducts]     = useState<Product[]>(PRODUCTS);
+  const [categories, setCategories] = useState(CATEGORIES);
 
   const [screen, setScreen] = useState<Screen>('welcome');
   const [orderMode, setOrderMode] = useState<OrderMode | null>(null);
@@ -264,6 +310,48 @@ export default function KioskPage() {
       setIsPreviewMode(true);
     }
   }, []);
+
+  // Load real menu from API
+  useEffect(() => {
+    if (!restaurantId || restaurantId === 'demo') return;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
+    fetch(`${API_URL}/api/v1/menu?restaurantId=${restaurantId}`)
+      .then((r) => r.ok ? r.json() : Promise.reject())
+      .then((data: { categories?: ApiCategory[]; items?: ApiMenuItem[] } | ApiCategory[]) => {
+        const rawCats: ApiCategory[] = Array.isArray(data)
+          ? data
+          : (data as { categories?: ApiCategory[] }).categories ?? [];
+
+        if (rawCats.length === 0) return;
+
+        const newCats = rawCats
+          .filter((c) => c.items && c.items.length > 0)
+          .map((c) => ({ id: c.id, label: c.name, icon: categoryIcon(c.name) }));
+
+        const newProducts: Product[] = rawCats.flatMap((cat) =>
+          (cat.items ?? [])
+            .filter((it) => it.isActive !== false)
+            .map((it) => ({
+              id: it.id,
+              name: it.name,
+              description: it.description ?? '',
+              price: it.price,
+              category: cat.id,
+              image: it.image ?? categoryIcon(cat.name),
+              allergens: it.allergens ?? [],
+              options: [],
+              badge: it.isFeatured ? 'Best-seller' : undefined,
+            }))
+        );
+
+        if (newCats.length > 0 && newProducts.length > 0) {
+          setCategories(newCats);
+          setProducts(newProducts);
+          setActiveCategory(newCats[0].id);
+        }
+      })
+      .catch(() => { /* keep seed fallback */ });
+  }, [restaurantId]);
 
   const resetKiosk = useCallback(() => {
     setScreen('welcome');
@@ -317,7 +405,7 @@ export default function KioskPage() {
     setCountdown(30);
   }
 
-  const filteredProducts = PRODUCTS.filter((p) => p.category === activeCategory);
+  const filteredProducts = products.filter((p) => p.category === activeCategory);
 
   // Derived theme styles
   const bgStyle        = applyTheme(theme.background);
@@ -487,7 +575,7 @@ export default function KioskPage() {
               >
                 <span className="text-xl font-black" style={{ color: theme.primaryButton.textColor }}>F</span>
               </div>
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
@@ -515,7 +603,7 @@ export default function KioskPage() {
                     className="font-bold"
                     style={{ color: theme.navbar.textColor, fontSize: 22, fontWeight: 700 }}
                   >
-                    {CATEGORIES.find((c) => c.id === activeCategory)?.label}
+                    {categories.find((c) => c.id === activeCategory)?.label}
                   </h2>
                   <p style={{ color: theme.navbar.textColor, opacity: 0.6, fontSize: 13 }}>
                     {orderMode === 'sur_place' ? '🪑 Sur place' : '🛍️ À emporter'}
