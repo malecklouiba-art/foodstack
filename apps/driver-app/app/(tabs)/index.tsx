@@ -20,7 +20,7 @@ export default function HomeScreen() {
     { label: "Gains aujourd'hui", value: `${todayEarnings.toFixed(2)}€`, emoji: '💰', onPress: undefined as (() => void) | undefined },
     { label: 'Livraisons', value: String(todayDeliveries), emoji: '📦', onPress: () => router.push('/(tabs)/orders') },
     { label: 'Note', value: `${rating}/5`, emoji: '⭐', onPress: undefined as (() => void) | undefined },
-    ...(isOnline ? [{ label: 'Réponses', value: '94%', emoji: '📡', onPress: undefined as (() => void) | undefined }] : []),
+    ...(isOnline ? [{ label: 'Disponible', value: '✓', emoji: '📡', onPress: undefined as (() => void) | undefined }] : []),
   ];
 
   return (

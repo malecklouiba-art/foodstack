@@ -115,24 +115,7 @@ export default function CartScreen() {
       setCouponLabel(label);
       setCouponInput('');
     } catch {
-      // Fallback mock validation for demo/offline
-      const MOCK_CODES: Record<string, { type: 'percent' | 'fixed'; value: number; label: string }> = {
-        'BIENVENUE10': { type: 'percent', value: 10, label: 'Nouveau client (−10%)' },
-        'WEEKEND10':   { type: 'percent', value: 10, label: 'Promo week-end (−10%)' },
-        'FIDELE20':    { type: 'percent', value: 20, label: 'Client fidèle (−20%)' },
-        'FLASH15':     { type: 'percent', value: 15, label: 'Offre flash (−15%)' },
-        'GRATUIT8':    { type: 'fixed',   value: 8,  label: 'Livraison offerte (−8€)' },
-      };
-      const mock = MOCK_CODES[code];
-      if (mock) {
-        const discount = mock.type === 'percent' ? (subtotal * mock.value) / 100 : mock.value;
-        setCouponCode(code);
-        setCouponDiscount(discount);
-        setCouponLabel(mock.label);
-        setCouponInput('');
-      } else {
-        setCouponError('Code invalide ou expiré.');
-      }
+      setCouponError('Service indisponible. Veuillez réessayer.');
     } finally {
       setCouponLoading(false);
     }

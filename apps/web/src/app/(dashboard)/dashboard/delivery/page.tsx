@@ -42,19 +42,7 @@ interface Delivery {
   notes: NoteEntry[];
 }
 
-interface FailureReason {
-  deliveryId: string;
-  reason: string;
-}
 
-// ── Mock data ────────────────────────────────────────────────────────────────
-
-const now = new Date();
-const isoDaysAgo = (d: number) => new Date(now.getTime() - d * 86_400_000).toISOString();
-
-const FAILURE_REASONS: FailureReason[] = [
-  { deliveryId: 'DEL-437', reason: 'Client absent' },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -643,7 +631,7 @@ export default function DeliveryPage() {
                 </motion.p>
               )}
               {failedDeliveries.map((delivery) => {
-                const reason = FAILURE_REASONS.find((r) => r.deliveryId === delivery.id)?.reason ?? 'Motif inconnu';
+                const reason = 'Motif inconnu';
                 return (
                   <motion.div
                     key={delivery.id}

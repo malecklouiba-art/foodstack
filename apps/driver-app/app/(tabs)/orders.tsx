@@ -27,56 +27,50 @@ interface DeliveryRecord {
   rating?: number;
 }
 
-// Shape returned by GET /api/v1/orders/customer/:customerId
+// Shape returned by GET /api/v1/orders/driver/:driverId
 interface ApiOrder {
   id: string;
   orderNumber?: string;
-  number?: string;
   createdAt?: string;
-  updatedAt?: string;
-  restaurantName?: string;
   restaurant?: { name?: string };
-  deliveryAddress?: string;
-  customerAddress?: string;
+  deliveryAddress?: string | { street?: string; address?: string; city?: string };
   deliveryFee?: number;
-  earnings?: number;
-  distanceKm?: number;
-  deliveryDurationMin?: number;
-  durationMin?: number;
-  driverRating?: number;
-  rating?: number;
   status?: string;
+  delivery?: {
+    distance?: number;
+    duration?: number;
+  };
 }
 
 function mapApiOrder(o: ApiOrder): DeliveryRecord {
-  const rawDate = o.createdAt ?? o.updatedAt ?? '';
+  const rawDate = o.createdAt ?? '';
   let date = rawDate;
   if (rawDate) {
     try {
       date = new Date(rawDate).toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
       });
     } catch {
       date = rawDate;
     }
   }
 
+  const addr = o.deliveryAddress;
+  const customerAddress = typeof addr === 'string'
+    ? addr
+    : addr?.street ?? (addr as any)?.address ?? '—';
+
   return {
     id: o.id,
-    number: o.orderNumber ?? o.number ?? `#${o.id.slice(-4).toUpperCase()}`,
+    number: o.orderNumber ?? `#${o.id.slice(-4).toUpperCase()}`,
     date,
-    restaurantName: o.restaurantName ?? o.restaurant?.name ?? '—',
-    customerAddress: typeof o.deliveryAddress === 'string'
-      ? o.deliveryAddress
-      : (o.deliveryAddress as any)?.street ?? (o.deliveryAddress as any)?.address ?? o.customerAddress ?? '—',
-    earnings: o.deliveryFee ?? o.earnings ?? 0,
-    distanceKm: o.distanceKm ?? 0,
-    durationMin: o.deliveryDurationMin ?? o.durationMin ?? 0,
-    rating: o.driverRating ?? o.rating,
+    restaurantName: o.restaurant?.name ?? '—',
+    customerAddress,
+    earnings: o.deliveryFee ?? 0,
+    distanceKm: o.delivery?.distance ?? 0,
+    durationMin: o.delivery?.duration ?? 0,
+    rating: undefined,
   };
 }
 
