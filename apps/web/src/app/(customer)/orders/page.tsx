@@ -50,6 +50,19 @@ interface ApiOrder {
 
 type DisplayOrder = Order & { restaurantName?: string };
 
+function parseDeliveryAddress(raw: unknown) {
+  if (!raw) return undefined;
+  if (typeof raw === 'string') {
+    try { return JSON.parse(raw) as Record<string, string>; } catch { return { street: raw } as Record<string, string>; }
+  }
+  if (typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    if (obj.address && !obj.street) return { street: obj.address as string };
+    return obj as Record<string, string>;
+  }
+  return undefined;
+}
+
 function normaliseOrder(raw: ApiOrder): DisplayOrder {
   return {
     id: raw.id,
@@ -69,7 +82,7 @@ function normaliseOrder(raw: ApiOrder): DisplayOrder {
       modifiers: [],
       subtotal: i.subtotal,
     })),
-    deliveryAddress: raw.deliveryAddress as any,
+    deliveryAddress: parseDeliveryAddress(raw.deliveryAddress) as any,
     subtotal: raw.subtotal,
     deliveryFee: raw.deliveryFee ?? 0,
     tax: raw.tax ?? 0,
@@ -181,7 +194,9 @@ export default function OrdersPage() {
     doc.text(`Mode : ${order.type === 'delivery' ? 'Livraison' : order.type === 'pickup' ? 'À emporter' : 'Sur place'}`, 20, 56);
 
     if (order.deliveryAddress) {
-      doc.text(`Adresse : ${order.deliveryAddress.street}, ${order.deliveryAddress.postalCode} ${order.deliveryAddress.city}`, 20, 63);
+      const da = order.deliveryAddress as any;
+      const addrLine = [da.street, da.postalCode, da.city].filter(Boolean).join(', ') || da.address || '';
+      doc.text(`Adresse : ${addrLine}`, 20, 63);
     }
 
     autoTable(doc, {
@@ -451,7 +466,7 @@ export default function OrdersPage() {
                           {order.deliveryAddress && (
                             <span className="flex items-center gap-1">
                               <MapPin className="h-3.5 w-3.5" />
-                              {order.deliveryAddress.city}
+                              {(order.deliveryAddress as any).city ?? (order.deliveryAddress as any).street ?? ''}
                             </span>
                           )}
                           <span className="flex items-center gap-1">
@@ -568,7 +583,7 @@ export default function OrdersPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-900">Adresse de livraison</p>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    {selected.deliveryAddress.street}, {selected.deliveryAddress.postalCode} {selected.deliveryAddress.city}
+                    {(() => { const da = selected.deliveryAddress as any; return [da.street, da.postalCode, da.city].filter(Boolean).join(', ') || da.address || ''; })()}
                   </p>
                 </div>
               </div>

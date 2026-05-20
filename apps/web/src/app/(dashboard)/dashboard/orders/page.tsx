@@ -332,7 +332,7 @@ interface ApiOrder {
   orderNumber: string;
   status: OrderStatus;
   total: number;
-  deliveryAddress?: string;
+  deliveryAddress?: unknown;
   type?: string;
   createdAt: string;
   customer?: { firstName?: string; lastName?: string; phone?: string; email?: string };
@@ -352,7 +352,13 @@ function normaliseOrder(o: ApiOrder): KanbanOrder {
     total: o.total,
     status: o.status,
     type: (o.type as KanbanOrder['type']) ?? 'delivery',
-    address: o.deliveryAddress,
+    address: typeof o.deliveryAddress === 'string'
+      ? o.deliveryAddress
+      : o.deliveryAddress != null
+        ? (o.deliveryAddress as any).street
+          ?? (o.deliveryAddress as any).address
+          ?? JSON.stringify(o.deliveryAddress)
+        : undefined,
     driver: driverUser ? [driverUser.firstName, driverUser.lastName].filter(Boolean).join(' ') : undefined,
     createdAt: new Date(o.createdAt),
   };

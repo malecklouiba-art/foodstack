@@ -396,21 +396,19 @@ export default function OrderDetailPage() {
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50">
                 <MapPin className="h-5 w-5 text-blue-500" />
               </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Adresse de livraison</p>
-                <p className="mt-0.5 text-sm text-gray-500">
-                  {order.deliveryAddress.street}
-                  {order.deliveryAddress.floor ? `, Étage ${order.deliveryAddress.floor}` : ''}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {order.deliveryAddress.postalCode} {order.deliveryAddress.city}
-                </p>
-                {order.deliveryAddress.doorCode && (
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Code porte : {order.deliveryAddress.doorCode}
-                  </p>
-                )}
-              </div>
+              {(() => {
+                const da = order.deliveryAddress as any;
+                const line1 = [da?.street, da?.floor ? `Étage ${da.floor}` : ''].filter(Boolean).join(', ') || da?.address || '';
+                const line2 = [da?.postalCode, da?.city].filter(Boolean).join(' ');
+                return (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Adresse de livraison</p>
+                    {line1 && <p className="mt-0.5 text-sm text-gray-500">{line1}</p>}
+                    {line2 && <p className="text-sm text-gray-500">{line2}</p>}
+                    {da?.doorCode && <p className="text-xs text-gray-400 mt-0.5">Code porte : {da.doorCode}</p>}
+                  </div>
+                );
+              })()}
             </Card>
           </motion.div>
         )}

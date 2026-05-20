@@ -82,7 +82,7 @@ export class OrdersService {
       data: {
         restaurantId: dto.restaurantId,
         customerId: dto.customerId,
-        deliveryAddress: dto.deliveryAddress ? { address: dto.deliveryAddress } : undefined,
+        deliveryAddress: dto.deliveryAddress ?? undefined,
         notes: dto.deliveryNotes,
         orderNumber: `ORD-${Date.now()}`,
         subtotal,
