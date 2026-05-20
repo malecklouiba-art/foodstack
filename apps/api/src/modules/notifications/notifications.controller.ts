@@ -27,6 +27,7 @@ export class NotificationsController {
   // ─── Push subscription (existing) ────────────────────────────
 
   @Post('push/subscribe')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   subscribe(@Body() dto: PushSubscriptionDto): { ok: boolean } {
     this.pushService.subscribe(dto);
@@ -80,6 +81,7 @@ export class NotificationsController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateNotificationDto) {
     return this.notificationsService.createNotification(

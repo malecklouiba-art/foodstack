@@ -16,6 +16,8 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -101,36 +103,48 @@ export class UsersController {
   // ─── Admin endpoints ─────────────────────────────────────────────────────
 
   @Get('customers')
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'restaurant_owner', 'staff')
   @ApiOperation({ summary: 'Get all customers with order stats' })
   findCustomers(@Query('restaurantId') restaurantId?: string) {
     return this.usersService.findCustomers(restaurantId);
   }
 
   @Get('staff')
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'restaurant_owner')
   @ApiOperation({ summary: 'Get all staff members' })
   findStaff(@Query('restaurantId') restaurantId?: string) {
     return this.usersService.findStaff(restaurantId);
   }
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles('super_admin')
   @ApiOperation({ summary: 'Get all users' })
   findAll() {
     return this.usersService.findAll();
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'restaurant_owner')
   @ApiOperation({ summary: 'Get user by ID' })
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('super_admin')
   @ApiOperation({ summary: 'Update user by ID' })
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles('super_admin')
   @ApiOperation({ summary: 'Delete user by ID' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);

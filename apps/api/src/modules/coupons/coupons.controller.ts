@@ -63,7 +63,9 @@ export class CouponsController {
   }
 
   @Post('validate')
-  @ApiOperation({ summary: 'Validate and apply a coupon (public, for checkout)' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Validate and apply a coupon' })
   validate(@Body() dto: ValidateCouponDto) {
     return this.couponsService.validate(dto);
   }

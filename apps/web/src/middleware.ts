@@ -34,22 +34,26 @@ export async function middleware(req: NextRequest) {
 
   if (!isProtected && !isAuthPage) return res;
 
-  // Demo session cookie — bypass Supabase entirely
-  const demoCookie = req.cookies.get('fs_demo')?.value;
-  if (demoCookie) {
-    if (isAuthPage) return NextResponse.redirect(new URL('/dashboard', req.url));
-    // Driver role: block restricted pages
-    if (demoCookie === 'driver' && DRIVER_BLOCKED.some((p) => path.startsWith(p))) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
+  // Demo session cookie — development only, never in production
+  if (process.env.NODE_ENV !== 'production') {
+    const demoCookie = req.cookies.get('fs_demo')?.value;
+    if (demoCookie) {
+      if (isAuthPage) return NextResponse.redirect(new URL('/dashboard', req.url));
+      if (demoCookie === 'driver' && DRIVER_BLOCKED.some((p) => path.startsWith(p))) {
+        return NextResponse.redirect(new URL('/dashboard', req.url));
+      }
+      return res;
     }
-    return res;
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // No Supabase configured — allow through (dev/demo mode)
-  if (!supabaseUrl || !supabaseKey) return res;
+  // Supabase not configured — fail closed on protected routes
+  if (!supabaseUrl || !supabaseKey) {
+    if (isProtected) return NextResponse.redirect(new URL('/login', req.url));
+    return res;
+  }
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,7 +67,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
   } catch {
-    return res;
+    // Auth service error — fail closed on protected routes
+    if (isProtected) return NextResponse.redirect(new URL('/login', req.url));
   }
 
   return res;

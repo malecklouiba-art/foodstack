@@ -4,6 +4,8 @@ import { LoyaltyService } from './loyalty.service';
 import { AddPointsDto } from './dto/add-points.dto';
 import { RedeemPointsDto } from './dto/redeem-points.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('loyalty')
 @ApiBearerAuth()
@@ -25,12 +27,16 @@ export class LoyaltyController {
   }
 
   @Get(':userId/points')
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'restaurant_owner', 'staff')
   @ApiOperation({ summary: 'Get loyalty points for a user (admin only)' })
   getPoints(@Param('userId') userId: string) {
     return this.loyaltyService.getPoints(userId);
   }
 
   @Post(':userId/add')
+  @UseGuards(RolesGuard)
+  @Roles('super_admin', 'restaurant_owner', 'staff')
   @ApiOperation({ summary: 'Add loyalty points to a user (admin only)' })
   addPoints(@Param('userId') userId: string, @Body() dto: AddPointsDto) {
     return this.loyaltyService.addPoints(userId, dto.points, dto.reason ?? 'Manual adjustment');

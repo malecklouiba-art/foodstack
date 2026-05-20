@@ -19,12 +19,9 @@ export class PaymentsService {
     private notifications: NotificationsService,
     private audit: AuditService,
   ) {
-    this.stripe = new Stripe(
-      this.configService.get<string>('STRIPE_SECRET_KEY') ?? 'sk_test_placeholder',
-      {
-        apiVersion: '2023-10-16',
-      },
-    );
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is not configured');
+    this.stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
   }
 
   async createPaymentIntent(dto: CreatePaymentIntentDto) {

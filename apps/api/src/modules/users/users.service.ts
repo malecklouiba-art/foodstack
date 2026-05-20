@@ -301,6 +301,11 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data: dto,
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        phone: true, role: true, avatar: true, isActive: true,
+        loyaltyPoints: true, loyaltyTier: true, updatedAt: true,
+      },
     });
   }
 

@@ -190,7 +190,7 @@ services:
       - .env
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      NEXT_PUBLIC_API_URL: http://api:4002/api/v1
+      NEXT_PUBLIC_API_URL: http://api:4000/api/v1
       NEXT_PUBLIC_SUPABASE_URL: http://localhost:8000
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTYxMzUzMTk4NSwiZXhwIjoxOTI5MTA3OTg1fQ.ReNhHIoqLM1cqLAxOLWFBBjJDVxKVQJBCZQGRBT7LDM}
     ports:

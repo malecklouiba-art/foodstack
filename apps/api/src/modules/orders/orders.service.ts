@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -159,6 +159,15 @@ export class OrdersService {
     return order;
   }
 
+  async findByIdForUser(id: string, caller: { id: string; role: string }) {
+    const order = await this.findById(id);
+    const adminRoles = ['super_admin', 'restaurant_owner', 'staff'];
+    if (!adminRoles.includes(caller.role) && order.customerId !== caller.id && order.driverId !== caller.id) {
+      throw new ForbiddenException('Accès refusé');
+    }
+    return order;
+  }
+
   async findByRestaurant(restaurantId: string, filters: OrderFiltersDto) {
     return this.prisma.order.findMany({
       where: {
@@ -300,8 +309,12 @@ export class OrdersService {
     return updated;
   }
 
-  async cancelOrder(id: string, reason: string) {
+  async cancelOrder(id: string, reason: string, caller: { id: string; role: string }) {
     const order = await this.findById(id);
+    const adminRoles = ['super_admin', 'restaurant_owner', 'staff'];
+    if (!adminRoles.includes(caller.role) && order.customerId !== caller.id) {
+      throw new ForbiddenException('Vous ne pouvez annuler que vos propres commandes');
+    }
     if (order.status === 'delivered') {
       throw new BadRequestException('Impossible d\'annuler une commande déjà livrée');
     }

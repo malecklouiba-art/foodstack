@@ -57,20 +57,26 @@ export class OrdersController {
 
   @Get('customer/:customerId')
   @ApiOperation({ summary: 'Get all orders for a customer' })
-  findByCustomer(@Param('customerId') customerId: string) {
-    return this.ordersService.findByCustomer(customerId);
+  findByCustomer(@Param('customerId') customerId: string, @Request() req: any) {
+    const { id: callerId, role } = req.user;
+    const adminRoles = ['super_admin', 'restaurant_owner', 'staff'];
+    const effectiveId = adminRoles.includes(role) ? customerId : callerId;
+    return this.ordersService.findByCustomer(effectiveId);
   }
 
   @Get('driver/:driverId')
   @ApiOperation({ summary: 'Get all orders assigned to a driver' })
-  findByDriver(@Param('driverId') driverId: string) {
-    return this.ordersService.findByDriver(driverId);
+  findByDriver(@Param('driverId') driverId: string, @Request() req: any) {
+    const { id: callerId, role } = req.user;
+    const adminRoles = ['super_admin', 'restaurant_owner', 'staff'];
+    const effectiveId = adminRoles.includes(role) ? driverId : callerId;
+    return this.ordersService.findByDriver(effectiveId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get order by ID' })
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findById(id);
+  findOne(@Param('id') id: string, @Request() req: any) {
+    return this.ordersService.findByIdForUser(id, req.user);
   }
 
   @Patch(':id/status')
@@ -82,8 +88,8 @@ export class OrdersController {
 
   @Patch(':id/cancel')
   @ApiOperation({ summary: 'Cancel an order' })
-  cancelOrder(@Param('id') id: string, @Body('reason') reason: string) {
-    return this.ordersService.cancelOrder(id, reason);
+  cancelOrder(@Param('id') id: string, @Body('reason') reason: string, @Request() req: any) {
+    return this.ordersService.cancelOrder(id, reason, req.user);
   }
 
   @Patch(':id/assign-driver')
