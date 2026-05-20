@@ -915,22 +915,33 @@ export default function TablesPage() {
 
   function handleSaveTable(form: { number: string; capacity: string; zoneId: string; shape: TableShape }) {
     if (editingTable) {
-      setTables(prev => prev.map(t =>
-        t.id === editingTable.id
-          ? { ...t, number: Number(form.number), capacity: Number(form.capacity), zoneId: form.zoneId, shape: form.shape }
-          : t
-      ));
+      const patch = { number: Number(form.number), capacity: Number(form.capacity), zoneId: form.zoneId, shape: form.shape };
+      setTables(prev => prev.map(t => t.id === editingTable.id ? { ...t, ...patch } : t));
+      (api.patch(`/tables/${editingTable.id}`, patch) as Promise<unknown>).catch(() => {});
     } else {
-      setTables(prev => [...prev, {
-        id: `t${Date.now()}`,
+      const tempId = `t${Date.now()}`;
+      const zone = zones.find(z => z.id === form.zoneId);
+      const newTable = {
+        id: tempId,
         number: Number(form.number),
         capacity: Number(form.capacity),
         zoneId: form.zoneId,
-        shape: form.shape,
-        status: 'free',
-        x: snap(60 + (prev.length % 6) * 130),
-        y: snap(80 + Math.floor(prev.length / 6) * 130),
-      }]);
+        shape: form.shape as TableShape,
+        status: 'free' as TableStatus,
+        x: snap(60 + (tables.length % 6) * 130),
+        y: snap(80 + Math.floor(tables.length / 6) * 130),
+      };
+      setTables(prev => [...prev, newTable]);
+      if (restaurantId) {
+        (api.post('/tables', {
+          restaurantId,
+          number: Number(form.number),
+          capacity: Number(form.capacity),
+          section: zone?.name ?? 'Salle principale',
+        }) as Promise<{ id: string }>)
+          .then((created) => setTables(prev => prev.map(t => t.id === tempId ? { ...t, id: created.id } : t)))
+          .catch(() => {});
+      }
     }
     setShowTableModal(false);
   }
@@ -950,6 +961,7 @@ export default function TablesPage() {
     setTables(prev => prev.filter(t => t.id !== id));
     if (selectedTableId === id) setSelectedTableId(null);
     setDeleteId(null);
+    (api.delete(`/tables/${id}`) as Promise<unknown>).catch(() => {});
   }
 
   function changeStatus(id: string, status: TableStatus) {
