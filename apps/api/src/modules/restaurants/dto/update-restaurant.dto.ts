@@ -40,6 +40,11 @@ export class UpdateRestaurantDto {
   @Max(180)
   longitude?: number;
 
+  @ApiPropertyOptional({ example: 'contact@restaurant.fr' })
+  @IsOptional()
+  @IsString()
+  email?: string;
+
   @ApiPropertyOptional({ example: '+1234567890' })
   @IsOptional()
   @IsString()
