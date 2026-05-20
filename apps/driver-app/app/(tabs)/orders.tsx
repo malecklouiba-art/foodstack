@@ -70,7 +70,9 @@ function mapApiOrder(o: ApiOrder): DeliveryRecord {
     number: o.orderNumber ?? o.number ?? `#${o.id.slice(-4).toUpperCase()}`,
     date,
     restaurantName: o.restaurantName ?? o.restaurant?.name ?? '—',
-    customerAddress: o.deliveryAddress ?? o.customerAddress ?? '—',
+    customerAddress: typeof o.deliveryAddress === 'string'
+      ? o.deliveryAddress
+      : (o.deliveryAddress as any)?.street ?? (o.deliveryAddress as any)?.address ?? o.customerAddress ?? '—',
     earnings: o.deliveryFee ?? o.earnings ?? 0,
     distanceKm: o.distanceKm ?? 0,
     durationMin: o.deliveryDurationMin ?? o.durationMin ?? 0,
