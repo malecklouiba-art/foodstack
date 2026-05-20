@@ -1475,7 +1475,8 @@ export default function KioskDesignerPage() {
       const state: PersistedState = { theme, branding, langConfig, activeTemplate };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       localStorage.setItem('kioskTheme', JSON.stringify(theme));
-      window.open('/kiosk/demo', '_blank', 'fullscreen=yes');
+      const target = restaurantId ? `/kiosk/${restaurantId}?preview=true` : '/kiosk/demo?preview=true';
+      window.open(target, '_blank', 'fullscreen=yes');
     }
   };
 

@@ -7,7 +7,7 @@ import {
   ShoppingBag, UtensilsCrossed, Users, Bike, Truck, Package,
   CreditCard, BarChart3, TableIcon, MapPin, Tag, Settings,
   ArrowLeft, Store, Loader2, ChevronDown, Check,
-  CalendarDays, Award, Building2, Monitor, QrCode,
+  CalendarDays, Award, Building2, Monitor, QrCode, ShoppingCart,
 } from 'lucide-react';
 import { RestaurantProvider } from '@/contexts/restaurant-context';
 import api from '@/lib/api';
@@ -31,6 +31,7 @@ const LoyaltyTab     = dynamic(() => import('../../loyalty/page'),    { ssr: fal
 const SuppliersTab   = dynamic(() => import('../../suppliers/page'), { ssr: false, loading: () => <TabLoader /> });
 const KioskTab       = dynamic(() => import('../../kiosk/page'),     { ssr: false, loading: () => <TabLoader /> });
 const QRCodesTab     = dynamic(() => import('../../qrcodes/page'),   { ssr: false, loading: () => <TabLoader /> });
+const PosTab         = dynamic(() => import('../../../pos/page'),     { ssr: false, loading: () => <TabLoader /> });
 
 function TabLoader() {
   return (
@@ -45,7 +46,7 @@ type TabKey =
   | 'commandes' | 'menu' | 'staff' | 'livreurs' | 'livraisons'
   | 'inventaire' | 'clients' | 'fidelite' | 'paiements' | 'analytiques'
   | 'tables' | 'zones' | 'coupons' | 'planning' | 'parametres'
-  | 'fournisseurs' | 'borne' | 'qrcodes';
+  | 'fournisseurs' | 'borne' | 'pos' | 'qrcodes';
 
 const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'commandes',    label: 'Commandes',    icon: ShoppingBag    },
@@ -63,6 +64,7 @@ const TABS: { key: TabKey; label: string; icon: React.ElementType }[] = [
   { key: 'zones',        label: 'Zones',        icon: MapPin         },
   { key: 'coupons',      label: 'Codes Promo',  icon: Tag            },
   { key: 'borne',        label: 'Borne',        icon: Monitor        },
+  { key: 'pos',          label: 'Caisse POS',   icon: ShoppingCart   },
   { key: 'qrcodes',      label: 'QR Codes',     icon: QrCode         },
   { key: 'planning',     label: 'Planning',     icon: CalendarDays   },
   { key: 'parametres',   label: 'Paramètres',   icon: Settings       },
@@ -120,6 +122,7 @@ export default function RestaurantHubPage({ params }: { params: { id: string } }
       case 'coupons':     return <CouponsTab />;
       case 'fournisseurs': return <SuppliersTab />;
       case 'borne':        return <KioskTab />;
+      case 'pos':          return <PosTab />;
       case 'qrcodes':      return <QRCodesTab />;
       case 'planning':     return <PlanningTab />;
       case 'parametres':   return <SettingsTab />;
