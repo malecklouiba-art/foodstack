@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database (partagé avec Supabase)
   postgres:
     image: postgres:16-alpine
     container_name: foodstack-db
@@ -14,7 +14,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-foodstack}"]
       interval: 10s
@@ -37,6 +36,125 @@ services:
       timeout: 3s
       retries: 5
 
+  # Supabase — API REST + Auth + Realtime
+  supabase-kong:
+    image: kong:2.8.1
+    container_name: foodstack-supabase-kong
+    restart: unless-stopped
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
+    ports:
+      - "8000:8000"  # API gateway → http://localhost:8000
+    volumes:
+      - ./docker/supabase/kong.yml:/var/lib/kong/kong.yml:ro
+
+  supabase-auth:
+    image: supabase/gotrue:v2.151.0
+    container_name: foodstack-supabase-auth
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      GOTRUE_API_HOST: "0.0.0.0"
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgresql://${POSTGRES_USER:-foodstack}:${POSTGRES_PASSWORD:-foodstack_dev_password}@postgres:5432/${POSTGRES_DB:-foodstack}?search_path=auth
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      GOTRUE_URI_ALLOW_LIST: "*"
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_SMTP_HOST: ${SMTP_HOST:-}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER:-}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-admin@foodstack.app}
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+    ports:
+      - "9999:9999"
+
+  supabase-rest:
+    image: postgrest/postgrest:v12.0.2
+    container_name: foodstack-supabase-rest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGRST_DB_URI: postgresql://${POSTGRES_USER:-foodstack}:${POSTGRES_PASSWORD:-foodstack_dev_password}@postgres:5432/${POSTGRES_DB:-foodstack}
+      PGRST_DB_SCHEMA: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+    ports:
+      - "3001:3000"
+
+  supabase-realtime:
+    image: supabase/realtime:v2.28.32
+    container_name: foodstack-supabase-realtime
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-foodstack}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-foodstack_dev_password}
+      DB_NAME: ${POSTGRES_DB:-foodstack}
+      DB_SSL: "false"
+      JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-change-in-production}
+      REPLICATION_MODE: RLS
+      REPLICATION_POLL_INTERVAL: 100
+      SECURE_CHANNELS: "false"
+      SLOT_NAME: supabase_realtime_rls
+      TEMPORARY_SLOT: "true"
+    ports:
+      - "4001:4000"
+
+  supabase-studio:
+    image: supabase/studio:20240422-5cf8f30
+    container_name: foodstack-supabase-studio
+    restart: unless-stopped
+    ports:
+      - "54323:3000"  # Studio UI → http://localhost:54323
+    environment:
+      STUDIO_PG_META_URL: http://supabase-meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-foodstack_dev_password}
+      DEFAULT_ORGANIZATION_NAME: FoodStack
+      DEFAULT_PROJECT_NAME: foodstack-dev
+      SUPABASE_URL: http://supabase-kong:8000
+      SUPABASE_PUBLIC_URL: http://localhost:8000
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTYxMzUzMTk4NSwiZXhwIjoxOTI5MTA3OTg1fQ.ReNhHIoqLM1cqLAxOLWFBBjJDVxKVQJBCZQGRBT7LDM}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjEzNTMxOTg1LCJleHAiOjE5MjkxMDc5ODV9.C4p1YX0R2_HqPKRh8S2QoLzgWd9HfkHUHzz7Kv1EMIY}
+
+  supabase-meta:
+    image: supabase/postgres-meta:v0.80.0
+    container_name: foodstack-supabase-meta
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: postgres
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: ${POSTGRES_DB:-foodstack}
+      PG_META_DB_USER: ${POSTGRES_USER:-foodstack}
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-foodstack_dev_password}
+    ports:
+      - "8080:8080"
+
   # NestJS API
   api:
     build:
@@ -51,7 +169,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-foodstack}:${POSTGRES_PASSWORD:-foodstack_dev_password}@postgres:5432/${POSTGRES_DB:-foodstack}
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis_dev_password}@redis:6379
     ports:
-      - "4000:4000"
+      - "4002:4000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,6 +191,8 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       NEXT_PUBLIC_API_URL: http://api:4000/api/v1
+      NEXT_PUBLIC_SUPABASE_URL: http://localhost:8000
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTYxMzUzMTk4NSwiZXhwIjoxOTI5MTA3OTg1fQ.ReNhHIoqLM1cqLAxOLWFBBjJDVxKVQJBCZQGRBT7LDM}
     ports:
       - "3000:3000"
     depends_on:

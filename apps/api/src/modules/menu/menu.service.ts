@@ -10,12 +10,15 @@ export class MenuService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getMenu(restaurantId: string) {
-    // TODO: Return categories with nested items, sorted by sortOrder
-    return this.prisma.menuCategory.findMany({
+    const cats = await this.prisma.menuCategory.findMany({
       where: { restaurantId },
-      include: { items: { orderBy: { sortOrder: 'asc' } } },
-      orderBy: { sortOrder: 'asc' },
+      include: { items: { orderBy: { position: 'asc' } } },
+      orderBy: { position: 'asc' },
     });
+    // Return both the flat structure (categories + items) AND the nested array
+    // so both web dashboard and mobile apps can consume this endpoint.
+    const items = cats.flatMap((c) => c.items);
+    return { categories: cats, items };
   }
 
   async createCategory(dto: CreateCategoryDto) {
@@ -31,12 +34,12 @@ export class MenuService {
   async deleteCategory(id: string) {
     const category = await this.prisma.menuCategory.findUnique({ where: { id } });
     if (!category) throw new NotFoundException(`Category #${id} not found`);
-    // TODO: Check if category has items before deleting, or cascade
+    await this.prisma.menuItem.deleteMany({ where: { categoryId: id } });
     return this.prisma.menuCategory.delete({ where: { id } });
   }
 
   async createItem(dto: CreateMenuItemDto) {
-    return this.prisma.menuItem.create({ data: dto });
+    return this.prisma.menuItem.create({ data: { description: '', ...dto as any } });
   }
 
   async updateItem(id: string, dto: UpdateMenuItemDto) {
@@ -56,7 +59,7 @@ export class MenuService {
     if (!item) throw new NotFoundException(`Menu item #${id} not found`);
     return this.prisma.menuItem.update({
       where: { id },
-      data: { isAvailable: !item.isAvailable },
+      data: { isActive: !item.isActive },
     });
   }
 }

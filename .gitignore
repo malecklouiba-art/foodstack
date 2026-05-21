@@ -9,6 +9,9 @@ dist/
 build/
 out/
 
+# TypeScript
+*.tsbuildinfo
+
 # Environment files
 .env
 .env.local
@@ -50,3 +53,11 @@ uploads/
 
 # Docker
 docker-data/
+# next-env.d.ts is committed intentionally (apps/web/next-env.d.ts)
+
+# External repos cloned locally
+superpowers/
+claude-code/
+
+# Claude Code worktrees
+.claude/worktrees/

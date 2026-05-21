@@ -40,13 +40,13 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative ml-auto flex h-full w-full max-w-md flex-col bg-white shadow-glass-lg"
+            className="relative ml-auto flex h-full w-full max-w-md flex-col bg-white shadow-glass-lg dark:bg-surface-900"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-surface-100 px-6 py-5">
+            <div className="flex items-center justify-between border-b border-surface-100 px-6 py-5 dark:border-surface-700">
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-brand-500" />
-                <h2 className="text-lg font-semibold text-surface-900">
+                <h2 className="text-lg font-semibold text-surface-900 dark:text-white">
                   Mon panier
                   {items.length > 0 && (
                     <span className="ml-2 rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-700">
@@ -57,7 +57,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
               </div>
               <button
                 onClick={onClose}
-                className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600"
+                className="rounded-lg p-1.5 text-surface-400 hover:bg-surface-100 hover:text-surface-600 dark:hover:bg-surface-800"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -67,11 +67,11 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
             <div className="flex-1 overflow-y-auto px-6 py-4 thin-scrollbar">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-100">
-                    <ShoppingBag className="h-8 w-8 text-surface-300" />
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-100 dark:bg-surface-800">
+                    <ShoppingBag className="h-8 w-8 text-surface-300 dark:text-surface-600" />
                   </div>
-                  <p className="text-surface-600 font-medium">Votre panier est vide</p>
-                  <p className="mt-1 text-sm text-surface-400">Ajoutez des plats depuis le menu</p>
+                  <p className="text-surface-600 font-medium dark:text-surface-400">Votre panier est vide</p>
+                  <p className="mt-1 text-sm text-surface-400 dark:text-surface-500">Ajoutez des plats depuis le menu</p>
                   <Button variant="ghost" size="sm" className="mt-4" onClick={onClose}>
                     Parcourir le menu
                   </Button>
@@ -86,17 +86,17 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                         initial={{ opacity: 0, y: -8 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: 32, height: 0 }}
-                        className="flex gap-3 rounded-xl border border-surface-100 p-3"
+                        className="flex gap-3 rounded-xl border border-surface-100 p-3 dark:border-surface-700"
                       >
                         {/* Image */}
-                        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-surface-100 text-2xl">
+                        <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-surface-100 text-2xl dark:bg-surface-800">
                           🍔
                         </div>
 
                         {/* Details */}
                         <div className="flex flex-1 flex-col min-w-0">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="truncate text-sm font-medium text-surface-900">{item.name}</p>
+                            <p className="truncate text-sm font-medium text-surface-900 dark:text-surface-100">{item.name}</p>
                             <button
                               onClick={() => removeItem(item.id)}
                               className="flex-shrink-0 rounded p-0.5 text-surface-300 hover:text-red-500"
@@ -106,30 +106,30 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                           </div>
 
                           {item.modifiers && item.modifiers.length > 0 && (
-                            <p className="mt-0.5 text-xs text-surface-400">
+                            <p className="mt-0.5 text-xs text-surface-400 dark:text-surface-500">
                               {item.modifiers.map((m) => m.name).join(', ')}
                             </p>
                           )}
 
                           <div className="mt-2 flex items-center justify-between">
-                            <div className="flex items-center gap-1 rounded-lg border border-surface-200">
+                            <div className="flex items-center gap-1 rounded-lg border border-surface-200 dark:border-surface-700">
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                className="p-1.5 text-surface-500 hover:text-surface-900"
+                                className="p-1.5 text-surface-500 hover:text-surface-900 dark:text-surface-400 dark:hover:text-surface-100"
                               >
                                 <Minus className="h-3 w-3" />
                               </button>
-                              <span className="min-w-[20px] text-center text-sm font-medium text-surface-900">
+                              <span className="min-w-[20px] text-center text-sm font-medium text-surface-900 dark:text-surface-100">
                                 {item.quantity}
                               </span>
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                className="p-1.5 text-surface-500 hover:text-surface-900"
+                                className="p-1.5 text-surface-500 hover:text-surface-900 dark:text-surface-400 dark:hover:text-surface-100"
                               >
                                 <Plus className="h-3 w-3" />
                               </button>
                             </div>
-                            <span className="font-semibold text-surface-900">
+                            <span className="font-semibold text-surface-900 dark:text-surface-100">
                               {(item.price * item.quantity).toFixed(2)}€
                             </span>
                           </div>
@@ -143,20 +143,20 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
 
             {/* Footer */}
             {items.length > 0 && (
-              <div className="border-t border-surface-100 px-6 py-5">
+              <div className="border-t border-surface-100 px-6 py-5 dark:border-surface-700">
                 {/* Promo code */}
-                <div className="mb-4 flex items-center gap-2 rounded-xl border border-dashed border-surface-200 p-3 text-sm text-surface-500">
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-dashed border-surface-200 p-3 text-sm text-surface-500 dark:border-surface-700 dark:text-surface-400">
                   <Tag className="h-4 w-4" />
                   <span>Ajouter un code promo</span>
                 </div>
 
                 {/* Summary */}
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-surface-600">
+                  <div className="flex justify-between text-sm text-surface-600 dark:text-surface-400">
                     <span>Sous-total</span>
                     <span>{subtotal().toFixed(2)}€</span>
                   </div>
-                  <div className="flex justify-between text-sm text-surface-600">
+                  <div className="flex justify-between text-sm text-surface-600 dark:text-surface-400">
                     <span>Livraison</span>
                     <span>
                       {deliveryFee() === 0 ? (
@@ -166,11 +166,11 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                       )}
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm text-surface-600">
+                  <div className="flex justify-between text-sm text-surface-600 dark:text-surface-400">
                     <span>TVA (10%)</span>
                     <span>{tax().toFixed(2)}€</span>
                   </div>
-                  <div className="flex justify-between border-t border-surface-100 pt-2 text-base font-bold text-surface-900">
+                  <div className="flex justify-between border-t border-surface-100 pt-2 text-base font-bold text-surface-900 dark:border-surface-700 dark:text-white">
                     <span>Total</span>
                     <span>{total().toFixed(2)}€</span>
                   </div>
@@ -184,7 +184,7 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
                 </Link>
 
                 {subtotal() < 30 && (
-                  <p className="mt-2 text-center text-xs text-surface-400">
+                  <p className="mt-2 text-center text-xs text-surface-400 dark:text-surface-500">
                     Encore {(30 - subtotal()).toFixed(2)}€ pour la livraison gratuite !
                   </p>
                 )}

@@ -30,7 +30,7 @@ interface MenuItemCardProps {
   onCartOpen?: () => void;
 }
 
-const tagVariants: Record<string, 'brand' | 'success' | 'warning' | 'danger' | 'info'> = {
+const tagVariants: Record<string, 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'default'> = {
   Bestseller: 'brand',
   Populaire: 'brand',
   Premium: 'info',
@@ -64,9 +64,9 @@ export function MenuItemCard({ item, onCartOpen }: MenuItemCardProps) {
   };
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
+    <div className="group flex flex-col overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md dark:border-surface-700 dark:bg-surface-800">
       {/* Image area */}
-      <div className="relative h-44 bg-gradient-to-br from-surface-100 to-surface-200 overflow-hidden">
+      <div className="relative h-44 bg-gradient-to-br from-surface-100 to-surface-200 overflow-hidden dark:from-surface-700 dark:to-surface-800">
         {item.image ? (
           <img src={item.image} alt={item.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
         ) : (
@@ -98,23 +98,23 @@ export function MenuItemCard({ item, onCartOpen }: MenuItemCardProps) {
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-surface-900 leading-tight">{item.name}</h3>
+          <h3 className="font-semibold text-surface-900 leading-tight dark:text-surface-100">{item.name}</h3>
           <span className="flex-shrink-0 font-bold text-brand-600">
             {item.price.toFixed(2)}€
           </span>
         </div>
 
-        <p className="mt-1.5 line-clamp-2 text-xs text-surface-500 leading-relaxed">
+        <p className="mt-1.5 line-clamp-2 text-xs text-surface-500 leading-relaxed dark:text-surface-400">
           {item.description}
         </p>
 
-        <div className="mt-3 flex items-center gap-3 text-xs text-surface-400">
+        <div className="mt-3 flex items-center gap-3 text-xs text-surface-400 dark:text-surface-500">
           <span className="flex items-center gap-1">
             <Star className="h-3 w-3 fill-brand-400 text-brand-400" />
-            <span className="font-medium text-surface-700">{item.rating}</span>
+            <span className="font-medium text-surface-700 dark:text-surface-300">{item.rating}</span>
             <span>({item.reviewCount})</span>
           </span>
-          <span className="h-0.5 w-0.5 rounded-full bg-surface-300" />
+          <span className="h-0.5 w-0.5 rounded-full bg-surface-300 dark:bg-surface-600" />
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
             {item.prepTime} min
@@ -122,7 +122,7 @@ export function MenuItemCard({ item, onCartOpen }: MenuItemCardProps) {
         </div>
 
         {item.allergens.length > 0 && (
-          <div className="mt-2 flex items-center gap-1 text-xs text-surface-400">
+          <div className="mt-2 flex items-center gap-1 text-xs text-surface-400 dark:text-surface-500">
             <Info className="h-3 w-3" />
             <span className="capitalize">{item.allergens.join(', ')}</span>
           </div>

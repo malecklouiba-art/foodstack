@@ -6,9 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ─── Enums ───────────────────────────────────────────────────
@@ -84,12 +83,16 @@ model User {
   id             String      @id @default(cuid())
   email          String      @unique
   passwordHash   String
-  name           String
+  firstName      String
+  lastName       String
   phone          String?
   avatar         String?
   role           UserRole    @default(customer)
   isActive       Boolean     @default(true)
-  emailVerified  Boolean     @default(false)
+  emailVerified    Boolean     @default(false)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean     @default(false)
+  refreshTokenHash String?
 
   loyaltyPoints  Int         @default(0)
   loyaltyTier    LoyaltyTier @default(bronze)
@@ -102,6 +105,10 @@ model User {
   loyaltyTx        LoyaltyTransaction[]
   reviews          Review[]
   addresses        SavedAddress[]
+  driver           Driver?
+  notifications    Notification[]
+  favorites        FavoriteRestaurant[]
+  pushSubscription PushSubscription?
 
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -125,6 +132,18 @@ model SavedAddress {
   user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("saved_addresses")
+}
+
+model FavoriteRestaurant {
+  id           String     @id @default(cuid())
+  userId       String
+  restaurantId String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, restaurantId])
+  @@map("favorite_restaurants")
 }
 
 model Restaurant {
@@ -170,6 +189,11 @@ model Restaurant {
   suppliers   Supplier[]
   promotions  Promotion[]
   reviews     Review[]
+  coupons     Coupon[]
+  drivers     Driver[]
+  tables      RestaurantTable[]
+  subscription Subscription?
+  favoritedBy FavoriteRestaurant[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -297,11 +321,13 @@ model Order {
   notes               String?
   cancelReason        String?
 
+  tableId             String?
   estimatedDeliveryTime DateTime?
   actualDeliveryTime    DateTime?
 
-  restaurant  Restaurant   @relation(fields: [restaurantId], references: [id])
-  customer    User         @relation("Customer", fields: [customerId], references: [id])
+  restaurant  Restaurant        @relation(fields: [restaurantId], references: [id])
+  customer    User              @relation("Customer", fields: [customerId], references: [id])
+  table       RestaurantTable?  @relation(fields: [tableId], references: [id])
   items       OrderItem[]
   delivery    Delivery?
   review      Review?
@@ -337,6 +363,8 @@ model Delivery {
   id                  String         @id @default(cuid())
   orderId             String         @unique
   driverId            String
+  driverProfileId     String?
+
   status              DeliveryStatus @default(assigned)
 
   pickupLatitude      Float?
@@ -354,8 +382,9 @@ model Delivery {
   distance            Float?
   duration            Int?
 
-  order   Order @relation(fields: [orderId], references: [id])
-  driver  User  @relation("Driver", fields: [driverId], references: [id])
+  order         Order   @relation(fields: [orderId], references: [id])
+  driver        User    @relation("Driver", fields: [driverId], references: [id])
+  driverProfile Driver? @relation(fields: [driverProfileId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -477,4 +506,141 @@ model Review {
 
   @@index([restaurantId])
   @@map("reviews")
+}
+
+model Coupon {
+  id            String     @id @default(cuid())
+  code          String     @unique
+  description   String?
+  discountType  String     @default("percent") // "percent" | "fixed"
+  discountValue Float
+  minOrderValue Float      @default(0)
+  maxUses       Int?
+  usedCount     Int        @default(0)
+  expiresAt     DateTime?
+  active        Boolean    @default(true)
+  restaurantId  String
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@map("coupons")
+}
+
+model Driver {
+  id           String      @id @default(cuid())
+  userId       String      @unique
+  user         User        @relation(fields: [userId], references: [id])
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id])
+  vehicleType  String    @default("bike") // "bike" | "scooter" | "car"
+  vehiclePlate String?
+  latitude     Float?
+  longitude    Float?
+  currentLat   Float?
+  currentLng   Float?
+  lastSeenAt   DateTime?
+  isAvailable  Boolean   @default(true)
+  isOnline     Boolean   @default(false)
+  totalDeliveries Int       @default(0)
+  rating          Float     @default(5.0)
+  deliveries      Delivery[]
+  createdAt       DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("drivers")
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  type       String   // "order_new" | "order_status" | "order_update" | "low_stock" | "promo" | "system"
+  channel    String   @default("push") // "push" | "email" | "sms"
+  title      String
+  body       String
+  read       Boolean  @default(false)
+  data       Json?
+  sentAt     DateTime @default(now())
+  readAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   // "order.created" | "payment.processed" | "user.deleted" etc.
+  resource   String?
+  resourceId String?
+  entityType String?  // "Order" | "User" | "Restaurant"
+  entityId   String?
+  before     Json?
+  after      Json?
+  metadata   Json?
+  ip         String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model RestaurantTable {
+  id           String   @id @default(cuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  number       Int
+  capacity     Int      @default(4)
+  section      String   @default("Salle principale")
+  status       String   @default("free") // "free" | "available" | "occupied" | "reserved" | "cleaning"
+  qrCode       String?
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([restaurantId, number])
+  @@map("restaurant_tables")
+}
+
+model AdminSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_settings")
+}
+
+model Subscription {
+  id           String    @id @default(cuid())
+  restaurantId String    @unique
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  plan         String    @default("starter") // "starter" | "pro" | "enterprise"
+  status       String    @default("active") // "active" | "suspended" | "cancelled"
+  stripeSubId  String?
+  currentPeriodEnd DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("subscriptions")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String
+  p256dh    String
+  auth      String
+  expoToken String?
+  role      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("push_subscriptions")
 }

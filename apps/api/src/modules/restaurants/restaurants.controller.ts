@@ -7,25 +7,43 @@ import {
   Param,
   Body,
   Query,
+  Request,
   UseGuards,
+  Put,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { RestaurantsService } from './restaurants.service';
 import { CreateRestaurantDto } from './dto/create-restaurant.dto';
 import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('restaurants')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(private readonly restaurantsService: RestaurantsService) {}
 
+  // ─── Public read endpoints ────────────────────────────────────────────────
+
   @Get()
   @ApiOperation({ summary: 'Get all restaurants' })
-  findAll() {
-    return this.restaurantsService.findAll();
+  @ApiQuery({ name: 'isOpen', type: Boolean, required: false })
+  @ApiQuery({ name: 'cuisine', type: String, required: false })
+  @ApiQuery({ name: 'page', type: Number, required: false })
+  @ApiQuery({ name: 'limit', type: Number, required: false })
+  findAll(
+    @Query('isOpen') isOpen?: string,
+    @Query('cuisine') cuisine?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.restaurantsService.findAll({
+      isOpen: isOpen !== undefined ? isOpen === 'true' : undefined,
+      cuisine,
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+    });
   }
 
   @Get('nearby')
@@ -47,27 +65,56 @@ export class RestaurantsController {
     return this.restaurantsService.findById(id);
   }
 
+  @Get(':id/zones')
+  @ApiOperation({ summary: 'Get delivery zones for a restaurant' })
+  getZones(@Param('id') id: string) {
+    return this.restaurantsService.getZones(id);
+  }
+
+  // ─── Protected write endpoints ────────────────────────────────────────────
+
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Create a new restaurant' })
-  create(@Body() dto: CreateRestaurantDto) {
-    return this.restaurantsService.create(dto);
+  create(@Request() req: any, @Body() dto: CreateRestaurantDto) {
+    return this.restaurantsService.create({ ...dto, ownerId: req.user.id } as any);
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Update a restaurant' })
   update(@Param('id') id: string, @Body() dto: UpdateRestaurantDto) {
     return this.restaurantsService.update(id, dto);
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Delete a restaurant' })
   remove(@Param('id') id: string) {
     return this.restaurantsService.remove(id);
   }
 
   @Patch(':id/toggle-open')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Toggle the open/closed status of a restaurant' })
   toggleOpen(@Param('id') id: string) {
     return this.restaurantsService.toggleOpen(id);
+  }
+
+  @Put(':id/zones')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('restaurant_owner', 'super_admin')
+  @ApiOperation({ summary: 'Replace delivery zones for a restaurant' })
+  updateZones(@Param('id') id: string, @Body() zones: any[]) {
+    return this.restaurantsService.updateZones(id, zones);
   }
 }

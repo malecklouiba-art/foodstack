@@ -1,68 +1,211 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
+import { PrismaService } from '../../database/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 
 @Injectable()
 export class PaymentsService {
-  private readonly stripe: Stripe;
+  private readonly logger = new Logger(PaymentsService.name);
+  private stripe: Stripe;
 
-  constructor() {
-    // TODO: Inject ConfigService and use process.env.STRIPE_SECRET_KEY via ConfigModule
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-      apiVersion: '2024-04-10' as any,
-    });
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+    private realtime: RealtimeGateway,
+    private notifications: NotificationsService,
+    private audit: AuditService,
+  ) {
+    const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+    if (!stripeKey) throw new Error('STRIPE_SECRET_KEY is not configured');
+    this.stripe = new Stripe(stripeKey, { apiVersion: '2023-10-16' });
   }
 
   async createPaymentIntent(dto: CreatePaymentIntentDto) {
-    // TODO: Store payment intent record in the database linked to the order
-    // TODO: Idempotency key based on orderId to prevent duplicate charges
-    const intent = await this.stripe.paymentIntents.create({
-      amount: dto.amount,
-      currency: dto.currency,
-      customer: dto.customerId,
-      metadata: { orderId: dto.orderId },
-    });
-    return {
-      clientSecret: intent.client_secret,
-      paymentIntentId: intent.id,
-    };
+    // Créer le PaymentIntent Stripe
+    const intent = await this.stripe.paymentIntents.create(
+      {
+        amount: Math.round(dto.amount * 100), // centimes
+        currency: dto.currency ?? 'eur',
+        metadata: { orderId: dto.orderId ?? '', customerId: dto.customerId ?? '' },
+      },
+      dto.orderId ? { idempotencyKey: `order_${dto.orderId}` } : undefined,
+    );
+
+    // Si orderId fourni, mettre à jour l'order en DB
+    if (dto.orderId) {
+      await this.prisma.order.update({
+        where: { id: dto.orderId },
+        data: { stripePaymentIntentId: intent.id },
+      });
+    }
+
+    return { clientSecret: intent.client_secret, paymentIntentId: intent.id };
   }
 
   async confirmPayment(paymentIntentId: string) {
-    // TODO: Update corresponding order payment status in the database
     const intent = await this.stripe.paymentIntents.retrieve(paymentIntentId);
-    if (intent.status !== 'succeeded') {
-      throw new BadRequestException(`Payment intent status is ${intent.status}, not succeeded`);
-    }
-    return { paymentIntentId, status: intent.status };
+    return { status: intent.status };
   }
 
   async refund(paymentIntentId: string, amount?: number) {
-    // TODO: Update order payment status to REFUNDED in the database
-    // TODO: Validate that amount does not exceed the original charge
     const refund = await this.stripe.refunds.create({
       payment_intent: paymentIntentId,
-      ...(amount !== undefined && { amount }),
+      ...(amount ? { amount: Math.round(amount * 100) } : {}),
     });
-    return { refundId: refund.id, status: refund.status, amount: refund.amount };
+
+    // Audit log — fire-and-forget
+    this.audit.log({
+      action: 'payment.refunded',
+      entityId: paymentIntentId,
+    }).catch(() => { /* audit failures must never surface */ });
+
+    return { refundId: refund.id, status: refund.status };
   }
 
-  async handleWebhook(event: Stripe.Event) {
-    // TODO: Verify webhook signature using stripe.webhooks.constructEvent before calling this
-    switch (event.type) {
-      case 'payment_intent.succeeded':
-        // TODO: Mark order as PAID in the database
-        break;
-      case 'payment_intent.payment_failed':
-        // TODO: Notify customer of failed payment
-        break;
-      case 'charge.refunded':
-        // TODO: Update order to REFUNDED status
-        break;
-      default:
-        // Unhandled event type — log and ignore
-        break;
+  async handleWebhook(rawBody: Buffer, signature: string) {
+    let event: Stripe.Event;
+
+    try {
+      event = this.stripe.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.configService.get<string>('STRIPE_WEBHOOK_SECRET') ?? '',
+      );
+    } catch (err) {
+      throw new BadRequestException(`Webhook Error: ${(err as Error).message}`);
     }
+
+    switch (event.type) {
+      case 'payment_intent.succeeded': {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        const orderId = intent.metadata?.orderId;
+        if (!orderId) break;
+
+        const order = await this.prisma.order.findUnique({
+          where: { id: orderId },
+          include: { items: true, customer: true },
+        });
+        if (!order) break;
+
+        // Idempotency: skip if already in target state
+        if (order.paymentStatus === 'paid' && order.status === 'confirmed') {
+          this.logger.log(`Webhook payment_intent.succeeded: order ${orderId} already paid/confirmed, skipping`);
+          break;
+        }
+
+        await this.prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: 'paid', status: 'confirmed' },
+        });
+
+        // Audit log — fire-and-forget
+        this.audit.log({
+          action: 'payment.processed',
+          entityType: 'Order',
+          entityId: orderId,
+          metadata: { amount: intent.amount },
+        }).catch(() => { /* audit failures must never surface */ });
+
+        // Emit socket event to customers tracking this order
+        this.realtime.server
+          .to(`order:${orderId}`)
+          .emit('order:payment_confirmed', {
+            orderId,
+            orderNumber: order.orderNumber,
+            restaurantId: order.restaurantId,
+            status: 'confirmed',
+            customerId: order.customerId,
+          });
+
+        // Also emit a general status update
+        this.realtime.emitOrderStatusUpdated({
+          orderId,
+          orderNumber: order.orderNumber,
+          restaurantId: order.restaurantId,
+          status: 'confirmed',
+          customerId: order.customerId,
+          total: order.total,
+          itemCount: order.items.length,
+        });
+
+        this.logger.log(`Order ${orderId} payment confirmed via webhook`);
+        break;
+      }
+
+      case 'payment_intent.payment_failed': {
+        const intent = event.data.object as Stripe.PaymentIntent;
+        const orderId = intent.metadata?.orderId;
+        if (!orderId) break;
+
+        const order = await this.prisma.order.findUnique({
+          where: { id: orderId },
+          include: { customer: true },
+        });
+        if (!order) break;
+
+        // Idempotency: skip if already marked as failed
+        if (order.paymentStatus === 'failed') {
+          this.logger.log(`Webhook payment_intent.payment_failed: order ${orderId} already failed, skipping`);
+          break;
+        }
+
+        await this.prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: 'failed' },
+        });
+
+        // Notify customer via email
+        const customerEmail = order.customer.email;
+        try {
+          await this.notifications.sendOrderStatusUpdate(customerEmail, {
+            orderNumber: order.orderNumber,
+            status: 'payment_failed',
+            statusLabel: 'Paiement refusé',
+          });
+        } catch (emailErr) {
+          this.logger.error(`Failed to send payment failure email for order ${orderId}`, emailErr);
+        }
+
+        this.logger.log(`Order ${orderId} payment failed via webhook`);
+        break;
+      }
+
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        const orderId = charge.metadata?.orderId;
+        if (!orderId) break;
+
+        const order = await this.prisma.order.findUnique({
+          where: { id: orderId },
+        });
+        if (!order) break;
+
+        // Idempotency: skip if already refunded
+        if (order.paymentStatus === 'refunded') {
+          this.logger.log(`Webhook charge.refunded: order ${orderId} already refunded, skipping`);
+          break;
+        }
+
+        await this.prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: 'refunded', status: 'refunded' },
+        });
+
+        // Audit log — fire-and-forget
+        this.audit.log({
+          action: 'payment.refunded',
+          entityId: charge.payment_intent as string | undefined,
+        }).catch(() => { /* audit failures must never surface */ });
+
+        this.logger.log(`Order ${orderId} refunded via webhook`);
+        break;
+      }
+    }
+
     return { received: true };
   }
 }

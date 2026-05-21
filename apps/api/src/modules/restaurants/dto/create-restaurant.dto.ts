@@ -15,17 +15,19 @@ export class CreateRestaurantDto {
   @IsString()
   address: string;
 
-  @ApiProperty({ example: 40.7128 })
+  @ApiPropertyOptional({ example: 40.7128 })
+  @IsOptional()
   @IsNumber()
   @Min(-90)
   @Max(90)
-  latitude: number;
+  latitude?: number;
 
-  @ApiProperty({ example: -74.006 })
+  @ApiPropertyOptional({ example: -74.006 })
+  @IsOptional()
   @IsNumber()
   @Min(-180)
   @Max(180)
-  longitude: number;
+  longitude?: number;
 
   @ApiPropertyOptional({ example: '+1234567890' })
   @IsOptional()

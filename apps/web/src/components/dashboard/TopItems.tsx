@@ -15,7 +15,7 @@ export function TopItems() {
 
   return (
     <Card padding="none">
-      <CardHeader className="border-b border-surface-100 px-6 py-5">
+      <CardHeader className="border-b border-surface-100 px-6 py-5 dark:border-surface-700">
         <CardTitle>Top Plats</CardTitle>
       </CardHeader>
       <div className="p-6">
@@ -24,10 +24,10 @@ export function TopItems() {
             <div key={item.name}>
               <div className="mb-1.5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-100 text-xs font-bold text-surface-500">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-100 text-xs font-bold text-surface-500 dark:bg-surface-700 dark:text-surface-400">
                     {index + 1}
                   </span>
-                  <span className="text-sm font-medium text-surface-800 truncate max-w-[130px]">{item.name}</span>
+                  <span className="text-sm font-medium text-surface-800 truncate max-w-[130px] dark:text-surface-200">{item.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span
@@ -37,10 +37,10 @@ export function TopItems() {
                   >
                     {item.trend > 0 ? '+' : ''}{item.trend}%
                   </span>
-                  <span className="text-sm font-semibold text-surface-900">{item.sold}</span>
+                  <span className="text-sm font-semibold text-surface-900 dark:text-surface-100">{item.sold}</span>
                 </div>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-surface-100">
+              <div className="h-1.5 w-full rounded-full bg-surface-100 dark:bg-surface-700">
                 <div
                   className="h-full rounded-full bg-gradient-brand transition-all"
                   style={{ width: `${(item.sold / maxSold) * 100}%` }}

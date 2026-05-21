@@ -1,18 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-  IsUUID,
   IsArray,
   IsNumber,
   IsString,
   IsOptional,
+  IsNotEmpty,
   ValidateNested,
   Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class OrderItemDto {
-  @ApiProperty({ example: 'cuid-menu-item-id' })
-  @IsUUID()
+  @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
+  @IsString()
+  @IsNotEmpty()
   menuItemId: string;
 
   @ApiProperty({ example: 2 })
@@ -27,12 +28,14 @@ export class OrderItemDto {
 }
 
 export class CreateOrderDto {
-  @ApiProperty({ example: 'cuid-restaurant-id' })
-  @IsUUID()
+  @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
+  @IsString()
+  @IsNotEmpty()
   restaurantId: string;
 
-  @ApiProperty({ example: 'cuid-customer-id' })
-  @IsUUID()
+  @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
+  @IsString()
+  @IsNotEmpty()
   customerId: string;
 
   @ApiProperty({ type: [OrderItemDto] })

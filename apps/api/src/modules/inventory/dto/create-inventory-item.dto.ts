@@ -2,27 +2,50 @@ import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateInventoryItemDto {
-  @ApiProperty({ description: 'Restaurant this item belongs to' })
+  @ApiProperty()
   @IsString()
   restaurantId: string;
 
-  @ApiProperty({ description: 'Name of the inventory item' })
+  @ApiProperty()
   @IsString()
   name: string;
 
-  @ApiPropertyOptional({ description: 'Unit of measurement (e.g. kg, litre, piece)' })
+  @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  unit?: string;
+  sku?: string;
 
-  @ApiProperty({ description: 'Current stock quantity' })
+  @ApiProperty()
+  @IsString()
+  category: string;
+
+  @ApiProperty()
   @IsNumber()
   @Min(0)
-  quantity: number;
+  currentStock: number;
 
-  @ApiPropertyOptional({ description: 'Minimum stock level before a low-stock alert is triggered' })
+  @ApiProperty()
+  @IsString()
+  unit: string;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  minStock: number;
+
+  @ApiPropertyOptional()
   @IsOptional()
   @IsNumber()
   @Min(0)
-  lowStockThreshold?: number;
+  maxStock?: number;
+
+  @ApiProperty()
+  @IsNumber()
+  @Min(0)
+  costPerUnit: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  supplierId?: string;
 }

@@ -1,7 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsNumber, IsOptional, IsBoolean, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, IsArray, Min } from 'class-validator';
 
 export class UpdateMenuItemDto {
+  @ApiPropertyOptional({ example: 'cuid-category-id' })
+  @IsOptional()
+  @IsString()
+  categoryId?: string;
+
   @ApiPropertyOptional({ example: 'Classic Cheeseburger' })
   @IsOptional()
   @IsString()
@@ -18,18 +23,48 @@ export class UpdateMenuItemDto {
   @Min(0)
   price?: number;
 
+  @ApiPropertyOptional({ example: 12.99 })
+  @IsOptional()
+  @IsNumber()
+  compareAtPrice?: number;
+
   @ApiPropertyOptional({ example: 'https://example.com/burger.png' })
   @IsOptional()
   @IsString()
-  imageUrl?: string;
+  image?: string;
+
+  @ApiPropertyOptional({ example: 650 })
+  @IsOptional()
+  @IsNumber()
+  calories?: number;
+
+  @ApiPropertyOptional({ example: 15 })
+  @IsOptional()
+  @IsNumber()
+  prepTime?: number;
+
+  @ApiPropertyOptional({ example: ['gluten'] })
+  @IsOptional()
+  @IsArray()
+  allergens?: string[];
+
+  @ApiPropertyOptional({ example: ['vegan'] })
+  @IsOptional()
+  @IsArray()
+  dietaryTags?: string[];
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()
   @IsBoolean()
-  isAvailable?: boolean;
+  isActive?: boolean;
+
+  @ApiPropertyOptional({ example: false })
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 
   @ApiPropertyOptional({ example: 1 })
   @IsOptional()
   @IsNumber()
-  sortOrder?: number;
+  position?: number;
 }

@@ -1,5 +1,6 @@
+'use client';
+
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   ArrowRight,
   Star,
@@ -13,6 +14,11 @@ import {
   CreditCard,
   ChevronRight,
   CheckCircle2,
+  MapPin,
+  Zap,
+  Users,
+  ChevronDown,
+  MonitorSmartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
@@ -21,8 +27,8 @@ const features = [
     icon: UtensilsCrossed,
     title: 'Système POS Complet',
     description: 'Gérez vos commandes, paiements et tickets depuis n\'importe quel appareil — tablette, kiosque ou mobile.',
-    color: 'text-orange-500',
-    bg: 'bg-orange-50',
+    color: 'text-brand-500',
+    bg: 'bg-brand-50',
   },
   {
     icon: Package,
@@ -58,6 +64,34 @@ const features = [
     description: 'Intégration Stripe complète — cartes, mobile pay, paiements fractionnés et remboursements.',
     color: 'text-rose-500',
     bg: 'bg-rose-50',
+  },
+  {
+    icon: Smartphone,
+    title: 'App Mobile Clients',
+    description: 'Application iOS & Android pour commander, suivre sa livraison et gérer sa fidélité.',
+    color: 'text-indigo-500',
+    bg: 'bg-indigo-50',
+  },
+  {
+    icon: MapPin,
+    title: 'GPS en Temps Réel',
+    description: 'Suivi GPS live des livreurs avec position actualisée toutes les secondes sur la carte.',
+    color: 'text-teal-500',
+    bg: 'bg-teal-50',
+  },
+  {
+    icon: MonitorSmartphone,
+    title: 'Kiosque Client',
+    description: 'Borne de commande libre-service élégante — les clients commandent et paient de façon autonome, sans file d\'attente.',
+    color: 'text-cyan-500',
+    bg: 'bg-cyan-50',
+  },
+  {
+    icon: Zap,
+    title: 'Notifications Instant.',
+    description: 'Alertes push en temps réel pour les nouvelles commandes, stocks bas et statuts de livraison.',
+    color: 'text-amber-500',
+    bg: 'bg-amber-50',
   },
 ];
 
@@ -100,6 +134,7 @@ const pricingPlans = [
       'Gestion du menu',
       'Rapports basiques',
       'Support email',
+      'Application kiosque (1 borne)',
     ],
     cta: 'Démarrer',
     highlighted: false,
@@ -110,7 +145,8 @@ const pricingPlans = [
     description: 'Pour les restaurants en croissance',
     features: [
       'POS illimité',
-      'Livraison & tracking',
+      'Kiosque client libre-service',
+      'Livraison & tracking GPS',
       'Programme fidélité',
       'Gestion des stocks avancée',
       'Analytics complètes',
@@ -137,30 +173,75 @@ const pricingPlans = [
   },
 ];
 
+const team = [
+  { name: 'Maleck Louiba', role: 'CEO & Co-fondateur', avatar: 'ML', desc: 'Ex-ingénieur chez Deliveroo. Passionné de food tech et d\'expérience client.' },
+  { name: 'Sarah Chen', role: 'CTO', avatar: 'SC', desc: 'Ancienne lead engineer chez Stripe. Spécialiste des systèmes temps réel.' },
+  { name: 'Julien Moreau', role: 'Head of Product', avatar: 'JM', desc: '10 ans dans la restauration. Designer UX & expert expérience utilisateur.' },
+];
+
+const blogPosts = [
+  {
+    title: 'Comment réduire votre temps de préparation de 30%',
+    category: 'Efficacité',
+    date: '10 mai 2026',
+    read: '5 min',
+    color: 'bg-brand-50 text-brand-600',
+  },
+  {
+    title: 'Programme fidélité : guide complet pour fidéliser vos clients',
+    category: 'Marketing',
+    date: '5 mai 2026',
+    read: '8 min',
+    color: 'bg-purple-50 text-purple-600',
+  },
+  {
+    title: 'Livraison en 2026 : les tendances qui vont transformer le secteur',
+    category: 'Tendances',
+    date: '28 avril 2026',
+    read: '6 min',
+    color: 'bg-blue-50 text-blue-600',
+  },
+];
+
 export default function LandingPage() {
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const navItems = [
+    { label: 'Fonctionnalités', id: 'fonctionnalites' },
+    { label: 'Tarifs', id: 'tarifs' },
+    { label: 'À propos', id: 'a-propos' },
+    { label: 'Blogue', id: 'blogue' },
+  ];
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navbar */}
       <header className="sticky top-0 z-40 border-b border-surface-200/80 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
+          <button onClick={() => scrollTo('accueil')} className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-brand shadow-brand">
               <span className="text-sm font-bold text-white">F</span>
             </div>
             <span className="text-lg font-bold text-surface-900">FoodStack</span>
-          </div>
+          </button>
           <nav className="hidden items-center gap-6 md:flex">
-            {['Fonctionnalités', 'Tarifs', 'À propos', 'Blog'].map((item) => (
-              <a key={item} href="#" className="text-sm text-surface-600 hover:text-surface-900">
-                {item}
-              </a>
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className="text-sm text-surface-600 hover:text-surface-900 transition-colors"
+              >
+                {item.label}
+              </button>
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/auth/login">
+            <Link href="/login">
               <Button variant="ghost" size="sm">Connexion</Button>
             </Link>
-            <Link href="/auth/register">
+            <Link href="/register">
               <Button size="sm">Démarrer gratuitement</Button>
             </Link>
           </div>
@@ -168,66 +249,156 @@ export default function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-surface-950 via-surface-900 to-surface-800 px-4 py-24 text-white sm:px-6 lg:px-8 lg:py-36">
-        {/* Background decoration */}
+      <section id="accueil" className="relative overflow-hidden bg-white px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 left-1/2 h-[600px] w-[600px] -translate-x-1/2 rounded-full bg-brand-500/20 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-[400px] w-[400px] rounded-full bg-brand-600/10 blur-3xl" />
+          <div className="absolute -right-40 -top-40 h-[500px] w-[500px] rounded-full bg-brand-50" />
+          <div className="absolute -bottom-20 -left-20 h-[300px] w-[300px] rounded-full bg-brand-50/60" />
         </div>
 
-        <div className="relative mx-auto max-w-4xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-sm backdrop-blur-md">
-            <Star className="h-3.5 w-3.5 text-brand-400" />
-            <span className="text-white/90">Plateforme tout-en-un pour la restauration</span>
-          </div>
+        <div className="relative mx-auto max-w-7xl">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-100 px-4 py-1.5 text-sm font-medium text-brand-600">
+                <Star className="h-3.5 w-3.5 fill-brand-500 text-brand-500" />
+                Noté 4.9/5 par 10 000+ restaurants
+              </div>
 
-          <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-7xl">
-            Gérez votre restaurant
-            <span className="block bg-gradient-to-r from-brand-400 to-orange-300 bg-clip-text text-transparent">
-              comme les pros
-            </span>
-          </h1>
+              <h1 className="text-4xl font-bold leading-tight text-gray-900 sm:text-5xl lg:text-6xl">
+                La plateforme tout-en-un
+                <span className="block text-brand-500">pour votre restaurant</span>
+              </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-balance text-lg text-white/70 sm:text-xl">
-            FoodStack unifie votre POS, gestion des stocks, commandes en ligne et livraison
-            dans une seule plateforme élégante. Du comptoir à la porte.
-          </p>
+              <p className="mt-5 text-lg text-gray-500 leading-relaxed">
+                FoodStack unifie POS, kiosque client, commandes en ligne, livraison GPS, gestion des stocks, programme fidélité et analytiques dans une seule plateforme. Rapide, fiable, garanti.
+              </p>
 
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/auth/register">
-              <Button size="xl" className="gap-3 shadow-brand-lg">
-                Commencer gratuitement
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/menu">
-              <Button variant="glass" size="xl">
-                Voir la démo
-              </Button>
-            </Link>
-          </div>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/register">
+                  <Button size="xl" className="rounded-2xl gap-2 shadow-lg shadow-brand">
+                    Démarrer gratuitement
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/login">
+                  <Button variant="secondary" size="xl" className="rounded-2xl">
+                    Accéder au dashboard
+                  </Button>
+                </Link>
+              </div>
 
-          <p className="mt-4 text-sm text-white/50">
-            Aucune carte de crédit requise · 14 jours d'essai gratuit
-          </p>
-        </div>
-
-        {/* Hero image placeholder */}
-        <div className="relative mx-auto mt-16 max-w-5xl">
-          <div className="overflow-hidden rounded-2xl border border-white/20 bg-white/5 p-1 shadow-glass-lg backdrop-blur-sm">
-            <div className="aspect-[16/9] w-full rounded-xl bg-gradient-to-br from-surface-800 to-surface-900 flex items-center justify-center">
-              <div className="text-center text-white/40">
-                <BarChart3 className="mx-auto h-16 w-16 mb-4" />
-                <p className="text-lg font-medium">Dashboard Preview</p>
-                <p className="text-sm">Analytics & Reporting Interface</p>
+              <div className="mt-8 flex flex-wrap items-center gap-5">
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Truck className="h-4 w-4 text-brand-500" />
+                  Livraison GPS live
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <MonitorSmartphone className="h-4 w-4 text-brand-500" />
+                  Kiosque libre-service
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Shield className="h-4 w-4 text-brand-500" />
+                  Paiement Stripe
+                </div>
+                <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                  <Zap className="h-4 w-4 text-brand-500" />
+                  Temps réel
+                </div>
               </div>
             </div>
+
+            <div className="relative hidden lg:flex items-center justify-center">
+              {/* Main dashboard mock */}
+              <div className="relative w-full max-w-sm rounded-3xl border border-surface-200 bg-white p-5 shadow-2xl">
+                {/* Mini topbar */}
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-brand">
+                      <span className="text-[10px] font-bold text-white">F</span>
+                    </div>
+                    <span className="text-xs font-bold text-surface-900">FoodStack</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-full bg-brand-50 px-2 py-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
+                    <span className="text-[10px] font-semibold text-brand-700">En direct</span>
+                  </div>
+                </div>
+
+                {/* Stats row */}
+                <div className="mb-4 grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Commandes', value: '2 847', delta: '+12%', color: 'text-brand-600' },
+                    { label: 'CA du jour', value: '4 219€', delta: '+8%', color: 'text-blue-600' },
+                    { label: 'Livraisons', value: '143', delta: '+5%', color: 'text-purple-600' },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-xl bg-surface-50 p-2.5 text-center">
+                      <p className={`text-sm font-bold ${s.color}`}>{s.value}</p>
+                      <p className="text-[9px] text-surface-400">{s.label}</p>
+                      <p className="text-[9px] font-semibold text-green-500">{s.delta}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Live orders */}
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-surface-400">Commandes récentes</p>
+                <div className="space-y-2">
+                  {[
+                    { id: '#2841', item: 'Classic Burger × 2', status: 'En préparation', statusColor: 'bg-yellow-100 text-yellow-700', time: '3 min' },
+                    { id: '#2840', item: 'Margherita + Tiramisu', status: 'Livraison', statusColor: 'bg-brand-50 text-brand-700', time: '12 min' },
+                    { id: '#2839', item: 'Truffle Burger × 1', status: 'Livré ✓', statusColor: 'bg-surface-100 text-surface-500', time: '28 min' },
+                  ].map((o) => (
+                    <div key={o.id} className="flex items-center gap-2.5 rounded-xl border border-surface-100 bg-white px-3 py-2">
+                      <span className="text-[10px] font-bold text-surface-400">{o.id}</span>
+                      <span className="flex-1 truncate text-xs font-medium text-surface-700">{o.item}</span>
+                      <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${o.statusColor}`}>{o.status}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mini chart bar */}
+                <div className="mt-4">
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-surface-400">Ventes · 7 jours</p>
+                  <div className="flex items-end gap-1 h-10">
+                    {[40, 65, 55, 80, 70, 95, 100].map((h, i) => (
+                      <div
+                        key={i}
+                        className="flex-1 rounded-sm bg-brand-500/80 transition-all"
+                        style={{ height: `${h}%` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating kiosk card */}
+              <div className="absolute -right-6 top-6 rounded-2xl bg-white px-3.5 py-3 shadow-lg border border-surface-100">
+                <p className="text-[10px] text-surface-400 mb-0.5">Kiosque #1</p>
+                <p className="text-sm font-bold text-surface-900">Actif</p>
+                <p className="text-[10px] text-brand-600 font-semibold">4 cmd / heure</p>
+              </div>
+
+              {/* Floating loyalty card */}
+              <div className="absolute -left-6 -bottom-4 rounded-2xl bg-white px-3.5 py-3 shadow-lg border border-surface-100">
+                <p className="text-[10px] text-surface-400 mb-0.5">Fidélité active</p>
+                <div className="flex items-center gap-1.5">
+                  <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                  <p className="text-sm font-bold text-surface-900">1 243 pts</p>
+                </div>
+                <p className="text-[10px] text-green-500 font-semibold">Sophie M. · Or</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 flex justify-center">
+            <button onClick={() => scrollTo('stats')} className="flex flex-col items-center gap-1 text-surface-400 hover:text-surface-600 transition-colors">
+              <span className="text-xs">Découvrir</span>
+              <ChevronDown className="h-5 w-5 animate-bounce" />
+            </button>
           </div>
         </div>
       </section>
 
       {/* Stats */}
-      <section className="border-y border-surface-200 bg-surface-50 py-12">
+      <section id="stats" className="border-y border-surface-200 bg-surface-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             {stats.map((stat) => (
@@ -241,14 +412,15 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
+      <section id="fonctionnalites" className="py-24 px-4 sm:px-6 lg:px-8 scroll-mt-16">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
+            <span className="inline-block rounded-full bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-600 mb-4">Fonctionnalités</span>
             <h2 className="text-3xl font-bold text-surface-900 sm:text-4xl">
               Tout ce dont vous avez besoin
             </h2>
             <p className="mt-4 text-lg text-surface-500">
-              Une suite complète d'outils conçus pour les restaurants modernes
+              Une suite complète d&apos;outils conçus pour les restaurants modernes
             </p>
           </div>
 
@@ -272,8 +444,34 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* How it works */}
       <section className="bg-surface-50 py-24 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center">
+            <span className="inline-block rounded-full bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-600 mb-4">Comment ça marche</span>
+            <h2 className="text-3xl font-bold text-surface-900 sm:text-4xl">Opérationnel en 3 étapes</h2>
+          </div>
+          <div className="mt-16 grid gap-8 sm:grid-cols-3">
+            {[
+              { step: '01', title: 'Créez votre compte', desc: 'Inscrivez-vous en 2 minutes. Importez votre menu existant ou créez-en un nouveau depuis zéro.', icon: Users },
+              { step: '02', title: 'Configurez votre restaurant', desc: 'Paramétrez vos horaires, zones de livraison, méthodes de paiement et programme fidélité.', icon: Clock },
+              { step: '03', title: 'Recevez vos commandes', desc: 'Les commandes arrivent en temps réel. Gérez-les depuis le dashboard ou l\'application mobile.', icon: Zap },
+            ].map(({ step, title, desc, icon: Icon }) => (
+              <div key={step} className="relative rounded-2xl border border-surface-200 bg-white p-8 shadow-sm">
+                <span className="absolute -top-4 left-6 rounded-xl bg-brand-500 px-3 py-1 text-sm font-bold text-white">{step}</span>
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
+                  <Icon className="h-6 w-6 text-brand-500" />
+                </div>
+                <h3 className="mb-2 text-lg font-semibold text-surface-900">{title}</h3>
+                <p className="text-sm text-surface-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-surface-900 sm:text-4xl">
@@ -305,9 +503,10 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8">
+      <section id="tarifs" className="bg-surface-50 py-24 px-4 sm:px-6 lg:px-8 scroll-mt-16">
         <div className="mx-auto max-w-7xl">
           <div className="text-center">
+            <span className="inline-block rounded-full bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-600 mb-4">Tarifs</span>
             <h2 className="text-3xl font-bold text-surface-900 sm:text-4xl">
               Des tarifs transparents
             </h2>
@@ -319,7 +518,7 @@ export default function LandingPage() {
                 key={plan.name}
                 className={`relative rounded-2xl border p-8 ${
                   plan.highlighted
-                    ? 'border-brand-500 bg-gradient-to-br from-brand-500 to-orange-600 text-white shadow-brand-lg'
+                    ? 'border-brand-500 bg-gradient-to-br from-brand-500 to-brand-600 text-white shadow-brand-lg'
                     : 'border-surface-200 bg-white shadow-sm'
                 }`}
               >
@@ -363,7 +562,7 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <div className="mt-8">
-                  <Link href="/auth/register">
+                  <Link href="/register">
                     <Button
                       variant={plan.highlighted ? 'secondary' : 'primary'}
                       fullWidth
@@ -379,6 +578,72 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* About */}
+      <section id="a-propos" className="py-24 px-4 sm:px-6 lg:px-8 scroll-mt-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center">
+            <span className="inline-block rounded-full bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-600 mb-4">À propos</span>
+            <h2 className="text-3xl font-bold text-surface-900 sm:text-4xl">L&apos;équipe derrière FoodStack</h2>
+            <p className="mt-4 text-lg text-surface-500 max-w-2xl mx-auto">
+              Fondée en 2024 à Paris, FoodStack est née d&apos;une obsession : donner aux restaurateurs des outils dignes des grandes plateformes, sans la complexité.
+            </p>
+          </div>
+
+          <div className="mt-16 grid gap-8 sm:grid-cols-3">
+            {team.map((member) => (
+              <div key={member.name} className="rounded-2xl border border-surface-200 bg-white p-8 shadow-sm text-center">
+                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-2xl font-bold text-white">
+                  {member.avatar}
+                </div>
+                <h3 className="text-lg font-bold text-surface-900">{member.name}</h3>
+                <p className="text-sm font-medium text-brand-600 mb-3">{member.role}</p>
+                <p className="text-sm text-surface-500 leading-relaxed">{member.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-16 rounded-3xl bg-gradient-to-br from-brand-50 to-brand-100 p-10 text-center">
+            <h3 className="text-2xl font-bold text-surface-900">Notre mission</h3>
+            <p className="mt-4 text-lg text-surface-600 max-w-3xl mx-auto">
+              Démocratiser les outils de gestion restaurant. Chaque restaurateur, qu&apos;il gère un food truck ou une chaîne de 50 établissements, mérite une plateforme puissante, intuitive et abordable.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Blog */}
+      <section id="blogue" className="bg-surface-50 py-24 px-4 sm:px-6 lg:px-8 scroll-mt-16">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex items-end justify-between mb-12">
+            <div>
+              <span className="inline-block rounded-full bg-brand-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-brand-600 mb-4">Blogue</span>
+              <h2 className="text-3xl font-bold text-surface-900 sm:text-4xl">Ressources & conseils</h2>
+            </div>
+            <button className="hidden sm:flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
+              Tous les articles <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-3">
+            {blogPosts.map((post) => (
+              <article key={post.title} className="group cursor-pointer rounded-2xl border border-surface-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+                <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${post.color} mb-4`}>
+                  {post.category}
+                </span>
+                <h3 className="text-base font-bold text-surface-900 leading-snug group-hover:text-brand-600 transition-colors">
+                  {post.title}
+                </h3>
+                <div className="mt-4 flex items-center gap-3 text-xs text-surface-400">
+                  <span>{post.date}</span>
+                  <span>·</span>
+                  <span>{post.read} de lecture</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="bg-gradient-to-br from-surface-950 via-surface-900 to-surface-800 py-24 px-4 text-white sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
@@ -389,15 +654,17 @@ export default function LandingPage() {
             Rejoignez plus de 10 000 restaurants qui font confiance à FoodStack.
           </p>
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/auth/register">
+            <Link href="/register">
               <Button size="lg" className="shadow-brand-lg">
-                Démarrer l'essai gratuit
+                Démarrer l&apos;essai gratuit
                 <ArrowRight className="h-5 w-5" />
               </Button>
             </Link>
-            <Button variant="glass" size="lg">
-              Planifier une démo
-            </Button>
+            <Link href="/login">
+              <Button variant="glass" size="lg">
+                Se connecter
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -405,22 +672,38 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-surface-200 bg-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-brand">
-                <span className="text-xs font-bold text-white">F</span>
+          <div className="grid gap-8 sm:grid-cols-4 mb-10">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-brand">
+                  <span className="text-xs font-bold text-white">F</span>
+                </div>
+                <span className="font-bold text-surface-900">FoodStack</span>
               </div>
-              <span className="font-semibold text-surface-900">FoodStack</span>
+              <p className="text-sm text-surface-400 leading-relaxed">La plateforme tout-en-un pour restaurants modernes.</p>
             </div>
-            <p className="text-sm text-surface-400">
-              © 2026 FoodStack. Tous droits réservés.
-            </p>
-            <div className="flex gap-4">
-              {['Confidentialité', 'CGU', 'Contact'].map((item) => (
-                <a key={item} href="#" className="text-sm text-surface-400 hover:text-surface-700">
-                  {item}
-                </a>
-              ))}
+            {[
+              { title: 'Produit', links: ['Fonctionnalités', 'Tarifs', 'Changelog', 'Roadmap'] },
+              { title: 'Ressources', links: ['Documentation', 'API', 'Blogue', 'Support'] },
+              { title: 'Légal', links: ['Confidentialité', 'CGU', 'Contact', 'Mentions légales'] },
+            ].map((col) => (
+              <div key={col.title}>
+                <h4 className="mb-4 text-sm font-semibold text-surface-900">{col.title}</h4>
+                <ul className="space-y-2">
+                  {col.links.map((link) => (
+                    <li key={link}>
+                      <a href="#" className="text-sm text-surface-400 hover:text-surface-700 transition-colors">{link}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-surface-100 pt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <p className="text-sm text-surface-400">© 2026 FoodStack. Tous droits réservés.</p>
+            <div className="flex gap-4 text-sm text-surface-400">
+              <a href="#" className="hover:text-surface-700">🇫🇷 Français</a>
+              <a href="#" className="hover:text-surface-700">Made in Paris</a>
             </div>
           </div>
         </div>

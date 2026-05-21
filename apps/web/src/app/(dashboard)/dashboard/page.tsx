@@ -1,102 +1,447 @@
+'use client';
+
+import { useState, useCallback, useEffect } from 'react';
+import { useGSAPReveal } from '@/hooks/useGSAPReveal';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
 import {
-  ShoppingBag,
-  TrendingUp,
-  Users,
-  Euro,
-  Truck,
-  Star,
-  ArrowUpRight,
-  Clock,
+  ShoppingBag, Users, Euro, Truck, Star,
+  ArrowUpRight, TrendingUp, Clock, Zap,
+  Building2, BarChart3, Percent,
+  Bike, MapPin, Navigation, CheckCircle2, XCircle, Package, AlertCircle,
+  ChefHat, Utensils, Timer, ThumbsUp,
 } from 'lucide-react';
-import { StatCard } from '@/components/ui/StatCard';
 import { Card, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { RevenueChart } from '@/components/dashboard/RevenueChart';
-import { RecentOrders } from '@/components/dashboard/RecentOrders';
 import { TopItems } from '@/components/dashboard/TopItems';
+import { HourlyChart } from '@/components/dashboard/HourlyChart';
+import { LiveFeed, type FeedEvent } from '@/components/dashboard/LiveFeed';
+import { useRealtimeOrders, type OrderEvent } from '@/hooks/useRealtimeOrders';
+import { useRealtimeInventory, type InventoryEvent } from '@/hooks/useRealtimeInventory';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 
-export const metadata = { title: 'Tableau de bord' };
+// ── KPI helpers ───────────────────────────────────────────────────────────────
 
-const stats = [
-  {
-    title: 'Chiffre d\'affaires',
-    value: '12 450€',
-    change: 12.5,
-    changeLabel: 'vs semaine dernière',
-    icon: Euro,
-    iconColor: 'text-green-600',
-    iconBg: 'bg-green-50',
-  },
-  {
-    title: 'Commandes today',
-    value: '84',
-    change: 8.2,
-    changeLabel: 'vs hier',
-    icon: ShoppingBag,
-    iconColor: 'text-brand-600',
-    iconBg: 'bg-brand-50',
-  },
-  {
-    title: 'Nouveaux clients',
-    value: '23',
-    change: 15.3,
-    changeLabel: 'vs semaine dernière',
-    icon: Users,
-    iconColor: 'text-blue-600',
-    iconBg: 'bg-blue-50',
-  },
-  {
-    title: 'Livraisons actives',
-    value: '7',
-    icon: Truck,
-    iconColor: 'text-purple-600',
-    iconBg: 'bg-purple-50',
-  },
-];
+function useCounter(initial: number) {
+  const [value, setValue] = useState(initial);
+  const inc = useCallback((by = 1) => setValue((v) => v + by), []);
+  return [value, inc] as const;
+}
 
-const liveOrders = [
-  { id: 'ORD-8821', customer: 'Marie L.', items: 3, total: 42.50, status: 'preparing', time: '12 min' },
-  { id: 'ORD-8820', customer: 'Pierre D.', items: 2, total: 28.90, status: 'delivering', time: '8 min' },
-  { id: 'ORD-8819', customer: 'Sophie M.', items: 5, total: 67.30, status: 'ready', time: '3 min' },
-  { id: 'ORD-8818', customer: 'Julien K.', items: 1, total: 16.90, status: 'confirmed', time: '18 min' },
-];
+let feedSeq = 0;
+function makeEvent(type: FeedEvent['type'], message: string, detail?: string): FeedEvent {
+  return { id: String(++feedSeq), type, message, detail, ts: new Date() };
+}
 
-const statusConfig = {
-  confirmed: { label: 'Confirmée', variant: 'info' as const },
-  preparing: { label: 'En préparation', variant: 'warning' as const },
-  ready: { label: 'Prête', variant: 'brand' as const },
-  delivering: { label: 'En livraison', variant: 'success' as const },
-  delivered: { label: 'Livrée', variant: 'success' as const },
-  cancelled: { label: 'Annulée', variant: 'danger' as const },
+// ── Static KPI data ───────────────────────────────────────────────────────────
+
+const BASE_STATS = {
+  revenue:     12450,
+  orders:      84,
+  customers:   23,
+  deliveries:  7,
+  avgOrder:    148.2,
+  rating:      4.8,
+  cancelRate:  2.3,
+  prepTime:    11.4,
 };
 
-export default function DashboardPage() {
+const statusConfig = {
+  confirmed:  { label: 'Confirmée',     variant: 'info'    as const },
+  preparing:  { label: 'En préparation',variant: 'warning' as const },
+  ready:      { label: 'Prête',         variant: 'brand'   as const },
+  delivering: { label: 'En livraison',  variant: 'success' as const },
+  delivered:  { label: 'Livrée',        variant: 'success' as const },
+  cancelled:  { label: 'Annulée',       variant: 'danger'  as const },
+};
+
+// ── Super Admin data ──────────────────────────────────────────────────────────
+
+const PLATFORM_MRR_DATA = [
+  { month: 'Juin',  mrr: 18200 },
+  { month: 'Juil',  mrr: 21400 },
+  { month: 'Août',  mrr: 19800 },
+  { month: 'Sep',   mrr: 24600 },
+  { month: 'Oct',   mrr: 27100 },
+  { month: 'Nov',   mrr: 29800 },
+  { month: 'Déc',   mrr: 32400 },
+  { month: 'Jan',   mrr: 30100 },
+  { month: 'Fév',   mrr: 33800 },
+  { month: 'Mar',   mrr: 37200 },
+  { month: 'Avr',   mrr: 41500 },
+  { month: 'Mai',   mrr: 45800 },
+];
+
+const PLAN_COLORS: Record<string, string> = {
+  Starter:  'bg-gray-100 text-gray-700',
+  Pro:      'bg-brand-50 text-brand-700',
+  Business: 'bg-purple-50 text-purple-700',
+};
+const STATUS_COLORS: Record<string, string> = {
+  actif:       'bg-green-50 text-green-700',
+  pause:       'bg-amber-50 text-amber-700',
+  négociation: 'bg-blue-50 text-blue-700',
+  churned:     'bg-red-50 text-red-700',
+};
+
+// ── Super Admin Dashboard ─────────────────────────────────────────────────────
+
+interface PlatformRestaurant {
+  id: string;
+  name: string;
+  isActive?: boolean;
+  createdAt?: string;
+  revenueThisMonth?: number;
+  ordersThisMonth?: number;
+  avgRating?: number | null;
+  subscription?: { plan?: string; status?: string } | null;
+}
+
+function SuperAdminDashboard() {
+  const [platformStats, setPlatformStats] = useState<{
+    totalRestaurants?: number; activeRestaurants?: number;
+    totalOrders?: number; ordersCount?: number;
+    monthlyRevenue?: number; totalUsers?: number;
+    revenueGrowthRate?: number | null; ordersGrowthRate?: number | null;
+  }>({});
+  const [platformRestaurants, setPlatformRestaurants] = useState<PlatformRestaurant[]>([]);
+
+  useEffect(() => {
+    (api.get('/super-admin/stats') as Promise<typeof platformStats>)
+      .then((s) => setPlatformStats(s))
+      .catch(() => {});
+    (api.get('/super-admin/restaurants?limit=5') as Promise<{ data: PlatformRestaurant[] }>)
+      .then((res) => { if (Array.isArray(res?.data)) setPlatformRestaurants(res.data); })
+      .catch(() => {});
+  }, []);
+
+  const totalMRR = platformStats.monthlyRevenue
+    ? Math.round(platformStats.monthlyRevenue)
+    : 0;
+  const revenueGrowthPct = platformStats.revenueGrowthRate != null ? `+${platformStats.revenueGrowthRate}%` : '+—%';
+  const activeRestaurants = platformStats.activeRestaurants ?? platformRestaurants.filter(r => r.isActive).length;
+  const totalClients = platformStats.totalUsers ?? 0;
+  const avgCommission = 12.4;
+
+  const kpis = [
+    {
+      label: 'MRR Plateforme', value: `${totalMRR.toLocaleString('fr-FR')} €`,
+      sub: `${revenueGrowthPct} vs mois dernier`, icon: Euro, iconBg: 'bg-brand-50', iconColor: 'text-brand-600',
+    },
+    {
+      label: 'Restaurants actifs', value: String(activeRestaurants),
+      sub: `${platformStats.totalRestaurants ?? platformRestaurants.length} total`, icon: Building2, iconBg: 'bg-green-50', iconColor: 'text-green-600',
+    },
+    {
+      label: 'Clients totaux', value: totalClients.toLocaleString('fr-FR'),
+      sub: '+234 ce mois', icon: Users, iconBg: 'bg-blue-50', iconColor: 'text-blue-600',
+    },
+    {
+      label: 'Commission moy.', value: `${avgCommission}%`,
+      sub: 'Par commande livrée', icon: Percent, iconBg: 'bg-purple-50', iconColor: 'text-purple-600',
+    },
+  ];
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900">Tableau de bord</h1>
+          <h1 className="text-2xl font-bold text-surface-900">Tableau de bord Super Admin — FoodStack</h1>
           <p className="mt-1 text-sm text-surface-500">
-            Lundi 11 mai 2026 · Mis à jour il y a 2 min
+            Vue globale de la plateforme · {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
         </div>
-        <div className="flex items-center gap-2 rounded-xl bg-green-50 px-4 py-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-          <span className="text-sm font-medium text-green-700">Restaurant ouvert</span>
+        <div className="flex items-center gap-2 rounded-xl bg-brand-50 px-4 py-2">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+          <span className="text-sm font-medium text-brand-700">Plateforme en ligne</span>
         </div>
       </div>
 
-      {/* Stats grid */}
+      {/* Platform KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => (
-          <StatCard key={stat.title} {...stat} />
-        ))}
+        {kpis.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{kpi.label}</p>
+                    <p className="mt-2 text-2xl font-bold text-surface-900">{kpi.value}</p>
+                    <p className="mt-1 text-xs text-surface-400">{kpi.sub}</p>
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${kpi.iconBg}`}>
+                    <Icon className={`h-5 w-5 ${kpi.iconColor}`} />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
 
-      {/* Charts */}
+      {/* 12-month MRR chart */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-brand-500" />
+            <CardTitle>Évolution du MRR — 12 derniers mois</CardTitle>
+          </div>
+        </CardHeader>
+        <div className="px-4 py-6">
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={PLATFORM_MRR_DATA} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="mrrGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#1EFF6A" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#1EFF6A" stopOpacity={0}    />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k€`} />
+              <Tooltip
+                contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 13 }}
+                formatter={(v: number) => [`${v.toLocaleString('fr-FR')} €`, 'MRR']}
+              />
+              <Area type="monotone" dataKey="mrr" stroke="#1EFF6A" strokeWidth={2.5} fill="url(#mrrGrad)" dot={false} activeDot={{ r: 5, fill: '#1EFF6A' }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {/* Recent restaurant clients table */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-brand-500" />
+            <CardTitle>Derniers restaurants clients</CardTitle>
+          </div>
+          <span className="text-sm text-surface-400">5 plus récents</span>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-surface-100 text-left">
+                {['Restaurant', 'Plan', 'MRR', 'Statut', 'Rejoint'].map(h => (
+                  <th key={h} className="px-6 py-3 text-xs font-semibold uppercase tracking-wide text-surface-400">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-50">
+              {platformRestaurants.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-sm text-surface-400">Aucun restaurant trouvé</td>
+                </tr>
+              ) : platformRestaurants.map(r => {
+                const plan = r.subscription?.plan ?? '—';
+                const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1);
+                const statusLabel = r.isActive ? 'actif' : 'inactif';
+                return (
+                  <tr key={r.id} className="hover:bg-surface-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-surface-900">{r.name}</td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PLAN_COLORS[planLabel] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {planLabel}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-surface-900">
+                      {r.revenueThisMonth != null ? `${r.revenueThisMonth.toLocaleString('fr-FR')} €` : '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_COLORS[statusLabel] ?? 'bg-gray-100 text-gray-700'}`}>
+                        {statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-surface-500">
+                      {r.createdAt ? new Date(r.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ── Restaurant Dashboard ──────────────────────────────────────────────────────
+
+function RestaurantDashboard() {
+  const authUser = useAuthStore((s) => s.user);
+  const restaurantId = authUser?.restaurantIds?.[0] ?? '';
+
+  const [ordersCount,    incOrders   ] = useCounter(BASE_STATS.orders);
+  const [revenue,        incRevenue  ] = useCounter(BASE_STATS.revenue);
+  const [deliveriesCount,incDeliveries] = useCounter(BASE_STATS.deliveries);
+  const [feedEvents, setFeedEvents]    = useState<FeedEvent[]>([]);
+  const [liveOrders, setLiveOrders]    = useState<{ id: string; customer: string; items: number; total: number; status: string; time: string }[]>([]);
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/analytics/${restaurantId}/sales`) as Promise<{ orderCount?: number; revenue?: number }>)
+      .then((s) => {
+        if (s.orderCount != null) incOrders(s.orderCount - BASE_STATS.orders);
+        if (s.revenue != null) incRevenue(Math.round(s.revenue) - BASE_STATS.revenue);
+      })
+      .catch(() => {});
+    (api.get(`/orders/restaurant/${restaurantId}`) as Promise<{ id: string; orderNumber?: string; status: string; total?: number; items?: unknown[]; customer?: { firstName?: string; lastName?: string }; createdAt?: string }[]>)
+      .then((orders) => {
+        if (Array.isArray(orders) && orders.length > 0) {
+          const live = orders.slice(0, 4).map((o) => ({
+            id: o.orderNumber ?? o.id,
+            customer: [o.customer?.firstName, o.customer?.lastName].filter(Boolean).join(' ') || 'Client',
+            items: Array.isArray(o.items) ? o.items.length : 1,
+            total: o.total ?? 0,
+            status: o.status,
+            time: o.createdAt ? new Date(o.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—',
+          }));
+          setLiveOrders(live);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantId]);
+  const pushEvent = useCallback((ev: FeedEvent) => {
+    setFeedEvents((prev) => [ev, ...prev].slice(0, 30));
+  }, []);
+
+  // ── Socket hooks ────────────────────────────────────────────────────────────
+  useRealtimeOrders({
+    restaurantId,
+    onOrderCreated: useCallback((e: OrderEvent) => {
+      incOrders();
+      incRevenue(Math.round(e.total ?? 0));
+      setLiveOrders((prev) => [
+        { id: e.orderNumber, customer: 'Nouveau client', items: e.itemCount ?? 1, total: e.total ?? 0, status: 'confirmed', time: 'À l\'instant' },
+        ...prev.slice(0, 3),
+      ]);
+      pushEvent(makeEvent('order_new', `Nouvelle commande ${e.orderNumber}`, `${e.itemCount} articles · ${e.total?.toFixed(2)}€`));
+    }, [incOrders, incRevenue, pushEvent]),
+    onStatusUpdated: useCallback((e: OrderEvent) => {
+      if (e.status === 'delivering') incDeliveries();
+      setLiveOrders((prev) => prev.map((o) => o.id === e.orderNumber ? { ...o, status: e.status } : o));
+      pushEvent(makeEvent('order_status', `${e.orderNumber} → ${statusConfig[e.status as keyof typeof statusConfig]?.label ?? e.status}`));
+    }, [incDeliveries, pushEvent]),
+    showToasts: false,
+  });
+
+  useRealtimeInventory({
+    restaurantId,
+    onLowStock: useCallback((e: InventoryEvent) => {
+      pushEvent(makeEvent('inventory_low', `Stock bas : ${e.name}`, `${e.currentStock} restant (min. ${e.minStock})`));
+    }, [pushEvent]),
+  });
+
+  const pageRef = useGSAPReveal('.gsap-card');
+
+  const stats = [
+    {
+      title: "Chiffre d'affaires", value: `${revenue.toLocaleString('fr-FR')}€`,
+      change: 12.5, icon: Euro,     iconColor: 'text-green-600 dark:text-green-400',  iconBg: 'bg-green-50 dark:bg-green-900/20',
+    },
+    {
+      title: "Commandes aujourd'hui", value: String(ordersCount),
+      change: 8.2,  icon: ShoppingBag, iconColor: 'text-brand-600 dark:text-brand-400', iconBg: 'bg-brand-50 dark:bg-brand-900/20',
+    },
+    {
+      title: 'Livraisons actives', value: String(deliveriesCount),
+      icon: Truck, iconColor: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-50 dark:bg-purple-900/20',
+    },
+    {
+      title: 'Panier moyen', value: `${BASE_STATS.avgOrder.toFixed(2)}€`,
+      change: 3.1, icon: TrendingUp, iconColor: 'text-blue-600 dark:text-blue-400', iconBg: 'bg-blue-50 dark:bg-blue-900/20',
+    },
+  ];
+
+  const kpis = [
+    { label: 'Note moy.',   value: `${BASE_STATS.rating}/5`, icon: Star,  color: 'text-yellow-600' },
+    { label: 'Taux annul.', value: `${BASE_STATS.cancelRate}%`, icon: Zap, color: 'text-red-500' },
+    { label: 'Temps prép.', value: `${BASE_STATS.prepTime} min`, icon: Clock, color: 'text-brand-600' },
+    { label: 'Nouveaux clients', value: String(BASE_STATS.customers), icon: Users, color: 'text-green-600' },
+  ];
+
+  return (
+    <div ref={pageRef} className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Tableau de bord</h1>
+          <p className="mt-1 text-sm text-surface-500">
+            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl bg-green-50 dark:bg-green-900/20 px-4 py-2">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+          <span className="text-sm font-medium text-green-700 dark:text-green-400">Restaurant ouvert</span>
+        </div>
+      </div>
+
+      {/* Main KPI cards */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.title} className="gsap-card">
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{stat.title}</p>
+                    <p className="mt-2 text-2xl font-bold text-surface-900">{stat.value}</p>
+                    {stat.change != null && (
+                      <p className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+                        stat.change >= 0 ? 'text-green-600' : 'text-red-500'
+                      }`}>
+                        <TrendingUp className="h-3 w-3" />
+                        {stat.change >= 0 ? '+' : ''}{stat.change}% vs hier
+                      </p>
+                    )}
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${stat.iconBg}`}>
+                    <Icon className={`h-5 w-5 ${stat.iconColor}`} />
+                  </div>
+                </div>
+              </Card>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {kpis.map((kpi) => {
+          const Icon = kpi.icon;
+          return (
+            <Card key={kpi.label} padding="md" className="gsap-card flex items-center gap-3">
+              <div className="rounded-lg bg-surface-100 p-2">
+                <Icon className={`h-4 w-4 ${kpi.color}`} />
+              </div>
+              <div>
+                <p className="text-xs text-surface-400">{kpi.label}</p>
+                <p className="text-base font-bold text-surface-900">{kpi.value}</p>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Revenue chart + Live feed */}
       <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-        <RevenueChart />
+        <RevenueChart extraRevenue={revenue - BASE_STATS.revenue} />
+        <LiveFeed events={feedEvents} />
+      </div>
+
+      {/* Hourly chart + Top items */}
+      <div className="grid gap-6 xl:grid-cols-[1fr,1fr]">
+        <HourlyChart liveOrderCount={ordersCount - BASE_STATS.orders} />
         <TopItems />
       </div>
 
@@ -109,7 +454,7 @@ export default function DashboardPage() {
               <CardTitle>Commandes en cours</CardTitle>
             </div>
             <a href="/dashboard/orders" className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
-              Tout voir <ArrowUpRight className="h-4 w-4" />
+              Kanban <ArrowUpRight className="h-4 w-4" />
             </a>
           </div>
         </CardHeader>
@@ -117,24 +462,30 @@ export default function DashboardPage() {
           {liveOrders.map((order) => {
             const status = statusConfig[order.status as keyof typeof statusConfig];
             return (
-              <div key={order.id} className="flex items-center justify-between px-6 py-4 hover:bg-surface-50">
+              <motion.div
+                key={order.id}
+                layout
+                initial={{ opacity: 0, x: -4 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center justify-between px-6 py-4 hover:bg-surface-50"
+              >
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-100">
                     <ShoppingBag className="h-5 w-5 text-surface-500" />
                   </div>
                   <div>
                     <p className="font-medium text-surface-900">{order.id}</p>
-                    <p className="text-sm text-surface-500">{order.customer} · {order.items} articles</p>
+                    <p className="text-sm text-surface-500">{order.customer} · {order.items} article{order.items !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
                 <div className="hidden items-center gap-4 sm:flex">
-                  <Badge variant={status.variant} dot>{status.label}</Badge>
+                  <Badge variant={status?.variant ?? 'default'} dot>{status?.label ?? order.status}</Badge>
                   <div className="text-right">
                     <p className="font-semibold text-surface-900">{order.total.toFixed(2)}€</p>
-                    <p className="text-xs text-surface-400">Il y a {order.time}</p>
+                    <p className="text-xs text-surface-400">{order.time}</p>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -142,23 +493,30 @@ export default function DashboardPage() {
 
       {/* Bottom row */}
       <div className="grid gap-6 md:grid-cols-2">
-        <RecentOrders />
+        {/* Loyalty tiers */}
         <Card padding="lg">
           <CardHeader>
             <CardTitle>Programme Fidélité</CardTitle>
           </CardHeader>
           <div className="space-y-4">
             {[
-              { tier: 'Bronze', customers: 234, points: '0–499', color: 'bg-amber-700' },
-              { tier: 'Silver', customers: 89, points: '500–999', color: 'bg-slate-400' },
-              { tier: 'Gold', customers: 34, points: '1000–2499', color: 'bg-yellow-500' },
-              { tier: 'Platinum', customers: 12, points: '2500+', color: 'bg-purple-500' },
+              { tier: 'Bronze',   customers: 234, points: '0–499',   color: 'bg-amber-700', pct: 64 },
+              { tier: 'Silver',   customers: 89,  points: '500–999',  color: 'bg-slate-400', pct: 24 },
+              { tier: 'Gold',     customers: 34,  points: '1000–2499',color: 'bg-yellow-500',pct: 9 },
+              { tier: 'Platinum', customers: 12,  points: '2500+',    color: 'bg-purple-500',pct: 3 },
             ].map((tier) => (
-              <div key={tier.tier} className="flex items-center gap-3">
-                <div className={`h-3 w-3 rounded-full ${tier.color}`} />
-                <span className="flex-1 text-sm text-surface-700">{tier.tier}</span>
-                <span className="text-xs text-surface-400">{tier.points} pts</span>
-                <span className="w-12 text-right text-sm font-semibold text-surface-900">{tier.customers}</span>
+              <div key={tier.tier}>
+                <div className="mb-1 flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className={`h-2.5 w-2.5 rounded-full ${tier.color}`} />
+                    <span className="font-medium text-surface-700">{tier.tier}</span>
+                    <span className="text-surface-400">{tier.points} pts</span>
+                  </div>
+                  <span className="font-semibold text-surface-900">{tier.customers}</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-surface-100">
+                  <div className={`h-full rounded-full ${tier.color} opacity-80 transition-all`} style={{ width: `${tier.pct}%` }} />
+                </div>
               </div>
             ))}
           </div>
@@ -167,7 +525,671 @@ export default function DashboardPage() {
             <span>369 clients actifs dans le programme</span>
           </div>
         </Card>
+
+        {/* Performance recap */}
+        <Card padding="lg">
+          <CardHeader>
+            <CardTitle>Performance du jour</CardTitle>
+          </CardHeader>
+          <div className="space-y-3">
+            {[
+              { label: 'Commandes livrées à temps', value: '94%',   bar: 94, color: 'bg-green-500' },
+              { label: 'Satisfaction client',        value: '4.8/5', bar: 96, color: 'bg-yellow-400' },
+              { label: 'Taux de complétion',         value: '97.7%', bar: 97, color: 'bg-brand-500' },
+              { label: 'Taux d\'annulation',         value: `${BASE_STATS.cancelRate}%`, bar: 100 - BASE_STATS.cancelRate * 10, color: 'bg-red-400' },
+            ].map((item) => (
+              <div key={item.label}>
+                <div className="mb-1 flex justify-between text-sm">
+                  <span className="text-surface-600">{item.label}</span>
+                  <span className="font-semibold text-surface-900">{item.value}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-surface-100">
+                  <div className={`h-full rounded-full ${item.color} transition-all`} style={{ width: `${item.bar}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
     </div>
   );
+}
+
+// ── Driver Dashboard ──────────────────────────────────────────────────────────
+
+const DRIVER_ACTIVE_DELIVERY = {
+  id: 'DEL-441',
+  order: 'ORD-8821',
+  customer: 'Marie L.',
+  address: '12 rue de Rivoli, 75001 Paris',
+  pickupTime: '12:34',
+  eta: '12:56',
+  distance: '2.3 km',
+  status: 'delivering' as const,
+};
+
+const DRIVER_RECENT = [
+  { id: 'DEL-440', order: 'ORD-8820', customer: 'Pierre D.', distance: '1.8 km', time: '12:28', status: 'delivered' as const },
+  { id: 'DEL-439', order: 'ORD-8819', customer: 'Sophie M.', distance: '3.1 km', time: '12:05', status: 'delivered' as const },
+  { id: 'DEL-437', order: 'ORD-8817', customer: 'Emma R.',   distance: '1.5 km', time: '11:30', status: 'failed'    as const },
+  { id: 'DEL-436', order: 'ORD-8815', customer: 'Lucas B.',  distance: '2.7 km', time: '10:52', status: 'delivered' as const },
+];
+
+type PendingOrder = {
+  id: string;
+  order: string;
+  customer: string;
+  address: string;
+  items: number;
+  total: number;
+  distance: string;
+  eta: string;
+  status: 'ready' | 'assigned';
+};
+
+type DriverRecent = {
+  id: string;
+  order: string;
+  customer: string;
+  distance: string;
+  time: string;
+  status: 'delivered' | 'failed';
+};
+
+function DriverDashboard() {
+  const authUser = useAuthStore((s) => s.user);
+  const [online, setOnline] = useState(true);
+  const [pending, setPending] = useState<PendingOrder[]>([]);
+  const [activeDelivery, setActiveDelivery] = useState(DRIVER_ACTIVE_DELIVERY);
+  const [delivering, setDelivering] = useState(false);
+  const [driverKpis, setDriverKpis] = useState({
+    deliveries: '8',
+    km: '34 km',
+    earnings: '64 €',
+    rating: '4.9★',
+  });
+  const [recentDeliveries, setRecentDeliveries] = useState<DriverRecent[]>(DRIVER_RECENT);
+
+  useEffect(() => {
+    const driverId = authUser?.id;
+    if (!driverId) return;
+
+    // Fetch KPI stats
+    (api.get('/drivers/me/stats') as Promise<{
+      deliveriesToday?: number;
+      totalDistanceKm?: number;
+      earningsToday?: number;
+      averageRating?: number;
+    }>)
+      .then((stats) => {
+        setDriverKpis({
+          deliveries: stats.deliveriesToday != null ? String(stats.deliveriesToday) : '8',
+          km: stats.totalDistanceKm != null ? `${stats.totalDistanceKm} km` : '34 km',
+          earnings: stats.earningsToday != null ? `${stats.earningsToday} €` : '64 €',
+          rating: stats.averageRating != null ? `${stats.averageRating}★` : '4.9★',
+        });
+      })
+      .catch(() => {/* keep static fallback */});
+
+    // Fetch recent deliveries
+    (api.get(`/orders?driverId=${driverId}&limit=5`) as Promise<{
+      id: string; orderNumber?: string;
+      customer?: { firstName?: string; lastName?: string };
+      deliveryDistance?: string;
+      updatedAt?: string; createdAt?: string;
+      status?: string;
+    }[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        setRecentDeliveries(data.map((o) => ({
+          id: o.id,
+          order: o.orderNumber ?? o.id.slice(0, 8).toUpperCase(),
+          customer: o.customer
+            ? `${o.customer.firstName ?? ''} ${o.customer.lastName ?? ''}`.trim() || 'Client'
+            : 'Client',
+          distance: o.deliveryDistance ?? '—',
+          time: o.updatedAt ?? o.createdAt
+            ? new Date(o.updatedAt ?? o.createdAt ?? '').toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            : '—',
+          status: o.status === 'delivered' ? 'delivered' : 'failed',
+        })));
+      })
+      .catch(() => {/* keep static fallback */});
+
+    // Fetch pending orders
+    (api.get(`/delivery/driver/${driverId}/pending`) as Promise<{
+      id: string; orderId?: string; orderNumber?: string;
+      customer?: { firstName?: string; lastName?: string };
+      deliveryAddress?: string; totalItems?: number; total?: number;
+      estimatedDistance?: string; estimatedArrival?: string;
+      status?: string;
+    }[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        setPending(data.map((d) => ({
+          id: d.id,
+          order: d.orderNumber ?? d.orderId ?? d.id.slice(0, 8).toUpperCase(),
+          customer: d.customer
+            ? `${d.customer.firstName ?? ''} ${d.customer.lastName ?? ''}`.trim() || 'Client'
+            : 'Client',
+          address: d.deliveryAddress ?? '—',
+          items: d.totalItems ?? 1,
+          total: d.total ?? 0,
+          distance: d.estimatedDistance ?? '—',
+          eta: d.estimatedArrival ?? '—',
+          status: (d.status ?? 'assigned') as PendingOrder['status'],
+        })));
+      })
+      .catch(() => {});
+  }, [authUser?.id]);
+  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const kpis = [
+    { label: 'Livraisons',   value: driverKpis.deliveries, icon: Package, color: 'text-brand-600',  bg: 'bg-brand-50'  },
+    { label: 'Km parcourus', value: driverKpis.km,         icon: MapPin,  color: 'text-blue-600',   bg: 'bg-blue-50'   },
+    { label: 'Gains',        value: driverKpis.earnings,   icon: Euro,    color: 'text-green-600',  bg: 'bg-green-50'  },
+    { label: 'Note moy.',    value: driverKpis.rating,     icon: Star,    color: 'text-yellow-600', bg: 'bg-yellow-50' },
+  ];
+
+  function handleMarkDelivered() {
+    setDelivering(false);
+  }
+
+  function handleTakeOrder(id: string) {
+    const order = pending.find(o => o.id === id);
+    if (!order) return;
+    setPending(prev => prev.filter(o => o.id !== id));
+    setActiveDelivery({
+      id: order.id,
+      order: order.order,
+      customer: order.customer,
+      address: order.address,
+      pickupTime: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      eta: order.eta,
+      distance: order.distance,
+      status: 'delivering',
+    });
+    setDelivering(true);
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900">Mon espace livreur</h1>
+          <p className="mt-1 text-sm text-surface-500 capitalize">{today}</p>
+        </div>
+        <button
+          onClick={() => setOnline((v) => !v)}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+            online ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <span className={`h-2 w-2 rounded-full ${online ? 'animate-pulse bg-green-500' : 'bg-gray-400'}`} />
+          {online ? 'En ligne' : 'Hors ligne'}
+        </button>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{kpi.label}</p>
+                    <p className="mt-2 text-2xl font-bold text-surface-900">{kpi.value}</p>
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${kpi.bg}`}>
+                    <Icon className={`h-5 w-5 ${kpi.color}`} />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Pending orders to manage */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <CardTitle>Commandes à prendre en charge</CardTitle>
+            {pending.length > 0 && (
+              <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-100 px-1.5 text-xs font-bold text-amber-700">
+                {pending.length}
+              </span>
+            )}
+          </div>
+        </CardHeader>
+        {pending.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 text-surface-400">
+            <CheckCircle2 className="mb-2 h-8 w-8 text-green-400" />
+            <p className="text-sm font-medium">Aucune commande en attente</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-surface-50">
+            {pending.map((order) => (
+              <motion.div
+                key={order.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-4 px-6 py-4"
+              >
+                <div className={`rounded-xl p-2 ${order.status === 'ready' ? 'bg-brand-50' : 'bg-blue-50'}`}>
+                  <Package className={`h-4 w-4 ${order.status === 'ready' ? 'text-brand-600' : 'text-blue-600'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-surface-900">{order.order} — {order.customer}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${order.status === 'ready' ? 'bg-brand-50 text-brand-700' : 'bg-blue-50 text-blue-700'}`}>
+                      {order.status === 'ready' ? 'Prête' : 'Assignée'}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-surface-400 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" />{order.address}
+                  </p>
+                  <p className="mt-0.5 text-xs text-surface-400">
+                    {order.items} article{order.items > 1 ? 's' : ''} · {order.total.toFixed(2)} € · {order.distance} · ETA {order.eta}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleTakeOrder(order.id)}
+                  disabled={delivering}
+                  className="flex items-center gap-1.5 rounded-xl bg-brand-500 px-3 py-2 text-xs font-semibold text-black hover:bg-brand-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  <Navigation className="h-3.5 w-3.5" />
+                  Prendre
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Active delivery */}
+      {delivering && (
+        <Card padding="none">
+          <CardHeader className="border-b border-surface-100 px-6 py-5">
+            <div className="flex items-center gap-2">
+              <Navigation className="h-4 w-4 text-brand-500" />
+              <CardTitle>Livraison en cours</CardTitle>
+              <span className="ml-1 h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+            </div>
+          </CardHeader>
+          <div className="p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-surface-400">{activeDelivery.order}</p>
+                <p className="text-lg font-bold text-surface-900">{activeDelivery.address}</p>
+                <p className="text-sm text-surface-500">Client : {activeDelivery.customer}</p>
+              </div>
+              <div className="flex gap-6 text-center">
+                <div>
+                  <p className="text-2xl font-bold text-brand-600">{activeDelivery.distance}</p>
+                  <p className="text-xs text-surface-400">Distance</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-surface-900">{activeDelivery.eta}</p>
+                  <p className="text-xs text-surface-400">ETA</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={handleMarkDelivered}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-500 py-2.5 text-sm font-semibold text-white hover:bg-green-600 transition-colors"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Marquer comme livrée
+              </button>
+              <button className="flex items-center justify-center gap-2 rounded-xl border border-surface-200 px-4 py-2.5 text-sm font-medium text-surface-700 hover:bg-surface-50 transition-colors">
+                <XCircle className="h-4 w-4 text-red-500" />
+                Problème
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Recent deliveries */}
+      <Card padding="none">
+        <CardHeader className="border-b border-surface-100 px-6 py-5">
+          <div className="flex items-center gap-2">
+            <Bike className="h-4 w-4 text-brand-500" />
+            <CardTitle>Livraisons récentes</CardTitle>
+          </div>
+        </CardHeader>
+        <div className="divide-y divide-surface-50">
+          {recentDeliveries.map((d) => (
+            <div key={d.id} className="flex items-center gap-4 px-6 py-4">
+              <div className={`rounded-xl p-2 ${d.status === 'delivered' ? 'bg-green-50' : 'bg-red-50'}`}>
+                {d.status === 'delivered'
+                  ? <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  : <XCircle className="h-4 w-4 text-red-500" />
+                }
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-surface-900">{d.order} — {d.customer}</p>
+                <p className="text-xs text-surface-400">{d.distance} · {d.time}</p>
+              </div>
+              <span className={`text-xs font-medium ${d.status === 'delivered' ? 'text-green-600' : 'text-red-500'}`}>
+                {d.status === 'delivered' ? 'Livrée' : 'Échouée'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ── Cookie parser ─────────────────────────────────────────────────────────────
+
+function parseCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+// ── Staff Dashboard ───────────────────────────────────────────────────────────
+
+type KitchenOrderStatus = 'pending' | 'preparing' | 'ready';
+
+interface KitchenOrder {
+  id: string;
+  number: string;
+  customer: string;
+  items: { name: string; qty: number; note?: string }[];
+  type: 'dine-in' | 'takeaway' | 'delivery';
+  table?: string;
+  receivedAt: string;
+  status: KitchenOrderStatus;
+  prepMin: number;
+}
+
+const STATUS_CFG_KITCHEN: Record<KitchenOrderStatus, { label: string; color: string; bg: string; next: KitchenOrderStatus | null; nextLabel: string }> = {
+  pending:   { label: 'En attente',    color: 'text-amber-700',   bg: 'bg-amber-50 border-amber-200',  next: 'preparing', nextLabel: 'Commencer' },
+  preparing: { label: 'En préparation',color: 'text-blue-700',    bg: 'bg-blue-50 border-blue-200',    next: 'ready',     nextLabel: 'Prêt !' },
+  ready:     { label: 'Prête',         color: 'text-green-700',   bg: 'bg-green-50 border-green-200',  next: null,        nextLabel: '' },
+};
+
+const TYPE_CFG: Record<KitchenOrder['type'], { label: string; icon: React.ElementType; color: string }> = {
+  'dine-in':  { label: 'Sur place', icon: Utensils, color: 'text-brand-600'  },
+  'takeaway': { label: 'À emporter',icon: ShoppingBag, color: 'text-blue-600'   },
+  'delivery': { label: 'Livraison', icon: Truck,    color: 'text-purple-600' },
+};
+
+function useElapsed(receivedAt: string): string {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const [h, m] = receivedAt.split(':').map(Number);
+  const base = new Date(now);
+  base.setHours(h, m, 0, 0);
+  const diff = Math.max(0, Math.floor((now.getTime() - base.getTime()) / 60000));
+  return diff < 60 ? `${diff} min` : `${Math.floor(diff / 60)}h${diff % 60}`;
+}
+
+function KitchenOrderCard({ order, onAdvance, onDone }: {
+  order: KitchenOrder;
+  onAdvance: (id: string) => void;
+  onDone: (id: string) => void;
+}) {
+  const elapsed = useElapsed(order.receivedAt);
+  const cfg = STATUS_CFG_KITCHEN[order.status];
+  const typeCfg = TYPE_CFG[order.type];
+  const TypeIcon = typeCfg.icon;
+  const overdue = parseInt(elapsed) > order.prepMin;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={`rounded-2xl border-2 p-4 ${cfg.bg} flex flex-col gap-3`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-surface-500">{order.number}</span>
+            <span className={`flex items-center gap-1 text-xs font-medium ${typeCfg.color}`}>
+              <TypeIcon className="h-3 w-3" />
+              {order.table ? `Table ${order.table}` : typeCfg.label}
+            </span>
+          </div>
+          <p className="mt-0.5 text-sm font-semibold text-surface-900">{order.customer}</p>
+        </div>
+        <div className="text-right shrink-0">
+          <div className={`flex items-center gap-1 text-xs font-bold ${overdue && order.status !== 'ready' ? 'text-red-600' : 'text-surface-500'}`}>
+            <Timer className="h-3 w-3" />
+            {elapsed}
+          </div>
+          <p className="text-[10px] text-surface-400">reçu {order.receivedAt}</p>
+        </div>
+      </div>
+
+      <ul className="space-y-1">
+        {order.items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2 text-xs text-surface-700">
+            <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface-200 text-[10px] font-bold text-surface-600">
+              {item.qty}
+            </span>
+            <span>{item.name}{item.note && <span className="ml-1 italic text-surface-400">({item.note})</span>}</span>
+          </li>
+        ))}
+      </ul>
+
+      {order.status !== 'ready' ? (
+        <button
+          onClick={() => onAdvance(order.id)}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold transition-colors ${
+            order.status === 'pending'
+              ? 'bg-amber-500 text-white hover:bg-amber-600'
+              : 'bg-brand-500 text-black hover:bg-brand-400'
+          }`}
+        >
+          <ChefHat className="h-3.5 w-3.5" />
+          {cfg.nextLabel}
+        </button>
+      ) : (
+        <button
+          onClick={() => onDone(order.id)}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-500 py-2 text-sm font-semibold text-white hover:bg-green-600 transition-colors"
+        >
+          <ThumbsUp className="h-3.5 w-3.5" />
+          Servir / Prêt à emporter
+        </button>
+      )}
+    </motion.div>
+  );
+}
+
+function StaffDashboard() {
+  const authUser = useAuthStore((s) => s.user);
+  const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [done, setDone] = useState(0);
+  const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  useEffect(() => {
+    const restaurantId = authUser?.restaurantIds?.[0];
+    if (!restaurantId) return;
+
+    // Fetch delivered count for today
+    (api.get(`/orders?restaurantId=${restaurantId}&status=delivered&today=true`) as Promise<unknown[]>)
+      .then((data) => {
+        if (Array.isArray(data)) setDone(data.length);
+      })
+      .catch(() => {/* fallback stays 0 */});
+
+    (api.get(`/orders/restaurant/${restaurantId}`) as Promise<{
+      id: string; orderNumber?: string; status: string; type?: string;
+      tableNumber?: string; createdAt?: string;
+      customer?: { firstName?: string; lastName?: string };
+      items?: { name?: string; quantity?: number; notes?: string }[];
+    }[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        const kitchen = data
+          .filter((o) => ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status))
+          .map((o): KitchenOrder => ({
+            id: o.id,
+            number: o.orderNumber ?? o.id.slice(0, 8).toUpperCase(),
+            customer: o.customer
+              ? `${o.customer.firstName ?? ''} ${o.customer.lastName ?? ''}`.trim() || 'Client'
+              : 'Client',
+            type: o.type === 'delivery' ? 'delivery' : o.type === 'takeaway' ? 'takeaway' : 'dine-in',
+            table: o.tableNumber,
+            receivedAt: o.createdAt
+              ? new Date(o.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+              : '--:--',
+            prepMin: 12,
+            status: (o.status === 'confirmed' ? 'pending' : o.status) as KitchenOrderStatus,
+            items: Array.isArray(o.items)
+              ? o.items.map((i) => ({ name: i.name ?? '—', qty: i.quantity ?? 1, note: i.notes }))
+              : [],
+          }));
+        setOrders(kitchen);
+      })
+      .catch(() => {});
+  }, [authUser?.restaurantIds]);
+
+  const pending   = orders.filter((o) => o.status === 'pending').length;
+  const preparing = orders.filter((o) => o.status === 'preparing').length;
+  const ready     = orders.filter((o) => o.status === 'ready').length;
+
+  function advanceOrder(id: string) {
+    setOrders((prev) => prev.map((o) => {
+      if (o.id !== id) return o;
+      const next = STATUS_CFG_KITCHEN[o.status].next;
+      return next ? { ...o, status: next } : o;
+    }));
+  }
+
+  function doneOrder(id: string) {
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+  }
+
+  const kpis = [
+    { label: 'En attente',     value: String(pending),   icon: Clock,         bg: 'bg-amber-50',  color: 'text-amber-600'  },
+    { label: 'En préparation', value: String(preparing), icon: ChefHat,       bg: 'bg-blue-50',   color: 'text-blue-600'   },
+    { label: 'Prêtes',         value: String(ready),     icon: CheckCircle2,  bg: 'bg-green-50',  color: 'text-green-600'  },
+    { label: 'Traitées (shift)',value: String(done),      icon: ThumbsUp,      bg: 'bg-brand-50',  color: 'text-brand-600'  },
+  ];
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-white">Espace équipe</h1>
+          <p className="mt-1 text-sm text-surface-500 capitalize">{today}</p>
+        </div>
+        <Badge variant="success" dot>Service en cours</Badge>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi, i) => {
+          const Icon = kpi.icon;
+          return (
+            <motion.div key={kpi.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+              <Card padding="lg" className="hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-surface-500">{kpi.label}</p>
+                    <p className="mt-2 text-3xl font-bold text-surface-900 dark:text-white">{kpi.value}</p>
+                  </div>
+                  <div className={`rounded-xl p-2.5 ${kpi.bg}`}>
+                    <Icon className={`h-5 w-5 ${kpi.color}`} />
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Kitchen board */}
+      <div>
+        <h2 className="mb-4 text-base font-semibold text-surface-800 dark:text-surface-200">Commandes en cuisine</h2>
+        {orders.length === 0 ? (
+          <Card padding="lg" className="flex flex-col items-center justify-center py-12 text-surface-400">
+            <CheckCircle2 className="mb-3 h-10 w-10 text-green-400" />
+            <p className="text-sm font-medium">Toutes les commandes ont été traitées !</p>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {orders.map((order) => (
+              <KitchenOrderCard key={order.id} order={order} onAdvance={advanceOrder} onDone={doneOrder} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Quick links */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[
+          { label: 'Toutes les commandes', href: '/dashboard/orders', icon: ShoppingBag, color: 'text-brand-600', bg: 'bg-brand-50' },
+          { label: 'Menu du jour',          href: '/dashboard/menu',   icon: Utensils,    color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Tables',                href: '/dashboard/tables', icon: Users,       color: 'text-blue-600',  bg: 'bg-blue-50' },
+        ].map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link key={link.href} href={link.href} className="flex items-center gap-3 rounded-2xl border border-surface-200 bg-white p-4 hover:shadow-md transition-all dark:border-surface-700 dark:bg-surface-800">
+              <div className={`rounded-xl p-2.5 ${link.bg}`}>
+                <Icon className={`h-5 w-5 ${link.color}`} />
+              </div>
+              <span className="text-sm font-medium text-surface-700 dark:text-surface-200">{link.label}</span>
+              <ArrowUpRight className="ml-auto h-4 w-4 text-surface-400" />
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function DashboardPage() {
+  const authUser = useAuthStore((s) => s.user);
+
+  // Fall back to fs_demo cookie for users who aren't logged in yet (dev/demo)
+  const [cookieRole, setCookieRole] = useState<string | null>(null);
+  useEffect(() => {
+    if (!authUser) {
+      const val = parseCookie('fs_demo');
+      setCookieRole(val ?? 'restaurant');
+    }
+  }, [authUser]);
+
+  const role = authUser
+    ? authUser.role
+    : cookieRole;
+
+  if (role === null) {
+    return <div className="p-6 text-surface-400 text-sm">Chargement…</div>;
+  }
+
+  if (role === 'super_admin' || role === 'admin') {
+    return <SuperAdminDashboard />;
+  }
+
+  if (role === 'driver') {
+    return <DriverDashboard />;
+  }
+
+  if (role === 'staff') {
+    return <StaffDashboard />;
+  }
+
+  return <RestaurantDashboard />;
 }

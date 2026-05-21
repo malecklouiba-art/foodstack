@@ -1,0 +1,696 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import api from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
+import { useRestaurantId } from '@/contexts/restaurant-context';
+import {
+  Plus,
+  MapPin,
+  Clock,
+  Euro,
+  ShoppingBag,
+  Target,
+  Percent,
+  Pencil,
+  Search,
+  Loader2,
+  RefreshCw,
+  CheckCircle2,
+  Smartphone,
+  Globe,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
+import { StatCard } from '@/components/ui/StatCard';
+import { Modal } from '@/components/ui/Modal';
+import { motion } from 'framer-motion';
+import { clsx } from 'clsx';
+
+const ZonesMap = dynamic(() => import('@/components/zones/ZonesMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full min-h-[340px] items-center justify-center text-surface-400 text-sm">
+      Chargement de la carte…
+    </div>
+  ),
+});
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Zone {
+  id: string;
+  name: string;
+  radiusKm: number;
+  feeEuros: number;
+  deliveryTimeMin: number;
+  deliveryTimeMax: number;
+  active: boolean;
+  ordersPerWeek: number;
+  minOrderEuros: number;
+  revenueWeek: number;
+  avgOrderValue: number;
+  cancellationRate: number;
+}
+
+interface AddZoneForm {
+  name: string;
+  radius: number;
+  fee: string;
+  minOrder: string;
+  deliveryMin: string;
+  deliveryMax: string;
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function ZonesPage() {
+  const ctxId = useRestaurantId();
+  const { user: authUser } = useAuthStore();
+  const restaurantId = ctxId || authUser?.restaurantIds?.[0] || '';
+
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'syncing'>('synced');
+  const [lastSyncAt, setLastSyncAt] = useState<string>(() => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+
+  useEffect(() => {
+    if (!restaurantId) return;
+    (api.get(`/restaurants/${restaurantId}/zones`) as Promise<any>)
+      .then((data: any[]) => { if (data?.length) setZones(data); })
+      .catch(() => {});
+  }, [restaurantId]);
+
+  const syncToApps = useCallback(async () => {
+    setSyncStatus('syncing');
+    try {
+      if (restaurantId) {
+        await (api.put(`/restaurants/${restaurantId}/zones`, zones) as Promise<any>);
+      }
+    } catch {
+      // best-effort
+    }
+    setSyncStatus('synced');
+    setLastSyncAt(new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
+  }, [restaurantId, zones]);
+  const [editZone, setEditZone] = useState<Zone | null>(null);
+  const [editForm, setEditForm] = useState<{ name: string; feeEuros: string; radiusKm: string }>({
+    name: '', feeEuros: '', radiusKm: '',
+  });
+
+  function openEdit(zone: Zone) {
+    setEditZone(zone);
+    setEditForm({
+      name: zone.name,
+      feeEuros: zone.feeEuros.toString(),
+      radiusKm: zone.radiusKm.toString(),
+    });
+  }
+
+  function handleSaveEdit() {
+    if (!editZone) return;
+    const radiusKm = parseFloat(editForm.radiusKm) || editZone.radiusKm;
+    const feeEuros = parseFloat(editForm.feeEuros);
+    setZones((prev) =>
+      prev.map((z) =>
+        z.id === editZone.id
+          ? {
+              ...z,
+              name: editForm.name || z.name,
+              feeEuros: isNaN(feeEuros) ? z.feeEuros : feeEuros,
+              radiusKm,
+            }
+          : z,
+      ),
+    );
+    setEditZone(null);
+  }
+
+  function handleDeleteZone(id: string) {
+    setZones((prev) => prev.filter((z) => z.id !== id));
+    setEditZone(null);
+  }
+  const [address, setAddress] = useState('42 rue de la Roquette, 75011 Paris');
+  const [center, setCenter] = useState<[number, number]>([48.8566, 2.3522]);
+  const [geocoding, setGeocoding] = useState(false);
+  const [geocodeError, setGeocodeError] = useState('');
+
+  async function handleGeocode() {
+    if (!address.trim()) return;
+    setGeocoding(true);
+    setGeocodeError('');
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'fr' } }
+      );
+      const data = await res.json();
+      if (data.length > 0) {
+        setCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+      } else {
+        setGeocodeError('Adresse introuvable');
+      }
+    } catch {
+      setGeocodeError('Erreur réseau');
+    } finally {
+      setGeocoding(false);
+    }
+  }
+
+  const [addForm, setAddForm] = useState<AddZoneForm>({
+    name: '',
+    radius: 5,
+    fee: '',
+    minOrder: '',
+    deliveryMin: '',
+    deliveryMax: '',
+  });
+
+  const totalOrders = zones.reduce((a, z) => a + z.ordersPerWeek, 0);
+  const maxRadius = Math.max(...zones.map((z) => z.radiusKm));
+  const avgFee =
+    zones.filter((z) => z.feeEuros > 0).reduce((a, z) => a + z.feeEuros, 0) /
+    (zones.filter((z) => z.feeEuros > 0).length || 1);
+
+  function handleToggleActive(id: string) {
+    setZones((prev) =>
+      prev.map((z) => (z.id === id ? { ...z, active: !z.active } : z))
+    );
+    setSyncStatus('pending');
+  }
+
+  function handleAddZone() {
+    const newZone: Zone = {
+      id: `z${Date.now()}`,
+      name: addForm.name || 'Nouvelle zone',
+      radiusKm: addForm.radius,
+      feeEuros: parseFloat(addForm.fee || '0'),
+      deliveryTimeMin: parseInt(addForm.deliveryMin || '30', 10),
+      deliveryTimeMax: parseInt(addForm.deliveryMax || '45', 10),
+      active: true,
+      ordersPerWeek: 0,
+      minOrderEuros: parseFloat(addForm.minOrder || '0'),
+      revenueWeek: 0,
+      avgOrderValue: 0,
+      cancellationRate: 0,
+    };
+    setZones((prev) => [...prev, newZone]);
+    setShowAddModal(false);
+    setAddForm({ name: '', radius: 5, fee: '', minOrder: '', deliveryMin: '', deliveryMax: '' });
+    setSyncStatus('pending');
+  }
+
+  function openAddModal() {
+    setAddForm({ name: '', radius: 5, fee: '', minOrder: '', deliveryMin: '', deliveryMax: '' });
+    setShowAddModal(true);
+  }
+
+  const sortedZones = [...zones].sort((a, b) => a.radiusKm - b.radiusKm);
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-100">Zones de livraison</h1>
+          <p className="mt-1 text-sm text-surface-500">{zones.filter((z) => z.active).length} zones actives · rayon max {maxRadius}km</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            icon={<RefreshCw className={clsx('h-4 w-4', syncStatus === 'syncing' && 'animate-spin')} />}
+            variant={syncStatus === 'pending' ? 'primary' : 'secondary'}
+            onClick={syncToApps}
+            disabled={syncStatus === 'syncing' || syncStatus === 'synced'}
+          >
+            {syncStatus === 'syncing' ? 'Synchronisation…' : syncStatus === 'pending' ? 'Synchroniser' : 'Synchronisé'}
+          </Button>
+          <Button icon={<Plus className="h-4 w-4" />} onClick={openAddModal}>
+            Ajouter une zone
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Sync status bar ── */}
+      <div className={clsx(
+        'flex items-center gap-4 rounded-2xl border px-4 py-3 text-sm transition-colors',
+        syncStatus === 'synced'
+          ? 'border-green-200 bg-green-50 dark:border-green-800/40 dark:bg-green-900/10'
+          : syncStatus === 'pending'
+          ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-800/40 dark:bg-yellow-900/10'
+          : 'border-blue-200 bg-blue-50 dark:border-blue-800/40 dark:bg-blue-900/10'
+      )}>
+        {syncStatus === 'syncing' ? (
+          <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+        ) : syncStatus === 'synced' ? (
+          <CheckCircle2 className="h-4 w-4 text-green-500" />
+        ) : (
+          <RefreshCw className="h-4 w-4 text-yellow-500" />
+        )}
+        <span className={clsx(
+          'font-medium',
+          syncStatus === 'synced' ? 'text-green-700 dark:text-green-400'
+          : syncStatus === 'pending' ? 'text-yellow-700 dark:text-yellow-400'
+          : 'text-blue-700 dark:text-blue-400'
+        )}>
+          {syncStatus === 'synced'
+            ? `Zones synchronisées · dernière sync à ${lastSyncAt}`
+            : syncStatus === 'pending'
+            ? 'Modifications en attente de synchronisation'
+            : 'Synchronisation en cours…'}
+        </span>
+        <div className="ml-auto flex items-center gap-3 text-xs text-surface-500">
+          <span className="flex items-center gap-1">
+            <Smartphone className="h-3.5 w-3.5" />
+            iOS
+            {syncStatus === 'synced' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+          </span>
+          <span className="flex items-center gap-1">
+            <Smartphone className="h-3.5 w-3.5" />
+            Android
+            {syncStatus === 'synced' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+          </span>
+          <span className="flex items-center gap-1">
+            <Globe className="h-3.5 w-3.5" />
+            Web
+            {syncStatus === 'synced' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Address geocoder ── */}
+      <div className="flex items-start gap-3">
+        <div className="flex-1">
+          <label className="mb-1.5 block text-xs font-medium text-surface-500">
+            Adresse de la boutique (centre de la carte)
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400 pointer-events-none" />
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => { setAddress(e.target.value); setGeocodeError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleGeocode()}
+                placeholder="42 rue de la Roquette, 75011 Paris"
+                className="w-full rounded-xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 pl-9 pr-3 py-2.5 text-sm text-surface-900 dark:text-surface-100 placeholder:text-surface-400 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-500/20 transition"
+              />
+            </div>
+            <button
+              onClick={handleGeocode}
+              disabled={geocoding}
+              className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-60 transition-colors"
+            >
+              {geocoding ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              Localiser
+            </button>
+          </div>
+          {geocodeError && (
+            <p className="mt-1 text-xs text-red-500">{geocodeError}</p>
+          )}
+        </div>
+      </div>
+
+      {/* ── Stats ── */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Zones actives"
+          value={zones.filter((z) => z.active).length}
+          icon={MapPin}
+          iconColor="text-green-600 dark:text-green-400"
+          iconBg="bg-green-50 dark:bg-green-900/20"
+        />
+        <StatCard
+          title="Rayon max"
+          value={`${maxRadius} km`}
+          icon={Target}
+          iconColor="text-blue-600 dark:text-blue-400"
+          iconBg="bg-blue-50 dark:bg-blue-900/20"
+        />
+        <StatCard
+          title="Commandes couvertes"
+          value="97%"
+          icon={Percent}
+          iconColor="text-purple-600 dark:text-purple-400"
+          iconBg="bg-purple-50 dark:bg-purple-900/20"
+        />
+        <StatCard
+          title="Frais moy. de livraison"
+          value={`${avgFee.toFixed(2)}€`}
+          icon={Euro}
+          iconColor="text-orange-600 dark:text-orange-400"
+          iconBg="bg-orange-50 dark:bg-orange-900/20"
+        />
+      </div>
+
+      {/* ── Map + Zone Cards ── */}
+      <div className="grid gap-6 xl:grid-cols-5">
+        {/* Leaflet Map */}
+        <div className="xl:col-span-2 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-sm flex flex-col overflow-hidden">
+          <div className="px-5 py-4 border-b border-surface-100 dark:border-surface-700 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-brand-500" />
+            <h2 className="text-sm font-semibold text-surface-700 dark:text-surface-300">
+              Carte des zones
+            </h2>
+          </div>
+          <div className="flex-1 p-3 relative isolate" style={{ minHeight: 340 }}>
+            <ZonesMap
+              key={`${center.join(',')}-${zones.filter((z) => z.active).map((z) => `${z.id}:${z.radiusKm}`).join('|')}`}
+              zones={sortedZones}
+              center={center}
+            />
+          </div>
+        </div>
+
+        {/* Zone Cards */}
+        <div className="xl:col-span-3 grid gap-4 sm:grid-cols-2 content-start">
+          {sortedZones.map((zone, idx) => (
+            <motion.div
+              key={zone.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.06 }}
+              className={clsx(
+                'rounded-2xl border p-5 shadow-sm transition-all',
+                zone.active
+                  ? 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800'
+                  : 'border-surface-100 dark:border-surface-800 bg-surface-50 dark:bg-surface-900 opacity-60',
+              )}
+            >
+              {/* Card header */}
+              <div className="flex items-start justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500/10">
+                    <MapPin className="h-4 w-4 text-brand-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-surface-900 dark:text-surface-100">{zone.name}</p>
+                    <p className="text-xs text-surface-400">Rayon {zone.radiusKm} km</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {/* Toggle */}
+                  <button
+                    onClick={() => handleToggleActive(zone.id)}
+                    className={clsx(
+                      'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none',
+                      zone.active ? 'bg-brand-500' : 'bg-surface-200 dark:bg-surface-600',
+                    )}
+                    aria-label={zone.active ? 'Désactiver la zone' : 'Activer la zone'}
+                  >
+                    <span
+                      className={clsx(
+                        'inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform',
+                        zone.active ? 'translate-x-[18px]' : 'translate-x-[3px]',
+                      )}
+                    />
+                  </button>
+                  <button
+                    onClick={() => openEdit(zone)}
+                    className="rounded-lg p-1 text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700 hover:text-surface-600 dark:hover:text-surface-300 transition-colors"
+                    aria-label="Modifier la zone"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Metrics */}
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                <div>
+                  <p className="text-xs text-surface-400 mb-0.5">Frais de livraison</p>
+                  <p className="text-sm font-semibold text-surface-900 dark:text-surface-100">
+                    {zone.feeEuros === 0 ? (
+                      <span className="text-green-600 dark:text-green-400">Offert</span>
+                    ) : (
+                      `${zone.feeEuros.toFixed(2)}€`
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400 mb-0.5">Délai estimé</p>
+                  <p className="text-sm font-semibold text-surface-900 dark:text-surface-100 flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-surface-400" />
+                    {zone.deliveryTimeMin}-{zone.deliveryTimeMax} min
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400 mb-0.5">Commandes / sem.</p>
+                  <p className="text-sm font-semibold text-surface-900 dark:text-surface-100 flex items-center gap-1">
+                    <ShoppingBag className="h-3.5 w-3.5 text-surface-400" />
+                    {zone.ordersPerWeek}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400 mb-0.5">Statut</p>
+                  <Badge variant={zone.active ? 'success' : 'default'} dot>
+                    {zone.active ? 'Actif' : 'Inactif'}
+                  </Badge>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Performance Table ── */}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-surface-900 dark:text-surface-100">
+          Performance par zone — cette semaine
+        </h2>
+        <div className="overflow-hidden rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 shadow-sm">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900">
+                {['Zone', 'Commandes', 'Revenus', 'Panier moy.', 'Taux annulation'].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-surface-400">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-surface-100 dark:divide-surface-700">
+              {sortedZones.map((zone, zoneIdx) => {
+                const orderShare = totalOrders > 0 ? (zone.ordersPerWeek / totalOrders) * 100 : 0;
+                const dotOpacity = sortedZones.length > 1 ? 1 - (zoneIdx / sortedZones.length) * 0.7 : 1;
+                return (
+                  <tr key={zone.id} className="hover:bg-surface-50 dark:hover:bg-surface-900/50 transition-colors">
+                    {/* Zone name */}
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2.5 w-2.5 rounded-full bg-brand-500" style={{ opacity: dotOpacity }} />
+                        <span className="text-sm font-medium text-surface-900 dark:text-surface-100">{zone.name}</span>
+                      </div>
+                    </td>
+                    {/* Orders */}
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-surface-900 dark:text-surface-100">{zone.ordersPerWeek}</span>
+                        <div className="flex-1 max-w-[80px]">
+                          <div className="h-1.5 w-full rounded-full bg-surface-100 dark:bg-surface-700">
+                            <div
+                              className="h-full rounded-full bg-brand-500"
+                              style={{ width: `${orderShare}%` }}
+                            />
+                          </div>
+                        </div>
+                        <span className="text-xs text-surface-400">{orderShare.toFixed(0)}%</span>
+                      </div>
+                    </td>
+                    {/* Revenue */}
+                    <td className="px-4 py-3.5">
+                      <span className="text-sm font-semibold text-surface-900 dark:text-surface-100">
+                        {zone.revenueWeek.toLocaleString('fr-FR')}€
+                      </span>
+                    </td>
+                    {/* Avg order */}
+                    <td className="px-4 py-3.5">
+                      <span className="text-sm text-surface-700 dark:text-surface-300">{zone.avgOrderValue}€</span>
+                    </td>
+                    {/* Cancellation */}
+                    <td className="px-4 py-3.5">
+                      <span
+                        className={clsx(
+                          'text-sm font-medium',
+                          zone.cancellationRate < 3
+                            ? 'text-green-600 dark:text-green-400'
+                            : zone.cancellationRate < 6
+                            ? 'text-yellow-600 dark:text-yellow-400'
+                            : 'text-red-600 dark:text-red-400',
+                        )}
+                      >
+                        {zone.cancellationRate.toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-t border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900">
+                <td className="px-4 py-3 text-xs font-semibold text-surface-600 dark:text-surface-400">Total</td>
+                <td className="px-4 py-3 text-sm font-bold text-surface-900 dark:text-surface-100">{totalOrders}</td>
+                <td className="px-4 py-3 text-sm font-bold text-surface-900 dark:text-surface-100">
+                  {zones.reduce((a, z) => a + z.revenueWeek, 0).toLocaleString('fr-FR')}€
+                </td>
+                <td className="px-4 py-3 text-sm text-surface-500">—</td>
+                <td className="px-4 py-3 text-sm text-surface-500">—</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Add Zone Modal ── */}
+      <Modal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Ajouter une zone de livraison"
+        description="Configurez le périmètre et les conditions de la nouvelle zone"
+        size="md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setShowAddModal(false)}>Annuler</Button>
+            <Button
+              icon={<Plus className="h-4 w-4" />}
+              onClick={handleAddZone}
+              disabled={!addForm.name}
+            >
+              Créer la zone
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          <Input
+            label="Nom de la zone"
+            placeholder="Ex. Zone Nord"
+            value={addForm.name}
+            onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+            leftIcon={<MapPin className="h-4 w-4" />}
+            required
+          />
+
+          {/* Radius slider */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-surface-700 dark:text-surface-300">
+              Rayon de livraison
+              <span className="ml-2 font-bold text-brand-500">{addForm.radius} km</span>
+            </label>
+            <input
+              type="range"
+              min={1}
+              max={15}
+              step={0.5}
+              value={addForm.radius}
+              onChange={(e) => setAddForm((f) => ({ ...f, radius: parseFloat(e.target.value) }))}
+              className="w-full h-2 rounded-full appearance-none bg-surface-200 dark:bg-surface-700 accent-brand-500 cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-surface-400">
+              <span>1 km</span>
+              <span>15 km</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Frais de livraison (€)"
+              type="number"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              value={addForm.fee}
+              onChange={(e) => setAddForm((f) => ({ ...f, fee: e.target.value }))}
+              leftIcon={<Euro className="h-4 w-4" />}
+              hint="0 = livraison offerte"
+            />
+            <Input
+              label="Commande min. (€)"
+              type="number"
+              placeholder="0"
+              min="0"
+              value={addForm.minOrder}
+              onChange={(e) => setAddForm((f) => ({ ...f, minOrder: e.target.value }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Délai min. (min)"
+              type="number"
+              placeholder="20"
+              min="5"
+              value={addForm.deliveryMin}
+              onChange={(e) => setAddForm((f) => ({ ...f, deliveryMin: e.target.value }))}
+              leftIcon={<Clock className="h-4 w-4" />}
+            />
+            <Input
+              label="Délai max. (min)"
+              type="number"
+              placeholder="40"
+              min="5"
+              value={addForm.deliveryMax}
+              onChange={(e) => setAddForm((f) => ({ ...f, deliveryMax: e.target.value }))}
+              leftIcon={<Clock className="h-4 w-4" />}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Edit Zone Modal ── */}
+      <Modal
+        open={!!editZone}
+        onClose={() => setEditZone(null)}
+        title={editZone ? `Modifier — ${editZone.name}` : ''}
+        size="sm"
+        footer={
+          <div className="flex w-full items-center justify-between gap-3">
+            <Button
+              variant="ghost"
+              onClick={() => editZone && handleDeleteZone(editZone.id)}
+              className="text-red-600 hover:bg-red-50"
+            >
+              Supprimer
+            </Button>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={() => setEditZone(null)}>Annuler</Button>
+              <Button onClick={handleSaveEdit}>Enregistrer</Button>
+            </div>
+          </div>
+        }
+      >
+        {editZone && (
+          <div className="space-y-4">
+            <Input
+              label="Nom"
+              value={editForm.name}
+              onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+              leftIcon={<MapPin className="h-4 w-4" />}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Frais (€)"
+                type="number"
+                value={editForm.feeEuros}
+                onChange={(e) => setEditForm((f) => ({ ...f, feeEuros: e.target.value }))}
+                leftIcon={<Euro className="h-4 w-4" />}
+              />
+              <Input
+                label="Rayon (km)"
+                type="number"
+                value={editForm.radiusKm}
+                onChange={(e) => setEditForm((f) => ({ ...f, radiusKm: e.target.value }))}
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}

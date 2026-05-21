@@ -15,17 +15,17 @@ const config: Config = {
       },
       colors: {
         brand: {
-          50: '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          300: '#fdba74',
-          400: '#fb923c',
-          500: '#f97316',
-          600: '#ea6a0a',
-          700: '#c2410c',
-          800: '#9a3412',
-          900: '#7c2d12',
-          950: '#431407',
+          50: '#efffef',
+          100: '#d5ffdf',
+          200: '#abffbe',
+          300: '#70ff98',
+          400: '#42ff7b',
+          500: '#1EFF6A',
+          600: '#00cc52',
+          700: '#009940',
+          800: '#007a32',
+          900: '#006628',
+          950: '#003314',
         },
         surface: {
           0: '#ffffff',
@@ -45,7 +45,7 @@ const config: Config = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-brand':
-          'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)',
+          'linear-gradient(135deg, #1EFF6A 0%, #00cc52 50%, #009940 100%)',
         'gradient-dark':
           'linear-gradient(135deg, #09090b 0%, #18181b 50%, #27272a 100%)',
         'gradient-glass':
@@ -54,8 +54,8 @@ const config: Config = {
       boxShadow: {
         glass: '0 8px 32px 0 rgba(0, 0, 0, 0.12)',
         'glass-lg': '0 16px 48px 0 rgba(0, 0, 0, 0.16)',
-        brand: '0 4px 24px 0 rgba(249, 115, 22, 0.3)',
-        'brand-lg': '0 8px 40px 0 rgba(249, 115, 22, 0.4)',
+        brand: '0 4px 24px 0 rgba(30, 255, 106, 0.3)',
+        'brand-lg': '0 8px 40px 0 rgba(30, 255, 106, 0.4)',
         inner: 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
       },
       backdropBlur: {

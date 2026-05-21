@@ -58,15 +58,15 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className={clsx(
-              'relative w-full rounded-2xl border border-surface-200 bg-white shadow-glass-lg',
+              'relative w-full rounded-2xl border border-surface-200 bg-white shadow-glass-lg dark:border-surface-700 dark:bg-surface-800',
               sizeClasses[size]
             )}
           >
             {/* Header */}
             {(title || description) && (
-              <div className="border-b border-surface-100 px-6 py-5">
+              <div className="border-b border-surface-100 px-6 py-5 dark:border-surface-700">
                 {title && (
-                  <h2 className="text-lg font-semibold text-surface-900">{title}</h2>
+                  <h2 className="text-lg font-semibold text-surface-900 dark:text-white">{title}</h2>
                 )}
                 {description && (
                   <p className="mt-1 text-sm text-surface-500">{description}</p>
@@ -77,7 +77,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
             {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute right-4 top-4 rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-600"
+              className="absolute right-4 top-4 rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-100 hover:text-surface-600 dark:hover:bg-surface-700 dark:hover:text-surface-200"
             >
               <X className="h-4 w-4" />
             </button>
@@ -87,7 +87,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
 
             {/* Footer */}
             {footer && (
-              <div className="border-t border-surface-100 px-6 py-4">{footer}</div>
+              <div className="border-t border-surface-100 px-6 py-4 dark:border-surface-700">{footer}</div>
             )}
           </motion.div>
         </div>
