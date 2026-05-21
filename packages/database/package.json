@@ -1,6 +1,9 @@
 {
   "name": "@foodstack/database",
   "version": "0.1.0",
+  "prisma": {
+    "seed": "ts-node -O {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
   "scripts": {
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
