@@ -45,9 +45,12 @@ async function bootstrap() {
   }
 
   const port = process.env.PORT ?? 4000;
+  app.enableShutdownHooks();
   await app.listen(port);
-  console.log(`🚀 FoodStack API running on http://localhost:${port}/api/v1`);
-  console.log(`📖 Swagger docs at http://localhost:${port}/api/docs`);
+  console.log(`FoodStack API running on http://localhost:${port}/api/v1`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`Swagger docs at http://localhost:${port}/api/docs`);
+  }
 }
 
 bootstrap();

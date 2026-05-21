@@ -88,8 +88,8 @@ jobs:
       - name: Generate Prisma client
         run: npm run --workspace=@foodstack/database generate
 
-      - name: Push database schema
-        run: npm run --workspace=@foodstack/database db:push
+      - name: Run database migrations
+        run: npx prisma migrate deploy --schema=packages/database/prisma/schema.prisma
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/foodstack_test
 

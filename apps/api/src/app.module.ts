@@ -22,6 +22,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { TablesModule } from './modules/tables/tables.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { AdminSettingsModule } from './modules/admin-settings/admin-settings.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AdminSettingsModule } from './modules/admin-settings/admin-settings.mod
     TablesModule,
     SuppliersModule,
     AdminSettingsModule,
+    HealthModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
