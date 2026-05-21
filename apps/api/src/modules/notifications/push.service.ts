@@ -34,8 +34,15 @@ export class PushService implements OnModuleInit {
       return;
     }
 
-    webpush.setVapidDetails(subject, publicKey, privateKey);
-    this.logger.log('Web Push VAPID configured');
+    try {
+      webpush.setVapidDetails(subject, publicKey, privateKey);
+      this.logger.log('Web Push VAPID configured');
+    } catch (err) {
+      this.logger.warn(
+        `VAPID keys are invalid — push notifications will be disabled. ` +
+          `Run generateVapidKeys() to generate valid keys. Error: ${(err as Error).message}`,
+      );
+    }
   }
 
   /** Utility: generate a new VAPID key pair (for initial setup / debug). */

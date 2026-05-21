@@ -1,8 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
-import twilio from 'twilio';
+import * as twilioLib from 'twilio';
 import type { Twilio } from 'twilio';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const twilio: (...args: any[]) => Twilio = (twilioLib as any).default ?? twilioLib;
 import { PrismaService } from '../../database/prisma.service';
 
 interface OrderConfirmationData {
