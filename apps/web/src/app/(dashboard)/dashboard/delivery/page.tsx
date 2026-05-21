@@ -326,13 +326,17 @@ interface ApiDelivery {
   status: string;
   driverId?: string;
   customer?: { firstName?: string; lastName?: string };
+  delivery?: { driver?: { firstName?: string; lastName?: string } | null } | null;
   deliveryAddress?: unknown;
   estimatedDeliveryTime?: string;
   createdAt: string;
 }
 
 function apiToDelivery(d: ApiDelivery, idx: number): Delivery {
-  const driverName = 'N/A';
+  const driverData = d.delivery?.driver;
+  const driverName = driverData
+    ? [driverData.firstName, driverData.lastName].filter(Boolean).join(' ') || 'N/A'
+    : 'N/A';
   const addr = typeof d.deliveryAddress === 'string'
     ? d.deliveryAddress
     : (d.deliveryAddress as any)?.street ?? '';

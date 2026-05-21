@@ -587,16 +587,76 @@ type PendingOrder = {
   status: 'ready' | 'assigned';
 };
 
+type DriverRecent = {
+  id: string;
+  order: string;
+  customer: string;
+  distance: string;
+  time: string;
+  status: 'delivered' | 'failed';
+};
+
 function DriverDashboard() {
   const authUser = useAuthStore((s) => s.user);
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState<PendingOrder[]>([]);
   const [activeDelivery, setActiveDelivery] = useState(DRIVER_ACTIVE_DELIVERY);
   const [delivering, setDelivering] = useState(false);
+  const [driverKpis, setDriverKpis] = useState({
+    deliveries: '8',
+    km: '34 km',
+    earnings: '64 €',
+    rating: '4.9★',
+  });
+  const [recentDeliveries, setRecentDeliveries] = useState<DriverRecent[]>(DRIVER_RECENT);
 
   useEffect(() => {
     const driverId = authUser?.id;
     if (!driverId) return;
+
+    // Fetch KPI stats
+    (api.get('/drivers/me/stats') as Promise<{
+      deliveriesToday?: number;
+      totalDistanceKm?: number;
+      earningsToday?: number;
+      averageRating?: number;
+    }>)
+      .then((stats) => {
+        setDriverKpis({
+          deliveries: stats.deliveriesToday != null ? String(stats.deliveriesToday) : '8',
+          km: stats.totalDistanceKm != null ? `${stats.totalDistanceKm} km` : '34 km',
+          earnings: stats.earningsToday != null ? `${stats.earningsToday} €` : '64 €',
+          rating: stats.averageRating != null ? `${stats.averageRating}★` : '4.9★',
+        });
+      })
+      .catch(() => {/* keep static fallback */});
+
+    // Fetch recent deliveries
+    (api.get(`/orders?driverId=${driverId}&limit=5`) as Promise<{
+      id: string; orderNumber?: string;
+      customer?: { firstName?: string; lastName?: string };
+      deliveryDistance?: string;
+      updatedAt?: string; createdAt?: string;
+      status?: string;
+    }[]>)
+      .then((data) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        setRecentDeliveries(data.map((o) => ({
+          id: o.id,
+          order: o.orderNumber ?? o.id.slice(0, 8).toUpperCase(),
+          customer: o.customer
+            ? `${o.customer.firstName ?? ''} ${o.customer.lastName ?? ''}`.trim() || 'Client'
+            : 'Client',
+          distance: o.deliveryDistance ?? '—',
+          time: o.updatedAt ?? o.createdAt
+            ? new Date(o.updatedAt ?? o.createdAt ?? '').toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            : '—',
+          status: o.status === 'delivered' ? 'delivered' : 'failed',
+        })));
+      })
+      .catch(() => {/* keep static fallback */});
+
+    // Fetch pending orders
     (api.get(`/delivery/driver/${driverId}/pending`) as Promise<{
       id: string; orderId?: string; orderNumber?: string;
       customer?: { firstName?: string; lastName?: string };
@@ -625,10 +685,10 @@ function DriverDashboard() {
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const kpis = [
-    { label: 'Livraisons', value: '8',       icon: Package,  color: 'text-brand-600',  bg: 'bg-brand-50'  },
-    { label: 'Km parcourus', value: '34 km', icon: MapPin,   color: 'text-blue-600',   bg: 'bg-blue-50'   },
-    { label: 'Gains',        value: '64 €',  icon: Euro,     color: 'text-green-600',  bg: 'bg-green-50'  },
-    { label: 'Note moy.',    value: '4.9★',  icon: Star,     color: 'text-yellow-600', bg: 'bg-yellow-50' },
+    { label: 'Livraisons',   value: driverKpis.deliveries, icon: Package, color: 'text-brand-600',  bg: 'bg-brand-50'  },
+    { label: 'Km parcourus', value: driverKpis.km,         icon: MapPin,  color: 'text-blue-600',   bg: 'bg-blue-50'   },
+    { label: 'Gains',        value: driverKpis.earnings,   icon: Euro,    color: 'text-green-600',  bg: 'bg-green-50'  },
+    { label: 'Note moy.',    value: driverKpis.rating,     icon: Star,    color: 'text-yellow-600', bg: 'bg-yellow-50' },
   ];
 
   function handleMarkDelivered() {
@@ -805,7 +865,7 @@ function DriverDashboard() {
           </div>
         </CardHeader>
         <div className="divide-y divide-surface-50">
-          {DRIVER_RECENT.map((d) => (
+          {recentDeliveries.map((d) => (
             <div key={d.id} className="flex items-center gap-4 px-6 py-4">
               <div className={`rounded-xl p-2 ${d.status === 'delivered' ? 'bg-green-50' : 'bg-red-50'}`}>
                 {d.status === 'delivered'
@@ -955,11 +1015,20 @@ function KitchenOrderCard({ order, onAdvance, onDone }: {
 function StaffDashboard() {
   const authUser = useAuthStore((s) => s.user);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [done, setDone] = useState(0);
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   useEffect(() => {
     const restaurantId = authUser?.restaurantIds?.[0];
     if (!restaurantId) return;
+
+    // Fetch delivered count for today
+    (api.get(`/orders?restaurantId=${restaurantId}&status=delivered&today=true`) as Promise<unknown[]>)
+      .then((data) => {
+        if (Array.isArray(data)) setDone(data.length);
+      })
+      .catch(() => {/* fallback stays 0 */});
+
     (api.get(`/orders/restaurant/${restaurantId}`) as Promise<{
       id: string; orderNumber?: string; status: string; type?: string;
       tableNumber?: string; createdAt?: string;
@@ -995,7 +1064,6 @@ function StaffDashboard() {
   const pending   = orders.filter((o) => o.status === 'pending').length;
   const preparing = orders.filter((o) => o.status === 'preparing').length;
   const ready     = orders.filter((o) => o.status === 'ready').length;
-  const done      = 14; // completed this shift (static for demo)
 
   function advanceOrder(id: string) {
     setOrders((prev) => prev.map((o) => {

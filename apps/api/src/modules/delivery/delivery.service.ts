@@ -33,6 +33,11 @@ export class DeliveryService {
       include: {
         items: true,
         customer: { select: { id: true, firstName: true, lastName: true, phone: true } },
+        delivery: {
+          include: {
+            driver: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

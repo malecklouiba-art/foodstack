@@ -1359,6 +1359,32 @@ export default function RestaurantsPage() {
 
   // Owner view — single restaurant
   if (role === 'owner') {
+    if (restaurants.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 space-y-4 px-6">
+          <Store className="h-12 w-12 text-gray-300" />
+          <p className="text-lg font-semibold text-gray-600">Aucun restaurant trouvé</p>
+          <p className="text-sm text-gray-400 text-center max-w-xs">
+            Votre restaurant n&apos;a pas encore été configuré ou est en cours de chargement.
+          </p>
+          <button
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-2 rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-600"
+          >
+            <Plus className="h-4 w-4" />
+            Créer mon restaurant
+          </button>
+          <AnimatePresence>
+            {showModal && (
+              <AddRestaurantModal
+                onClose={() => setShowModal(false)}
+                onAdd={r => setRestaurants(prev => [...prev, r])}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
     return (
       <OwnerView
         restaurant={restaurants[0]}
