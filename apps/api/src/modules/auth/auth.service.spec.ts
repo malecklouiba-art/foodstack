@@ -22,6 +22,7 @@ jest.mock('bcryptjs', () => ({
 // ---------------------------------------------------------------------------
 const mockUsersService = {
   findByEmail: jest.fn(),
+  findByEmailWithHash: jest.fn(),
   findById: jest.fn(),
   create: jest.fn(),
   getRestaurantIds: jest.fn(),
@@ -71,7 +72,7 @@ describe('AuthService', () => {
         role: 'customer',
         passwordHash: 'hashed_secret',
       };
-      mockUsersService.findByEmail.mockResolvedValue(storedUser);
+      mockUsersService.findByEmailWithHash.mockResolvedValue(storedUser);
       mockBcryptCompare.mockResolvedValue(true);
 
       const result = await service.validateUser('jean@example.com', 'plaintext');
@@ -85,7 +86,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when user is not found', async () => {
-      mockUsersService.findByEmail.mockResolvedValue(null);
+      mockUsersService.findByEmailWithHash.mockResolvedValue(null);
 
       await expect(service.validateUser('ghost@example.com', 'pass')).rejects.toThrow(
         UnauthorizedException,
@@ -93,7 +94,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException when password does not match', async () => {
-      mockUsersService.findByEmail.mockResolvedValue({
+      mockUsersService.findByEmailWithHash.mockResolvedValue({
         id: 'user_2',
         email: 'user@example.com',
         passwordHash: 'hashed_wrong',

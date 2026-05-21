@@ -145,6 +145,17 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        phone: true, role: true, avatar: true, isActive: true,
+        twoFactorEnabled: true, createdAt: true,
+      },
+    });
+  }
+
+  async findByEmailWithHash(email: string) {
     return this.prisma.user.findUnique({ where: { email } });
   }
 

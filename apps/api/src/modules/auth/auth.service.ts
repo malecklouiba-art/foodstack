@@ -18,7 +18,7 @@ export class AuthService {
   ) {}
 
   async validateUser(email: string, password: string) {
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.usersService.findByEmailWithHash(email);
     if (!user) throw new UnauthorizedException('Identifiants invalides');
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
