@@ -20,11 +20,11 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('restaurants')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('restaurants')
 export class RestaurantsController {
   constructor(private readonly restaurantsService: RestaurantsService) {}
+
+  // ─── Public read endpoints ────────────────────────────────────────────────
 
   @Get()
   @ApiOperation({ summary: 'Get all restaurants' })
@@ -65,7 +65,17 @@ export class RestaurantsController {
     return this.restaurantsService.findById(id);
   }
 
+  @Get(':id/zones')
+  @ApiOperation({ summary: 'Get delivery zones for a restaurant' })
+  getZones(@Param('id') id: string) {
+    return this.restaurantsService.getZones(id);
+  }
+
+  // ─── Protected write endpoints ────────────────────────────────────────────
+
   @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Create a new restaurant' })
   create(@Request() req: any, @Body() dto: CreateRestaurantDto) {
@@ -73,6 +83,8 @@ export class RestaurantsController {
   }
 
   @Patch(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Update a restaurant' })
   update(@Param('id') id: string, @Body() dto: UpdateRestaurantDto) {
@@ -80,6 +92,8 @@ export class RestaurantsController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Delete a restaurant' })
   remove(@Param('id') id: string) {
@@ -87,19 +101,17 @@ export class RestaurantsController {
   }
 
   @Patch(':id/toggle-open')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Toggle the open/closed status of a restaurant' })
   toggleOpen(@Param('id') id: string) {
     return this.restaurantsService.toggleOpen(id);
   }
 
-  @Get(':id/zones')
-  @ApiOperation({ summary: 'Get delivery zones for a restaurant' })
-  getZones(@Param('id') id: string) {
-    return this.restaurantsService.getZones(id);
-  }
-
   @Put(':id/zones')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('restaurant_owner', 'super_admin')
   @ApiOperation({ summary: 'Replace delivery zones for a restaurant' })
   updateZones(@Param('id') id: string, @Body() zones: any[]) {

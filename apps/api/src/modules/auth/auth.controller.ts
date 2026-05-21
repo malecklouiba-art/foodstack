@@ -64,8 +64,10 @@ export class AuthController {
   }
 
   @Post('2fa/verify')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Verify TOTP during login flow' })
-  verify2FA(@Body() dto: TwoFactorVerifyDto & { userId: string }) {
-    return this.authService.verify2FA(dto.userId, dto.token);
+  verify2FA(@Request() req: any, @Body() dto: TwoFactorVerifyDto) {
+    return this.authService.verify2FA(req.user.id, dto.token);
   }
 }

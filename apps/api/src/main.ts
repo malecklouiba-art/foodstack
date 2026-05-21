@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import * as express from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -10,9 +9,6 @@ async function bootstrap() {
 
   // Security headers
   app.use(helmet());
-
-  // Raw body for Stripe webhook signature verification — must be registered before NestJS body parsers
-  app.use('/api/v1/payments/webhook', express.raw({ type: 'application/json' }));
 
   app.useGlobalPipes(
     new ValidationPipe({

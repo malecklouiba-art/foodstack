@@ -4,6 +4,7 @@ import {
   IsNumber,
   IsString,
   IsOptional,
+  IsNotEmpty,
   ValidateNested,
   Min,
 } from 'class-validator';
@@ -12,6 +13,7 @@ import { Type } from 'class-transformer';
 export class OrderItemDto {
   @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
   @IsString()
+  @IsNotEmpty()
   menuItemId: string;
 
   @ApiProperty({ example: 2 })
@@ -28,10 +30,12 @@ export class OrderItemDto {
 export class CreateOrderDto {
   @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
   @IsString()
+  @IsNotEmpty()
   restaurantId: string;
 
   @ApiProperty({ example: 'cjld2cjxh0000qzrmn831i7rn' })
   @IsString()
+  @IsNotEmpty()
   customerId: string;
 
   @ApiProperty({ type: [OrderItemDto] })
