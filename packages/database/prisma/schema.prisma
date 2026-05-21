@@ -108,6 +108,7 @@ model User {
   driver           Driver?
   notifications    Notification[]
   favorites        FavoriteRestaurant[]
+  pushSubscription PushSubscription?
 
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -627,4 +628,19 @@ model Subscription {
   updatedAt    DateTime  @updatedAt
 
   @@map("subscriptions")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String
+  p256dh    String
+  auth      String
+  expoToken String?
+  role      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("push_subscriptions")
 }

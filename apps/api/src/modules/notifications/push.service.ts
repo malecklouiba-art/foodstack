@@ -2,23 +2,17 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as webpush from 'web-push';
 import { PushSubscriptionDto } from './dto/push-subscription.dto';
-
-interface StoredSubscription {
-  subscription: webpush.PushSubscription;
-  role?: string;
-}
+import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
 export class PushService implements OnModuleInit {
   private readonly logger = new Logger(PushService.name);
+  private vapidReady = false;
 
-  /** In-memory store: userId → subscription + role */
-  private readonly subscriptions = new Map<string, StoredSubscription>();
-
-  /** Reverse index: role → Set<userId> */
-  private readonly roleIndex = new Map<string, Set<string>>();
-
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   onModuleInit(): void {
     const publicKey = this.config.get<string>('VAPID_PUBLIC_KEY');
@@ -27,148 +21,117 @@ export class PushService implements OnModuleInit {
       this.config.get<string>('VAPID_SUBJECT') ?? 'mailto:admin@foodstack.app';
 
     if (!publicKey || !privateKey) {
-      this.logger.warn(
-        'VAPID keys not configured — push notifications will be disabled. ' +
-          'Run generateVapidKeys() to generate them.',
-      );
+      this.logger.warn('VAPID keys not configured — push notifications disabled.');
       return;
     }
 
     try {
       webpush.setVapidDetails(subject, publicKey, privateKey);
+      this.vapidReady = true;
       this.logger.log('Web Push VAPID configured');
     } catch (err) {
       this.logger.warn(
-        `VAPID keys are invalid — push notifications will be disabled. ` +
-          `Run generateVapidKeys() to generate valid keys. Error: ${(err as Error).message}`,
+        `VAPID keys invalid — push notifications disabled. Error: ${(err as Error).message}`,
       );
     }
   }
 
-  /** Utility: generate a new VAPID key pair (for initial setup / debug). */
   generateVapidKeys(): { publicKey: string; privateKey: string } {
     const keys = webpush.generateVAPIDKeys();
-    this.logger.log(`Generated VAPID keys — add to .env:\nVAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}`);
+    this.logger.log(
+      `Generated VAPID keys:\nVAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}`,
+    );
     return keys;
   }
 
-  /** Save (or update) a push subscription for a given user. */
-  subscribe(dto: PushSubscriptionDto, role?: string): void {
-    const pushSub: webpush.PushSubscription = {
-      endpoint: dto.endpoint,
-      keys: {
-        auth: dto.keys.auth,
-        p256dh: dto.keys.p256dh,
-      },
-    };
-
-    // Remove user from previous role index if re-subscribing with a different role
-    const existing = this.subscriptions.get(dto.userId);
-    if (existing?.role) {
-      this.roleIndex.get(existing.role)?.delete(dto.userId);
-    }
-
-    this.subscriptions.set(dto.userId, { subscription: pushSub, role });
-
-    if (role) {
-      if (!this.roleIndex.has(role)) {
-        this.roleIndex.set(role, new Set());
-      }
-      this.roleIndex.get(role)!.add(dto.userId);
-    }
-
-    this.logger.log(`Subscription saved for user ${dto.userId}${role ? ` (role: ${role})` : ''}`);
+  async subscribe(dto: PushSubscriptionDto, role?: string): Promise<void> {
+    await this.prisma.pushSubscription.upsert({
+      where: { userId: dto.userId },
+      update: { endpoint: dto.endpoint, p256dh: dto.keys.p256dh, auth: dto.keys.auth, role },
+      create: { userId: dto.userId, endpoint: dto.endpoint, p256dh: dto.keys.p256dh, auth: dto.keys.auth, role },
+    });
+    this.logger.log(`Push subscription saved for user ${dto.userId}`);
   }
 
-  /** Unregister a user's push subscription. */
-  unsubscribe(userId: string): void {
-    const existing = this.subscriptions.get(userId);
-    if (existing?.role) {
-      this.roleIndex.get(existing.role)?.delete(userId);
-    }
-    this.subscriptions.delete(userId);
-    this.logger.log(`Subscription removed for user ${userId}`);
+  async unsubscribe(userId: string): Promise<void> {
+    await this.prisma.pushSubscription.deleteMany({ where: { userId } });
+    this.logger.log(`Push subscription removed for user ${userId}`);
   }
 
-  /** Send a push notification to a single user. */
   async sendToUser(
     userId: string,
     notification: { title: string; body: string; icon?: string; url?: string },
   ): Promise<void> {
-    const stored = this.subscriptions.get(userId);
-    if (!stored) {
-      this.logger.warn(`No subscription found for user ${userId}`);
-      return;
-    }
+    const stored = await this.prisma.pushSubscription.findUnique({ where: { userId } });
+    if (!stored) return;
 
-    await this.sendPush(stored.subscription, notification, userId);
+    await this.sendPush(
+      { endpoint: stored.endpoint, keys: { auth: stored.auth, p256dh: stored.p256dh } },
+      notification,
+      userId,
+    );
   }
 
-  /** Broadcast a push notification to all users belonging to a role. */
   async broadcastRole(
     role: string,
     notification: { title: string; body: string; icon?: string; url?: string },
   ): Promise<void> {
-    const userIds = this.roleIndex.get(role);
-    if (!userIds || userIds.size === 0) {
-      this.logger.warn(`No subscribers found for role ${role}`);
-      return;
-    }
+    const subs = await this.prisma.pushSubscription.findMany({ where: { role } });
+    if (!subs.length) return;
 
-    const sends = Array.from(userIds).map((userId) =>
-      this.sendToUser(userId, notification),
+    await Promise.allSettled(
+      subs.map((s) =>
+        this.sendPush(
+          { endpoint: s.endpoint, keys: { auth: s.auth, p256dh: s.p256dh } },
+          notification,
+          s.userId,
+        ),
+      ),
     );
-    await Promise.allSettled(sends);
-    this.logger.log(`Broadcast sent to ${userIds.size} user(s) with role ${role}`);
+    this.logger.log(`Broadcast sent to ${subs.length} subscriber(s) with role ${role}`);
   }
 
-  // ─── Expo push tokens (mobile) ──────────────────────────────────────────────
+  // ─── Expo push tokens ────────────────────────────────────────────────────────
 
-  /** userId → Expo push token */
-  private readonly expoTokens = new Map<string, string>();
-
-  registerExpoToken(userId: string, token: string): void {
-    this.expoTokens.set(userId, token);
+  async registerExpoToken(userId: string, token: string): Promise<void> {
+    await this.prisma.pushSubscription.upsert({
+      where: { userId },
+      update: { expoToken: token },
+      create: { userId, endpoint: '', p256dh: '', auth: '', expoToken: token },
+    });
     this.logger.log(`Expo push token registered for user ${userId}`);
   }
 
-  getExpoToken(userId: string): string | undefined {
-    return this.expoTokens.get(userId);
-  }
-
-  /** Fire-and-forget Expo push notification via the Expo push API. */
   async sendExpoNotification(
     userId: string,
     title: string,
     body: string,
     data?: Record<string, unknown>,
   ): Promise<void> {
-    const token = this.expoTokens.get(userId);
-    if (!token) return;
+    const stored = await this.prisma.pushSubscription.findUnique({ where: { userId } });
+    if (!stored?.expoToken) return;
 
     try {
       const res = await fetch('https://exp.host/--/api/v2/push/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ to: token, title, body, data: data ?? {} }),
+        body: JSON.stringify({ to: stored.expoToken, title, body, data: data ?? {} }),
       });
-      if (!res.ok) {
-        this.logger.warn(`Expo push failed for user ${userId}: ${res.status}`);
-      } else {
-        this.logger.debug(`Expo push sent to user ${userId}`);
-      }
+      if (!res.ok) this.logger.warn(`Expo push failed for user ${userId}: ${res.status}`);
     } catch (err) {
       this.logger.error(`Expo push error for user ${userId}`, err);
     }
   }
 
-  // ─── Private helpers ────────────────────────────────────────────────────────
+  // ─── Private helpers ─────────────────────────────────────────────────────────
 
   private async sendPush(
     subscription: webpush.PushSubscription,
     notification: { title: string; body: string; icon?: string; url?: string },
     userId?: string,
   ): Promise<void> {
+    if (!this.vapidReady) return;
+
     const payload = JSON.stringify({
       title: notification.title,
       body: notification.body,
@@ -178,19 +141,14 @@ export class PushService implements OnModuleInit {
 
     try {
       await webpush.sendNotification(subscription, payload);
-      this.logger.debug(`Push sent${userId ? ` to user ${userId}` : ''}`);
     } catch (err: unknown) {
       const statusCode = (err as { statusCode?: number }).statusCode;
-      // 404 / 410 = subscription expired or revoked — clean up
-      if (statusCode === 404 || statusCode === 410) {
-        if (userId) {
-          this.logger.warn(`Subscription expired for user ${userId} — removing`);
-          this.unsubscribe(userId);
-        }
+      if ((statusCode === 404 || statusCode === 410) && userId) {
+        this.logger.warn(`Subscription expired for user ${userId} — removing`);
+        await this.unsubscribe(userId);
         return;
       }
       this.logger.error(`Push send failed${userId ? ` for user ${userId}` : ''}`, err);
-      throw err;
     }
   }
 }
