@@ -4,7 +4,6 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function seedProduction() {
-  // Only create the super admin — idempotent via upsert
   const email = process.env.SUPER_ADMIN_EMAIL ?? 'admin@foodstack.app';
   const password = process.env.SUPER_ADMIN_PASSWORD;
 
@@ -31,7 +30,24 @@ async function seedProduction() {
 }
 
 async function seedDevelopment() {
-  await seedProduction();
+  // Dev default — aligns with DEMO_ACCOUNTS on the login page
+  const email = process.env.SUPER_ADMIN_EMAIL ?? 'admin@foodstack.app';
+  const password = process.env.SUPER_ADMIN_PASSWORD ?? 'Admin1234!';
+
+  const adminHash = await bcrypt.hash(password, 12);
+  await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: {
+      email,
+      passwordHash: adminHash,
+      firstName: 'Super',
+      lastName: 'Admin',
+      role: UserRole.super_admin,
+      emailVerified: true,
+    },
+  });
+  console.log(`Super admin: ${email} / ${password}`);
 
   const ownerHash = await bcrypt.hash('Owner1234!', 12);
   const owner = await prisma.user.upsert({
@@ -47,6 +63,36 @@ async function seedDevelopment() {
       emailVerified: true,
       loyaltyPoints: 1200,
       loyaltyTier: 'gold',
+    },
+  });
+
+  const staffHash = await bcrypt.hash('Staff1234!', 12);
+  await prisma.user.upsert({
+    where: { email: 'staff@lecomptoir.fr' },
+    update: {},
+    create: {
+      email: 'staff@lecomptoir.fr',
+      passwordHash: staffHash,
+      firstName: 'Sophie',
+      lastName: 'Martin',
+      phone: '06 55 44 33 22',
+      role: UserRole.staff,
+      emailVerified: true,
+    },
+  });
+
+  const driverHash = await bcrypt.hash('Driver1234!', 12);
+  await prisma.user.upsert({
+    where: { email: 'driver@foodstack.app' },
+    update: {},
+    create: {
+      email: 'driver@foodstack.app',
+      passwordHash: driverHash,
+      firstName: 'Lucas',
+      lastName: 'Bernard',
+      phone: '07 11 22 33 44',
+      role: UserRole.driver,
+      emailVerified: true,
     },
   });
 
@@ -141,9 +187,13 @@ async function seedDevelopment() {
     });
   }
 
-  console.log('Dev seed complete — demo restaurant + menu created');
-  console.log('  Owner:    owner@lecomptoir.fr / Owner1234!');
-  console.log('  Customer: client@exemple.fr / Customer1234!');
+  console.log('\n=== Comptes de test ===');
+  console.log('  Super Admin : admin@foodstack.app   / Admin1234!');
+  console.log('  Propriétaire: owner@lecomptoir.fr   / Owner1234!');
+  console.log('  Staff       : staff@lecomptoir.fr   / Staff1234!');
+  console.log('  Livreur     : driver@foodstack.app  / Driver1234!');
+  console.log('  Client      : client@exemple.fr     / Customer1234!');
+  console.log('======================\n');
 }
 
 async function main() {
