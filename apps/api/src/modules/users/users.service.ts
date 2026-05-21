@@ -290,7 +290,23 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(id: string, data: Partial<{ twoFactorSecret: string | null; twoFactorEnabled: boolean }>) {
+  async findByIdWithRefreshHash(id: string) {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true, email: true, firstName: true, lastName: true,
+        phone: true, role: true, avatar: true, isActive: true,
+        twoFactorEnabled: true, refreshTokenHash: true,
+        createdAt: true, updatedAt: true,
+      },
+    });
+  }
+
+  async updateUser(id: string, data: Partial<{
+    twoFactorSecret: string | null;
+    twoFactorEnabled: boolean;
+    refreshTokenHash: string | null;
+  }>) {
     return this.prisma.user.update({ where: { id }, data });
   }
 

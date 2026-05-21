@@ -39,6 +39,14 @@ export class AuthController {
     return req.user;
   }
 
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Invalidate the current refresh token' })
+  logout(@Request() req: any) {
+    return this.authService.logout(req.user.id);
+  }
+
   @Post('2fa/setup')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

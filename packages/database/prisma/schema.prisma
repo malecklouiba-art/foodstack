@@ -92,6 +92,7 @@ model User {
   emailVerified    Boolean     @default(false)
   twoFactorSecret  String?
   twoFactorEnabled Boolean     @default(false)
+  refreshTokenHash String?
 
   loyaltyPoints  Int         @default(0)
   loyaltyTier    LoyaltyTier @default(bronze)
@@ -604,6 +605,14 @@ model RestaurantTable {
 
   @@unique([restaurantId, number])
   @@map("restaurant_tables")
+}
+
+model AdminSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("admin_settings")
 }
 
 model Subscription {

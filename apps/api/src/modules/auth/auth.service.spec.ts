@@ -23,9 +23,11 @@ jest.mock('bcryptjs', () => ({
 const mockUsersService = {
   findByEmail: jest.fn(),
   findByEmailWithHash: jest.fn(),
+  findByIdWithRefreshHash: jest.fn(),
   findById: jest.fn(),
   create: jest.fn(),
   getRestaurantIds: jest.fn(),
+  updateUser: jest.fn().mockResolvedValue({}),
 };
 
 const mockJwtService = {
@@ -238,8 +240,10 @@ describe('AuthService', () => {
         firstName: 'Refresh',
         lastName: 'User',
         role: 'customer',
+        refreshTokenHash: '$hashed$',
       };
-      mockUsersService.findById.mockResolvedValue(foundUser);
+      mockUsersService.findByIdWithRefreshHash.mockResolvedValue(foundUser);
+      mockBcryptCompare.mockResolvedValue(true);
       mockUsersService.getRestaurantIds.mockResolvedValue([]);
       mockJwtService.sign
         .mockReturnValueOnce('new_access_token')
@@ -251,11 +255,22 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('refreshToken', 'new_refresh_token');
     });
 
+    it('should throw UnauthorizedException when stored hash does not match', async () => {
+      mockJwtService.verify.mockReturnValue({ sub: 'user_tampered', email: 'x@example.com', role: 'customer' });
+      mockUsersService.findByIdWithRefreshHash.mockResolvedValue({
+        id: 'user_tampered', refreshTokenHash: '$stored$',
+      });
+      mockBcryptCompare.mockResolvedValue(false);
+
+      await expect(service.refreshToken('tampered.token')).rejects.toThrow(UnauthorizedException);
+    });
+
     it('should use JWT_REFRESH_SECRET when verifying the refresh token', async () => {
       mockConfigService.get.mockReturnValue('my_refresh_secret');
       mockJwtService.verify.mockReturnValue({ sub: 'user_secret_check', email: 'x@example.com', role: 'customer' });
-      const foundUser = { id: 'user_secret_check', email: 'x@example.com', role: 'customer' };
-      mockUsersService.findById.mockResolvedValue(foundUser);
+      const foundUser = { id: 'user_secret_check', email: 'x@example.com', role: 'customer', refreshTokenHash: '$h$' };
+      mockUsersService.findByIdWithRefreshHash.mockResolvedValue(foundUser);
+      mockBcryptCompare.mockResolvedValue(true);
       mockUsersService.getRestaurantIds.mockResolvedValue([]);
       mockJwtService.sign.mockReturnValue('tok');
 

@@ -31,12 +31,20 @@ export class AuthService {
   async login(user: any) {
     const restaurantIds = await this.usersService.getRestaurantIds(user.id);
     const payload = { sub: user.id, email: user.email, role: user.role };
+
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.config.get('JWT_REFRESH_SECRET'),
+      expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+    });
+
+    // Store a hash of the refresh token — allows revocation and rotation checks
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 8);
+    await this.usersService.updateUser(user.id, { refreshTokenHash });
+
     return {
-      accessToken: this.jwtService.sign(payload),
-      refreshToken: this.jwtService.sign(payload, {
-        secret: this.config.get('JWT_REFRESH_SECRET'),
-        expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
-      }),
+      accessToken,
+      refreshToken,
       user: { ...user, restaurantIds },
     };
   }
@@ -62,17 +70,29 @@ export class AuthService {
     return this.login(result);
   }
 
-  async refreshToken(refreshToken: string) {
+  async refreshToken(token: string) {
     try {
-      const payload = this.jwtService.verify(refreshToken, {
+      const payload = this.jwtService.verify(token, {
         secret: this.config.get('JWT_REFRESH_SECRET'),
       });
-      const user = await this.usersService.findById(payload.sub);
-      if (!user) throw new UnauthorizedException();
-      return this.login(user);
+
+      const user = await this.usersService.findByIdWithRefreshHash(payload.sub);
+      if (!user || !user.refreshTokenHash) throw new UnauthorizedException();
+
+      const isValid = await bcrypt.compare(token, user.refreshTokenHash);
+      if (!isValid) throw new UnauthorizedException();
+
+      // Rotation: issue a new pair and invalidate the old hash
+      const { refreshTokenHash: _, ...safeUser } = user;
+      return this.login(safeUser);
     } catch {
       throw new UnauthorizedException('Token de rafraîchissement invalide');
     }
+  }
+
+  async logout(userId: string) {
+    await this.usersService.updateUser(userId, { refreshTokenHash: null });
+    return { ok: true };
   }
 
   async generate2FASecret(userId: string) {
@@ -80,7 +100,6 @@ export class AuthService {
     const secret = authenticator.generateSecret();
     const otpAuthUrl = authenticator.keyuri(user.email, 'FoodStack', secret);
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUrl);
-    // Store secret temporarily (not yet enabled)
     await this.usersService.updateUser(userId, { twoFactorSecret: secret });
     return { secret, qrCodeDataUrl, otpAuthUrl };
   }
