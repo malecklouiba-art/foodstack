@@ -7,7 +7,7 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, ChevronDown, ChevronUp } from 'luc
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase';
 import api from '@/lib/api';
-import { useAuthStore } from '@/store/auth';
+import { useAuthStore, type UserRole } from '@/store/auth';
 
 // Demo accounts — bypass Supabase when these credentials are used
 const DEMO_ACCOUNTS = [
@@ -25,6 +25,15 @@ const DEMO_QUICK = [
   { role: 'driver',   label: '🛵 Livreur',        redirect: '/dashboard', color: 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200' },
   { role: 'customer', label: '🛒 Client',         redirect: '/menu',      color: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200' },
 ] as const;
+
+// Fake users for the auth store when the API is unavailable (cookie-only demo mode)
+const DEMO_USERS: Record<string, { id: string; email: string; name: string; role: UserRole; restaurantIds: string[]; loyaltyPoints?: number }> = {
+  admin:    { id: 'demo-admin',    email: 'admin@foodstack.app',  name: 'Super Admin',   role: 'super_admin',      restaurantIds: [] },
+  owner:    { id: 'demo-owner',    email: 'owner@lecomptoir.fr',  name: 'Jean Dupont',   role: 'restaurant_owner', restaurantIds: ['demo-restaurant-1'] },
+  staff:    { id: 'demo-staff',    email: 'staff@lecomptoir.fr',  name: 'Sophie Martin', role: 'staff',            restaurantIds: ['demo-restaurant-1'] },
+  driver:   { id: 'demo-driver',   email: 'driver@foodstack.app', name: 'Lucas Bernard', role: 'driver',           restaurantIds: [] },
+  customer: { id: 'demo-customer', email: 'client@exemple.fr',   name: 'Marie Laurent', role: 'customer',         restaurantIds: [], loyaltyPoints: 450 },
+};
 
 function setDemoCookie(role: string) {
   const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
@@ -126,7 +135,9 @@ export default function LoginPage() {
       setUser(mapApiUser(data.user), data.accessToken);
       setDemoCookie(roleToCookie(data.user.role));
     } catch {
-      // API unavailable — cookie-only fallback
+      // API unavailable — cookie-only fallback with demo user in store
+      const demoUser = DEMO_USERS[account.role];
+      if (demoUser) setUser(demoUser, 'demo-token');
       setDemoCookie(account.role);
     }
     toast.success(`Connecté en tant que ${account.label}`);
@@ -292,6 +303,8 @@ export default function LoginPage() {
                 <button
                   key={d.role}
                   onClick={() => {
+                    const demoUser = DEMO_USERS[d.role];
+                    if (demoUser) setUser(demoUser, 'demo-token');
                     setDemoCookie(d.role);
                     toast.success(`Connecté en tant que ${d.label}`);
                     router.push(d.redirect);

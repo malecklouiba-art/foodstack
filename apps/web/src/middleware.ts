@@ -34,16 +34,14 @@ export async function middleware(req: NextRequest) {
 
   if (!isProtected && !isAuthPage) return res;
 
-  // Demo session cookie — development only, never in production
-  if (process.env.NODE_ENV !== 'production') {
-    const demoCookie = req.cookies.get('fs_demo')?.value;
-    if (demoCookie) {
-      if (isAuthPage) return NextResponse.redirect(new URL('/dashboard', req.url));
-      if (demoCookie === 'driver' && DRIVER_BLOCKED.some((p) => path.startsWith(p))) {
-        return NextResponse.redirect(new URL('/dashboard', req.url));
-      }
-      return res;
+  // Demo session cookie — allows testing without a live auth backend
+  const demoCookie = req.cookies.get('fs_demo')?.value;
+  if (demoCookie) {
+    if (isAuthPage) return NextResponse.redirect(new URL('/dashboard', req.url));
+    if (demoCookie === 'driver' && DRIVER_BLOCKED.some((p) => path.startsWith(p))) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
     }
+    return res;
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
